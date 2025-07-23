@@ -1,0 +1,54 @@
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+a,
+button,
+input,
+select,
+textarea,
+li,
+ul {
+    font-family: "Poppins", sans-serif !important;
+    font-size: 15px;
+}
+
+body {
+    background: url("/login/images/bg.jpg") no-repeat center center fixed !important;
+    background-size: cover;
+    font-size: 15px;
+}
+
+.content-wrapper {
+    background-color: transparent;
+}
+
+.btn-custom {
+    background-color: #f0a8a8; /* Warna hijau */
+
+    color: #ffffff; /* Warna teks */
+    border-radius: 20px; /* Sudut tombol melengkung */
+    padding: 8px 20px; /* Ukuran tombol */
+}
+
+.btn-custom:hover {
+    background-color: #f0a8a8; /* Warna saat hover */
+    color: rgb(49, 49, 49); /* Warna teks */
+}
+
+.btn-custom-close {
+    background-color: #444141; /* Warna hijau */
+rgb(134, 134, 134)
+    color: #ffffff; /* Warna teks */
+    border-radius: 20px; /* Sudut tombol melengkung */
+    padding: 8px 20px; /* Ukuran tombol */
+}
+
+.btn-custom-close:hover {
+    background-color: #f0a8a8; /* Warna saat hover */
+    color: rgb(49, 49, 49); /* Warna teks */
+}

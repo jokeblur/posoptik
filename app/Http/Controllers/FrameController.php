@@ -172,6 +172,11 @@ class FrameController extends Controller
 
     public function export()
     {
-        return \Maatwebsite\Excel\Facades\Excel::download(new FrameExport, 'frame.xlsx');
+        try {
+            $filename = 'frame_' . date('Y-m-d_H-i-s') . '.xlsx';
+            return \Maatwebsite\Excel\Facades\Excel::download(new FrameExport, $filename);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal mengexport data frame: ' . $e->getMessage());
+        }
     }
 }

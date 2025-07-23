@@ -10,6 +10,30 @@
 @endsection
 
 @section('content')
+@if(session('error'))
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-danger alert-dismissible">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            <h4><i class="icon fa fa-ban"></i> Error!</h4>
+            {{ session('error') }}
+        </div>
+    </div>
+</div>
+@endif
+
+@if(session('success'))
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-success alert-dismissible">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            <h4><i class="icon fa fa-check"></i> Success!</h4>
+            {{ session('success') }}
+        </div>
+    </div>
+</div>
+@endif
+
 <div class="row mb-3">
     <div class="col-md-12 d-flex align-items-center gap-2">
         <form action="{{ route('frame.import') }}" method="POST" enctype="multipart/form-data" class="d-inline-block">
@@ -20,6 +44,7 @@
             </div>
         </form>
         <a href="{{ route('frame.export') }}" class="btn btn-info ms-2">Export Frame</a>
+        <a href="{{ route('test.frame.export') }}" class="btn btn-warning ms-2" target="_blank">Test Export</a>
     </div>
 </div>
 <div class="row mb-3">

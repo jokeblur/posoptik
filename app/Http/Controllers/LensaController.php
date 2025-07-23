@@ -160,6 +160,11 @@ class LensaController extends Controller
 
     public function export()
     {
-        return \Maatwebsite\Excel\Facades\Excel::download(new LensaExport, 'lensa.xlsx');
+        try {
+            $filename = 'lensa_' . date('Y-m-d_H-i-s') . '.xlsx';
+            return \Maatwebsite\Excel\Facades\Excel::download(new LensaExport, $filename);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal mengexport data lensa: ' . $e->getMessage());
+        }
     }
 }

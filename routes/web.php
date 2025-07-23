@@ -114,6 +114,45 @@ Route::group(['middleware' => 'auth'], function() {
 
     Route::get('/lensa/export', [LensaController::class, 'export'])->name('lensa.export');
     Route::get('/frame/export', [FrameController::class, 'export'])->name('frame.export');
+    
+    // Test routes untuk debugging export
+    Route::get('/test/lensa-export', function() {
+        try {
+            $user = auth()->user();
+            $lensas = \App\Models\Lensa::with('branch')->accessibleByUser($user)->limit(5)->get();
+            return response()->json([
+                'status' => 'success',
+                'count' => $lensas->count(),
+                'data' => $lensas->toArray(),
+                'excel_installed' => class_exists('Maatwebsite\Excel\Facades\Excel')
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    })->name('test.lensa.export');
+    
+    Route::get('/test/frame-export', function() {
+        try {
+            $user = auth()->user();
+            $frames = \App\Models\Frame::with(['branch', 'sales'])->accessibleByUser($user)->limit(5)->get();
+            return response()->json([
+                'status' => 'success',
+                'count' => $frames->count(),
+                'data' => $frames->toArray(),
+                'excel_installed' => class_exists('Maatwebsite\Excel\Facades\Excel')
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    })->name('test.frame.export');
 });
 
 Route::get('/penjualan', [PenjualanController::class, 'index'])->name('penjualan.index');

@@ -10,11 +10,38 @@
 @endsection
 
 @section('content')
+@if(session('error'))
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-danger alert-dismissible">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            <h4><i class="icon fa fa-ban"></i> Error!</h4>
+            {{ session('error') }}
+        </div>
+    </div>
+</div>
+@endif
+
+@if(session('success'))
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-success alert-dismissible">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            <h4><i class="icon fa fa-check"></i> Success!</h4>
+            {{ session('success') }}
+        </div>
+    </div>
+</div>
+@endif
+
 <div class="row">
     <div class="col-md-12">
         <div class="box">
             <div class="box-header with-border">
                 <button onclick="addform('{{ route('lensa.store') }}')" class="btn btn-primary">Tambah lensa</button>
+                <div class="pull-right">
+                    <a href="{{ route('test.lensa.export') }}" class="btn btn-warning btn-xs" target="_blank">Test Export</a>
+                </div>
             </div>
         </div>
     </div>

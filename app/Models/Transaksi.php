@@ -10,7 +10,16 @@ class Transaksi extends Model
     use HasFactory;
     protected $table = 'penjualan';
     protected $primaryKey = 'id';
-    protected $guarded = [] ;
+    protected $guarded = [];
+    
+    // Menambahkan accessor untuk nama pasien (bisa dari relasi atau manual)
+    public function getNamaPasienAttribute()
+    {
+        if ($this->pasien_id && $this->pasien) {
+            return $this->pasien->nama_pasien;
+        }
+        return $this->nama_pasien_manual;
+    }
 
     /**
      * Get the branch that owns the penjualan

@@ -16,6 +16,7 @@
                             <th width="5%">No</th>
                             <th>Tanggal</th>
                             <th>Kode Penjualan</th>
+                            <th>Pasien</th>
                             <th>Total</th>
                             <th>Kasir</th>
                             <th>Cabang</th>
@@ -47,6 +48,7 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'tanggal', name: 'tanggal' },
                 { data: 'kode_penjualan', name: 'kode_penjualan' },
+                { data: 'nama_pasien', name: 'nama_pasien' },
                 { data: 'total_harga', name: 'total_harga' },
                 { data: 'kasir', name: 'kasir' },
                 { data: 'cabang', name: 'cabang' },

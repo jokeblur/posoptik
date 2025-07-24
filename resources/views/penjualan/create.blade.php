@@ -339,9 +339,50 @@ $(function() {
 
     renderCartAndTotals(); // Initial render
 
+    // Simpan manual pasien
+    $('#btn-simpan-manual-pasien').on('click', function() {
+        var nama = $('#manual-pasien-name').val();
+        if (nama.trim() === '') {
+            alert('Nama pasien harus diisi!');
+            return;
+        }
+        $('#pasien_id').val('');
+        $('#pasien_name').val(nama);
+        $('#modal-input-manual-pasien').modal('hide');
+        // Sembunyikan detail pasien jika sebelumnya tampil
+        $('#pasien-details-container').slideUp();
+        // Clear input manual
+        $('#manual-pasien-name').val('');
+    });
+
+    // Clear manual pasien input saat modal ditutup
+    $('#modal-input-manual-pasien').on('hidden.bs.modal', function() {
+        $('#manual-pasien-name').val('');
+    });
+
     // New logic for form submission
     $('#form-penjualan').on('submit', function(e) {
         e.preventDefault(); // Stop normal form submission
+
+        // Validasi keranjang tidak kosong
+        if (cart.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan!',
+                text: 'Keranjang belanja masih kosong. Tambahkan minimal satu produk.',
+            });
+            return;
+        }
+
+        // Validasi nama pasien
+        if (!$('#pasien_name').val().trim()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan!',
+                text: 'Nama pasien harus diisi.',
+            });
+            return;
+        }
 
         let form = $(this);
         let url = form.attr('action');

@@ -16,19 +16,19 @@
                         <table class="table">                            
                         <tr>
                                 <th style="width: 30%;">Pasien</th>
-                                <td>{{ $penjualan->pasien->nama_pasien ?? 'N/A' }}</td>
+                                <td>{{ $penjualan->nama_pasien ?? 'N/A' }}</td>
                             </tr>
                             <tr>
                                 <th>Alamat</th>
-                                <td>{{ $penjualan->pasien->alamat ?? 'N/A' }}</td>
+                                <td>{{ $penjualan->pasien->alamat ?? ($penjualan->nama_pasien_manual ? 'Pasien Manual' : 'N/A') }}</td>
                             </tr>
                             <tr>
                                 <th>No. Telepon</th>
-                                <td>{{ $penjualan->pasien->nohp ?? 'N/A' }}</td>
+                                <td>{{ $penjualan->pasien->nohp ?? ($penjualan->nama_pasien_manual ? 'Pasien Manual' : 'N/A') }}</td>
                             </tr>
                             <tr>
                                 <th>Jenis Layanan</th>
-                                <td><span class="label label-info">{{ $penjualan->pasien->service_type ?? 'N/A' }}</span></td>
+                                <td><span class="label label-info">{{ $penjualan->pasien->service_type ?? ($penjualan->nama_pasien_manual ? 'MANUAL' : 'N/A') }}</span></td>
                             </tr>
                             <tr>
                                 <th>Dokter</th>

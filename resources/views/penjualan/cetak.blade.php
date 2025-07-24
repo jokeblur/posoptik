@@ -81,7 +81,7 @@
         <p>No: {{ $penjualan->kode_penjualan }}</p>
         <p>Tgl: {{ tanggal_indonesia($penjualan->tanggal, false) }}</p>
         <p>Kasir: {{ $penjualan->user->name ?? 'N/A' }}</p>
-        <p>Pasien: {{ $penjualan->pasien->nama_pasien ?? 'N/A' }}</p>
+        <p>Pasien: {{ $penjualan->nama_pasien ?? 'N/A' }}</p>
         <hr class="dashed">
 
         <table class="items">
@@ -95,7 +95,7 @@
                 @foreach($penjualan->details as $detail)
                 <tr>
                     <td>
-                        {{ $detail->itemable->merk_frame ?? $detail->itemable->merk_lensa ?? 'Produk' }}
+                        {{ $detail->itemable->merk_frame ?? $detail->itemable->merk_lensa ?? $detail->itemable->nama_produk ?? 'Produk' }}
                         <br>
                         ({{ $detail->quantity }} x Rp {{ format_uang($detail->price) }})
                     </td>

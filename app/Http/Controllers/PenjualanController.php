@@ -23,11 +23,17 @@ class PenjualanController extends Controller
     public function data()
     {
         $user = auth()->user();
-        $query = Transaksi::with('user', 'branch', 'passetByUser')->latest();
+        $query = Transaksi::with('user', 'branch', 'passetByUser', 'pasien')->latest();
 
-        // Jika user bukan super admin, filter berdasarkan cabang mereka
-        if ($user->role !== 'super admin') {
-            $query->where('branch_id', $user->branch_id);
+        // Ambil branch aktif dari session, fallback ke branch_id user
+        $branchId = session('active_branch_id', $user->branch_id);
+
+        // Jika bukan super admin, filter cabang
+        if (!$user->isSuperAdmin()) {
+            $query->where('branch_id', $branchId);
+        } elseif ($user->isSuperAdmin() && $branchId) {
+            // Jika super admin dan sudah pilih cabang, filter juga
+            $query->where('branch_id', $branchId);
         }
 
         $penjualan = $query->get();
@@ -40,6 +46,9 @@ class PenjualanController extends Controller
             })
             ->editColumn('kode_penjualan', function ($penjualan) {
                 return '<span class="label label-success">'. $penjualan->kode_penjualan .'</span>';
+            })
+            ->addColumn('nama_pasien', function ($penjualan) {
+                return $penjualan->nama_pasien ?? 'N/A';
             })
             ->addColumn('total_harga', function ($penjualan) {
                 return 'Rp. '. format_uang($penjualan->total);

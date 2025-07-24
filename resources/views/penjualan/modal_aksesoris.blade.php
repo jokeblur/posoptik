@@ -21,9 +21,16 @@
                         <tr>
                             <td>{{ $aks->id }}</td>
                             <td>{{ $aks->nama_produk }}</td>
-                            <td>{{ $aks->stok }}</td>
+                            <td>
+                                @if($aks->stok > 0)
+                                    <span class="label label-success">{{ $aks->stok }}</span>
+                                @else
+                                    <span class="label label-danger">Habis</span>
+                                @endif
+                            </td>
                             <td>Rp {{ number_format($aks->harga_jual,0,',','.') }}</td>
                             <td>
+                                @if($aks->stok > 0)
                                 <a href="#" class="btn btn-warning btn-sm add-to-cart" 
                                    data-id="{{ $aks->id }}" 
                                    data-name="{{ $aks->nama_produk }}"
@@ -31,6 +38,11 @@
                                    data-type="aksesoris">
                                     <i class="fa fa-plus"></i>
                                 </a>
+                                @else
+                                <button class="btn btn-warning btn-sm" disabled>
+                                    <i class="fa fa-ban"></i>
+                                </button>
+                                @endif
                             </td>
                         </tr>
                         @endforeach

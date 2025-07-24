@@ -185,6 +185,7 @@ $(function() {
     // Initialize DataTables
     $('#table-frames').DataTable();
     $('#table-lenses').DataTable();
+    $('#table-aksesoris').DataTable();
     $('#table-pasien').DataTable();
 
     let cart = [];

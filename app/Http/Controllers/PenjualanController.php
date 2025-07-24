@@ -128,15 +128,24 @@ class PenjualanController extends Controller
     }
     public function store(Request $request)
     {
-        $request->validate([
+        // Validasi dasar
+        $rules = [
             'kode_penjualan' => 'required|unique:penjualan,kode_penjualan',
-            'pasien_id' => 'required|exists:pasien,id_pasien',
             'items' => 'required|json',
             'total' => 'required|numeric',
             'diskon' => 'required|numeric|min:0',
             'bayar' => 'required|numeric|min:0',
             'kekurangan' => 'required|numeric',
-        ]);
+        ];
+
+        // Validasi kondisional untuk pasien
+        if ($request->filled('pasien_id')) {
+            $rules['pasien_id'] = 'exists:pasien,id_pasien';
+        } else {
+            $rules['pasien_name'] = 'required|string|max:255';
+        }
+
+        $request->validate($rules);
 
         DB::beginTransaction();
         try {
@@ -158,7 +167,8 @@ class PenjualanController extends Controller
                 'kode_penjualan' => $request->kode_penjualan,
                 'tanggal' => now(),
                 'tanggal_siap' => $request->tanggal_siap,
-                'pasien_id' => $request->pasien_id,
+                'pasien_id' => $request->filled('pasien_id') ? $request->pasien_id : null,
+                'nama_pasien_manual' => $request->filled('pasien_id') ? null : $request->pasien_name,
                 'dokter_id' => $request->dokter_id,
                 'user_id' => auth()->id(),
                 'branch_id' => $branch_id,
@@ -186,6 +196,8 @@ class PenjualanController extends Controller
                     $itemModel = \App\Models\Frame::find($itemData['id']);
                 } elseif ($itemData['type'] === 'lensa') {
                     $itemModel = \App\Models\Lensa::find($itemData['id']);
+                } elseif ($itemData['type'] === 'aksesoris') {
+                    $itemModel = \App\Models\Aksesoris::find($itemData['id']);
                 }
 
                 if ($itemModel) {

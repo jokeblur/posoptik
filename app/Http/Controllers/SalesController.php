@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Sales;
 use Illuminate\Http\Request;
+use App\Imports\SalesImport;
+use App\Exports\SalesExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class SalesController extends Controller
 {
@@ -119,5 +122,52 @@ class SalesController extends Controller
         $sales->delete();
 
         return response(null, 204);
+    }
+
+    /**
+     * Import sales data from Excel file
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls'
+        ]);
+
+        try {
+            Excel::import(new SalesImport, $request->file('file'));
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Data sales berhasil diimport!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal import data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Export sales data to Excel file
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function export()
+    {
+        return Excel::download(new SalesExport, 'sales.xlsx');
+    }
+
+    /**
+     * Export all sales data to Excel file
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function exportFull()
+    {
+        return Excel::download(new SalesExport, 'sales_lengkap.xlsx');
     }
 }

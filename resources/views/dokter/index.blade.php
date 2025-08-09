@@ -15,7 +15,7 @@
     <div class="col-md-12">
         <div class="box">
             <div class="box-header with-border">
-                <button onclick="addform('{{ route('dokter.store') }}')" class="btn btn-custom">Tambah dokter</button>
+                <button onclick="addform('{{ route('dokter.store') }}')" class="btn btn-sm btn-custom">Tambah dokter</button>
             </div>
             <div class="box-body table-responsive">
                 <table class="table table-stipet table-bordered" id="table">

@@ -8,6 +8,7 @@ use App\Models\Sales;
 use App\Imports\FrameImport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\FrameExport;
+use Illuminate\Support\Facades\Log;
 
 class FrameController extends Controller
 {
@@ -37,21 +38,19 @@ class FrameController extends Controller
     public function data(Request $request)
     {
         $user = auth()->user();
-        
-        $query = Frame::with('branch', 'sales')
-            ->accessibleByUser($user)
-            ->orderBy('id', 'desc');
-
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
+            $query = Frame::with('branch', 'sales')->orderBy('id', 'desc');
+        } else {
+            $query = Frame::with('branch', 'sales')->accessibleByUser($user)->orderBy('id', 'desc');
+        }
         if ($request->filled('jenis_frame')) {
             $query->where('jenis_frame', $request->jenis_frame);
         }
-
         $frame = $query->get();
-
         return datatables()
             ->of($frame)
-            ->addColumn('select_all', function ($frame) {
-                return '<input type="checkbox" name="id[]" value="' . $frame->id . '">';
+            ->addColumn('checkbox', function ($frame) {
+                return '<input type="checkbox" name="selected_frame[]" value="' . $frame->id . '">';
             })
             ->addColumn('branch_name', function ($frame) {
                 return $frame->branch?->name ?? '-';
@@ -78,7 +77,7 @@ class FrameController extends Controller
                     <button onclick="deleteData(`' . route('frame.destroy', $frame->id) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
                 </div>';
             })
-            ->rawColumns(['aksi', 'select_all'])
+            ->rawColumns(['aksi', 'checkbox'])
             ->make(true);
     }
 
@@ -163,15 +162,135 @@ class FrameController extends Controller
 
     public function import(Request $request)
     {
+        try {
         $request->validate([
-            'file' => 'required|mimes:xlsx,csv,xls'
+                'file' => 'required|mimes:xlsx,xls'
         ]);
+
+            // Debug: Log file info
+            \Log::info('Import file info:', [
+                'filename' => $request->file('file')->getClientOriginalName(),
+                'size' => $request->file('file')->getSize(),
+                'mime' => $request->file('file')->getMimeType()
+            ]);
+
         Excel::import(new FrameImport, $request->file('file'));
-        return back()->with('success', 'Data frame berhasil diimpor!');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Data frame berhasil diimport!'
+            ]);
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            \Log::error('Frame import validation error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error validasi: ' . $e->getMessage()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Frame import error: ' . $e->getMessage());
+            \Log::error('Frame import error trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal import data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function export()
     {
-        return \Maatwebsite\Excel\Facades\Excel::download(new FrameExport, 'frame.xlsx');
+        try {
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User tidak terautentikasi'
+                ], 401);
+            }
+
+            return Excel::download(new FrameExport, 'frame_' . date('Y-m-d_H-i-s') . '.xlsx');
+        } catch (\Exception $e) {
+            \Log::error('Frame export error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengexport data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function exportFull()
+    {
+        try {
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User tidak terautentikasi'
+                ], 401);
+            }
+
+            return Excel::download(new FrameExport, 'frame_lengkap_' . date('Y-m-d_H-i-s') . '.xlsx');
+        } catch (\Exception $e) {
+            \Log::error('Frame export full error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengexport data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Download template Excel for frame import
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function downloadTemplate()
+    {
+        try {
+            return Excel::download(
+                new \App\Exports\FrameTemplateExport, 
+                'template_frame.xlsx',
+                \Maatwebsite\Excel\Excel::XLSX
+            );
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal download template: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk delete multiple frames
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:frames,id'
+        ]);
+
+        try {
+            $ids = $request->input('ids');
+            $deletedCount = 0;
+
+            foreach ($ids as $id) {
+                $frame = Frame::find($id);
+                if ($frame) {
+                    $frame->delete();
+                    $deletedCount++;
+                }
+            }
+
+            return response()->json([
+                'message' => "Berhasil menghapus {$deletedCount} data frame."
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menghapus data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

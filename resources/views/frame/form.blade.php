@@ -51,13 +51,14 @@
                         </select>
                   </div>
                 </div>
+                @if(auth()->user()->isSuperAdmin())
                 <div class="form-group">
                   <label for="harga_beli_frame" class="col-sm-2 control-label">Harga Beli</label>
-
                   <div class="col-sm-10">
                     <input type="number" name="harga_beli_frame" class="form-control" id="harga_beli_frame" >
                   </div>
                 </div>
+                @endif
                 <div class="form-group">
                   <label for="harga_jual_frame" class="col-sm-2 control-label">Harga Jual</label>
 
@@ -76,8 +77,9 @@
         
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        <button  class="btn btn-primary">Save changes</button>
+      <button  class="btn btn-sm btn-custom">Simpan</button>
+        <button type="button" class="btn btn-sm btn-custom-close" data-dismiss="modal">Batal</button>
+        
       </div>
      
     

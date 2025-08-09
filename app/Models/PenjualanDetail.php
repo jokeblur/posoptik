@@ -10,6 +10,10 @@ class PenjualanDetail extends Model
 
     protected $table = 'penjualan_detail';
     protected $guarded = [];
+    
+    protected $fillable = [
+        'penjualan_id', 'itemable_id', 'itemable_type', 'quantity', 'price', 'subtotal', 'additional_cost'
+    ];
 
     public function itemable()
     {

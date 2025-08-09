@@ -5,11 +5,21 @@ use App\Models\PenjualanDetail;
 use App\Models\Frame;
 use App\Models\Lensa;
 use App\Models\User;
+use App\Models\Pasien;
+use App\Services\BpjsPricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\OpenDay;
+use Carbon\Carbon;
 
 class PenjualanController extends Controller
 {
+    protected $bpjsPricingService;
+
+    public function __construct(BpjsPricingService $bpjsPricingService)
+    {
+        $this->bpjsPricingService = $bpjsPricingService;
+    }
     /**
      * Display a listing of the resource.
      *
@@ -20,14 +30,44 @@ class PenjualanController extends Controller
         return view('penjualan.index');
     }
 
-    public function data()
+    public function statistics()
     {
         $user = auth()->user();
-        $query = Transaksi::with('user', 'branch', 'passetByUser')->latest();
+        $query = Transaksi::query();
 
         // Jika user bukan super admin, filter berdasarkan cabang mereka
         if ($user->role !== 'super admin') {
             $query->where('branch_id', $user->branch_id);
+        }
+
+        $statistics = $query->selectRaw('
+            SUM(CASE WHEN status_pengerjaan = "Menunggu Pengerjaan" THEN 1 ELSE 0 END) as menunggu,
+            SUM(CASE WHEN status_pengerjaan = "Sedang Dikerjakan" THEN 1 ELSE 0 END) as sedang,
+            SUM(CASE WHEN status_pengerjaan = "Selesai Dikerjakan" THEN 1 ELSE 0 END) as selesai,
+            SUM(CASE WHEN status_pengerjaan = "Sudah Diambil" THEN 1 ELSE 0 END) as diambil
+        ')->first();
+
+        return response()->json([
+            'menunggu' => (int) $statistics->menunggu,
+            'sedang' => (int) $statistics->sedang,
+            'selesai' => (int) $statistics->selesai,
+            'diambil' => (int) $statistics->diambil
+        ]);
+    }
+
+    public function data(Request $request)
+    {
+        $user = auth()->user();
+        $query = Transaksi::with('user', 'branch', 'passetByUser', 'dokter', 'pasien')->latest();
+
+        // Jika user bukan super admin, filter berdasarkan cabang mereka
+        if ($user->role !== 'super admin') {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        // Filter berdasarkan status pengerjaan jika ada
+        if ($request->has('status_filter') && $request->status_filter) {
+            $query->where('status_pengerjaan', $request->status_filter);
         }
 
         $penjualan = $query->get();
@@ -53,6 +93,19 @@ class PenjualanController extends Controller
             ->addColumn('passet_by', function ($penjualan) {
                 return $penjualan->passetByUser->name ?? '-';
             })
+            ->addColumn('nama_pasien', function ($penjualan) {
+                return $penjualan->nama_pasien ?? '-';
+            })
+            ->addColumn('nama_dokter', function ($penjualan) {
+                return $penjualan->nama_dokter ?? '-';
+            })
+            ->addColumn('status_transaksi', function ($penjualan) {
+                if ($penjualan->transaction_status == 'Naik Kelas') {
+                    return '<span class="label label-warning">Naik Kelas</span>';
+                } else {
+                    return '<span class="label label-success">' . ($penjualan->transaction_status ?? 'Normal') . '</span>';
+                }
+            })
             ->addColumn('status_pengerjaan', function ($penjualan) {
                 $statusClass = 'label-default';
                 $statusText = $penjualan->status_pengerjaan;
@@ -75,20 +128,30 @@ class PenjualanController extends Controller
                 return '<span class="label '. $statusClass .'">'. $statusText .'</span>' . $timeText;
             })
             ->addColumn('aksi', function ($penjualan) {
+                $user = auth()->user();
                 $detailButton = '<a href="'. route('penjualan.show', $penjualan->id) .'" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i> Detail</a>';
                 $ambilButton = '';
+                $deleteButton = '';
+                
                 if ($penjualan->status_pengerjaan == 'Selesai Dikerjakan') {
                     $ambilButton = '<button onclick="tandaiDiambil(`'. route('penjualan.diambil', $penjualan->id) .'`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-check-square"></i> Tandai Diambil</button>';
+                }
+                
+                // Hanya super admin dan admin yang bisa menghapus transaksi
+                if (($user->isSuperAdmin() || $user->isAdmin()) && 
+                    ($user->role === 'super admin' || $penjualan->branch_id === $user->branch_id)) {
+                    $deleteButton = '<button onclick="hapusTransaksi(`'. route('penjualan.destroy', $penjualan->id) .'`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i> Hapus</button>';
                 }
 
                 return '
                 <div class="btn-group">
                     '. $detailButton .'
                     '. $ambilButton .'
+                    '. $deleteButton .'
                 </div>
                 ';
             })
-            ->rawColumns(['aksi', 'kode_penjualan', 'status_pengerjaan'])
+            ->rawColumns(['aksi', 'kode_penjualan', 'status_pengerjaan', 'status_transaksi'])
             ->make(true);
     }
     public function searchProduct(Request $request)
@@ -117,49 +180,146 @@ class PenjualanController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create(Request $request)
     {
+        $user = auth()->user();
+        
+        // Tentukan branch_id berdasarkan role
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
+            $branch_id = session('active_branch_id', $user->branch_id);
+            
+            // Jika admin/super admin belum memilih cabang aktif
+            if (!$branch_id || $branch_id == $user->branch_id) {
+                $branches = \App\Models\Branch::all();
+                return view('penjualan.create', [
+                    'error_message' => 'Silakan pilih cabang aktif terlebih dahulu di dropdown navbar sebelum melakukan transaksi.',
+                    'branches' => $branches,
+                    'pasiens' => collect(),
+                    'dokters' => collect(),
+                    'frames' => collect(),
+                    'lenses' => collect(),
+                    'aksesoris' => collect(),
+                    'selected_pasien' => null
+                ]);
+            }
+        } else {
+            $branch_id = $user->branch_id;
+        }
+        
+        $today = now()->toDateString();
+        $openDay = OpenDay::where('branch_id', $branch_id)->where('tanggal', $today)->first();
+        
+        if (!$openDay || !$openDay->is_open) {
+            $branches = \App\Models\Branch::all();
+            return view('penjualan.create', [
+                'error_message' => 'Transaksi tidak dapat dilakukan. Kasir cabang ini sudah tutup atau belum dibuka. Silakan hubungi admin untuk open day.',
+                'branches' => $branches,
+                'pasiens' => collect(),
+                'dokters' => collect(),
+                'frames' => collect(),
+                'lenses' => collect(),
+                'aksesoris' => collect(),
+                'selected_pasien' => null
+            ]);
+        }
+        
         $pasiens = \App\Models\Pasien::all();
         $dokters = \App\Models\Dokter::all();
-        $frames = \App\Models\Frame::where('stok', '>', 0)->get();
-        $lenses = \App\Models\Lensa::where('stok', '>', 0)->get();
+        $frames = \App\Models\Frame::where('branch_id', $branch_id)->where('stok', '>', 0)->get();
+        // Tampilkan semua lensa, termasuk yang stok 0
+        $lenses = \App\Models\Lensa::where('branch_id', $branch_id)->get();
+        $aksesoris = \App\Models\Aksesoris::where('branch_id', $branch_id)->where('stok', '>', 0)->get();
         
-        return view('penjualan.create', compact('pasiens', 'dokters', 'frames', 'lenses'));
+        // Cek apakah ada pasien_id yang dikirim dari form pasien
+        $selected_pasien = null;
+        if ($request->has('pasien_id')) {
+            $selected_pasien = \App\Models\Pasien::with('prescriptions.dokter')->find($request->pasien_id);
+        }
+        
+        // Debug log
+        \Log::info('PenjualanController@create - Data loaded', [
+            'branch_id' => $branch_id,
+            'lenses_count' => $lenses->count(),
+            'frames_count' => $frames->count(),
+            'aksesoris_count' => $aksesoris->count(),
+            'selected_pasien_id' => $request->pasien_id ?? null
+        ]);
+        
+        return view('penjualan.create', compact('pasiens', 'dokters', 'frames', 'lenses', 'aksesoris', 'selected_pasien'));
     }
+    
     public function store(Request $request)
     {
-        $request->validate([
+        $user = auth()->user();
+        
+        // Tentukan branch_id berdasarkan role
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
+            $branch_id = session('active_branch_id', $user->branch_id);
+        } else {
+            $branch_id = $user->branch_id;
+        }
+        
+        $today = now()->toDateString();
+        $openDay = OpenDay::where('branch_id', $branch_id)->where('tanggal', $today)->first();
+        if (!$openDay || !$openDay->is_open) {
+            return response()->json(['message' => 'Transaksi tidak dapat dilakukan. Kasir cabang ini sudah tutup atau belum dibuka.'], 403);
+        }
+        // Validasi dasar
+        $rules = [
             'kode_penjualan' => 'required|unique:penjualan,kode_penjualan',
-            'pasien_id' => 'required|exists:pasien,id_pasien',
             'items' => 'required|json',
             'total' => 'required|numeric',
             'diskon' => 'required|numeric|min:0',
             'bayar' => 'required|numeric|min:0',
             'kekurangan' => 'required|numeric',
-        ]);
+        ];
+
+        // Validasi kondisional untuk pasien
+        if ($request->filled('pasien_id')) {
+            $rules['pasien_id'] = 'exists:pasien,id_pasien';
+        } else {
+            $rules['pasien_name'] = 'required|string|max:255';
+        }
+
+        $request->validate($rules);
 
         DB::beginTransaction();
         try {
-            $user = auth()->user();
             
-            // Prioritaskan branch_id dari sesi jika ada (untuk admin/super admin)
-            // Jika tidak, gunakan branch_id yang melekat pada user (untuk kasir, dll)
-            $branch_id = session('active_branch_id', $user->branch_id);
-
-            if (!$branch_id) {
-                // Jika setelah semua pengecekan branch_id tetap tidak ada, lempar error
-                throw new \Exception('ID Cabang tidak dapat ditentukan untuk pengguna ini.');
-            }
-
             $kekurangan = $request->kekurangan;
             $status = $kekurangan <= 0 ? 'Lunas' : 'Belum Lunas';
+            $transactionStatus = 'Normal'; // Default status
+            $bpjsDefaultPrice = 0;
+            $totalAdditionalCost = 0;
+            $pasienServiceType = null;
 
+            $items = json_decode($request->items, true);
+            $hanyaAksesoris = !empty($items) && collect($items)->every(function($item) {
+                return $item['type'] === 'aksesoris';
+            });
+
+            // Jika ada pasien, gunakan BPJS pricing service
+            $pasien = null;
+            if ($request->filled('pasien_id')) {
+                $pasien = Pasien::find($request->pasien_id);
+                if ($pasien && in_array($pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+                    $pasienServiceType = $pasien->service_type;
+                    $bpjsDefaultPrice = $this->bpjsPricingService->getDefaultPrice($pasien->service_type);
+                }
+            }
+
+            // Generate barcode
+            $barcode = 'TRX' . date('Ymd') . str_pad(Transaksi::max('id') + 1, 6, '0', STR_PAD_LEFT);
+            
             $penjualanData = [
                 'kode_penjualan' => $request->kode_penjualan,
+                'barcode' => $barcode,
                 'tanggal' => now(),
                 'tanggal_siap' => $request->tanggal_siap,
-                'pasien_id' => $request->pasien_id,
-                'dokter_id' => $request->dokter_id,
+                'pasien_id' => $request->filled('pasien_id') ? $request->pasien_id : null,
+                'nama_pasien_manual' => $request->filled('pasien_id') ? null : $request->pasien_name,
+                'dokter_id' => $request->filled('dokter_id') ? $request->dokter_id : null,
+                'dokter_manual' => $request->filled('dokter_manual') ? $request->dokter_manual : null,
                 'user_id' => auth()->id(),
                 'branch_id' => $branch_id,
                 'total' => $request->total,
@@ -167,7 +327,12 @@ class PenjualanController extends Controller
                 'bayar' => $request->bayar,
                 'kekurangan' => $kekurangan,
                 'status' => $status,
-                'status_pengerjaan' => 'Menunggu Pengerjaan', // Tambahkan ini
+                'transaction_status' => $transactionStatus, // Status transaksi (Normal/Naik Kelas)
+                'bpjs_default_price' => $bpjsDefaultPrice,
+                'total_additional_cost' => $totalAdditionalCost,
+                'pasien_service_type' => $pasienServiceType,
+                'status_pengerjaan' => $hanyaAksesoris ? 'Sudah Diambil' : 'Menunggu Pengerjaan',
+                'waktu_sudah_diambil' => $hanyaAksesoris ? now() : null,
             ];
 
             // Handle file upload
@@ -178,14 +343,31 @@ class PenjualanController extends Controller
 
             $penjualan = Transaksi::create($penjualanData);
 
-            $items = json_decode($request->items, true);
-
             foreach ($items as $itemData) {
                 $itemModel = null;
+                $price = $itemData['price']; // Default price dari frontend
+                $additionalCost = 0;
+                
                 if ($itemData['type'] === 'frame') {
                     $itemModel = \App\Models\Frame::find($itemData['id']);
+                    // Jika ada pasien dengan service_type BPJS, gunakan pricing service
+                    if ($pasien && in_array($pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+                        $pricing = $this->bpjsPricingService->calculateFramePrice($pasien, $itemModel);
+                        $price = $pricing['price'];
+                        $additionalCost = $pricing['additional_cost'];
+                        
+                        // Update status transaksi jika ada naik kelas
+                        if ($pricing['status'] === 'Naik Kelas') {
+                            $transactionStatus = 'Naik Kelas';
+                        }
+                        
+                        // Akumulasi total biaya tambahan
+                        $totalAdditionalCost += $additionalCost * $itemData['quantity'];
+                    }
                 } elseif ($itemData['type'] === 'lensa') {
                     $itemModel = \App\Models\Lensa::find($itemData['id']);
+                } elseif ($itemData['type'] === 'aksesoris') {
+                    $itemModel = \App\Models\Aksesoris::find($itemData['id']);
                 }
 
                 if ($itemModel) {
@@ -193,28 +375,33 @@ class PenjualanController extends Controller
                         'itemable_id' => $itemModel->id,
                         'itemable_type' => get_class($itemModel),
                         'quantity' => $itemData['quantity'],
-                        'price' => $itemData['price'],
-                        'subtotal' => $itemData['price'] * $itemData['quantity'],
+                        'price' => $price,
+                        'subtotal' => $price * $itemData['quantity'],
+                        'additional_cost' => $additionalCost, // Simpan biaya tambahan
                     ]);
+
+                    // Update stok
                     $itemModel->decrement('stok', $itemData['quantity']);
                 }
             }
+            
+            // Update status transaksi dan informasi BPJS jika ada perubahan
+            $updateData = [
+                'transaction_status' => $transactionStatus,
+                'total_additional_cost' => $totalAdditionalCost
+            ];
+            $penjualan->update($updateData);
 
             DB::commit();
-            // Return a JSON success response
             return response()->json([
                 'success' => true,
-                'message' => 'Transaksi berhasil disimpan!',
-                'redirect_url' => route('penjualan.show', ['penjualan' => $penjualan->id])
+                'message' => 'Transaksi berhasil disimpan',
+                'redirect_url' => route('penjualan.show', $penjualan->id)
             ]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
-            // Return a JSON error response
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menyimpan transaksi: ' . $e->getMessage()
-            ], 500);
+            DB::rollback();
+            return response()->json(['success' => false, 'message' => 'Gagal menyimpan transaksi: ' . $e->getMessage()], 500);
         }
     }
     public function show($id)
@@ -227,6 +414,12 @@ class PenjualanController extends Controller
     {
         $penjualan = Transaksi::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
         return view('penjualan.cetak', compact('penjualan'));
+    }
+
+    public function cetakHalf($id)
+    {
+        $penjualan = Transaksi::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
+        return view('penjualan.cetak_half', compact('penjualan'));
     }
 
     public function lunas($id)
@@ -261,15 +454,229 @@ class PenjualanController extends Controller
         return response()->json(['message' => 'Status berhasil diubah menjadi Sudah Diambil.']);
     }
 
+    public function destroy($id)
+    {
+        $user = auth()->user();
+        
+        // Hanya super admin dan admin yang bisa menghapus transaksi
+        if (!$user->isSuperAdmin() && !$user->isAdmin()) {
+            return response()->json(['message' => 'Anda tidak memiliki izin untuk menghapus transaksi.'], 403);
+        }
+
+        $penjualan = Transaksi::findOrFail($id);
+
+        // Cek apakah user memiliki akses ke cabang transaksi ini
+        if ($user->role !== 'super admin' && $penjualan->branch_id !== $user->branch_id) {
+            return response()->json(['message' => 'Anda tidak memiliki izin untuk menghapus transaksi dari cabang lain.'], 403);
+        }
+
+        try {
+            // Hapus detail transaksi terlebih dahulu
+            $penjualan->details()->delete();
+            
+            // Hapus transaksi
+            $penjualan->delete();
+
+            return response()->json(['message' => 'Transaksi berhasil dihapus.']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal menghapus transaksi. Silakan coba lagi.'], 500);
+        }
+    }
+
     public function getLensa()
     {
-        $lensa = Lensa::all();
+        $user = auth()->user();
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
+            $branch_id = session('active_branch_id', $user->branch_id);
+            $lensa = \App\Models\Lensa::where('branch_id', $branch_id)->get();
+        } else {
+            $lensa = \App\Models\Lensa::where('branch_id', $user->branch_id)->get();
+        }
         return response()->json($lensa);
     }
 
     public function getFrame()
     {
-        $frame = Frame::all();
+        $user = auth()->user();
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
+            $branch_id = session('active_branch_id', $user->branch_id);
+            $frame = \App\Models\Frame::where('branch_id', $branch_id)->get();
+        } else {
+            $frame = \App\Models\Frame::where('branch_id', $user->branch_id)->get();
+        }
         return response()->json($frame);
+    }
+
+    /**
+     * Rekap omset harian kasir (total penjualan hari ini, jumlah transaksi)
+     */
+    public function omsetHarian(Request $request)
+    {
+        $user = auth()->user();
+        $branch_id = $user->branch_id;
+        
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
+            $branch_id = session('active_branch_id', $user->branch_id);
+        }
+        
+        $today = now()->toDateString();
+        $omset = Transaksi::where('branch_id', $branch_id)
+                          ->whereDate('created_at', $today)
+                          ->sum('total');
+        
+        return response()->json(['omset' => $omset]);
+    }
+
+    /**
+     * Calculate BPJS pricing for frame selection
+     */
+    public function calculateBpjsPrice(Request $request)
+    {
+        try {
+            $request->validate([
+                'pasien_id' => 'required|exists:pasien,id_pasien',
+                'frame_id' => 'required|exists:frames,id'
+            ]);
+
+            $pasien = Pasien::findOrFail($request->pasien_id);
+            $frame = Frame::findOrFail($request->frame_id);
+
+            // Hanya proses jika pasien memiliki service_type BPJS
+            if (!in_array($pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pasien tidak memiliki layanan BPJS'
+                ]);
+            }
+
+            $pricing = $this->bpjsPricingService->calculateFramePrice($pasien, $frame);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'pasien_service_type' => $pasien->service_type,
+                    'frame_type' => $frame->jenis_frame,
+                    'original_price' => $frame->harga_jual_frame,
+                    'calculated_price' => $pricing['price'],
+                    'additional_cost' => $pricing['additional_cost'],
+                    'reason' => $pricing['reason']
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghitung harga: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Test BPJS pricing logic for debugging
+     */
+    public function testBpjsPricing(Request $request)
+    {
+        try {
+            $request->validate([
+                'pasien_id' => 'required|exists:pasien,id_pasien',
+                'frame_id' => 'required|exists:frames,id'
+            ]);
+
+            $pasien = Pasien::findOrFail($request->pasien_id);
+            $frame = Frame::findOrFail($request->frame_id);
+
+            // Log untuk debugging
+            \Log::info('Test BPJS Pricing:', [
+                'pasien_id' => $pasien->id_pasien,
+                'pasien_service_type' => $pasien->service_type,
+                'frame_id' => $frame->id,
+                'frame_jenis' => $frame->jenis_frame,
+                'frame_harga_asli' => $frame->harga_jual_frame
+            ]);
+
+            $pricing = $this->bpjsPricingService->calculateFramePrice($pasien, $frame);
+
+            \Log::info('BPJS Pricing Result:', $pricing);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'pasien_service_type' => $pasien->service_type,
+                    'frame_type' => $frame->jenis_frame,
+                    'original_price' => $frame->harga_jual_frame,
+                    'calculated_price' => $pricing['price'],
+                    'additional_cost' => $pricing['additional_cost'],
+                    'reason' => $pricing['reason'],
+                    'debug_info' => [
+                        'is_frame_umum' => $frame->jenis_frame === 'Umum',
+                        'default_bpjs_price' => $this->bpjsPricingService->getDefaultPrice($pasien->service_type)
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Test BPJS Pricing Error:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal test pricing: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Debug frame data for BPJS pricing
+     */
+    public function debugFrameData(Request $request)
+    {
+        try {
+            $request->validate([
+                'frame_id' => 'required|exists:frames,id'
+            ]);
+
+            $frame = Frame::findOrFail($request->frame_id);
+            
+            \Log::info('Frame Data Debug:', [
+                'frame_id' => $frame->id,
+                'frame_name' => $frame->merk_frame,
+                'frame_jenis' => $frame->jenis_frame,
+                'frame_harga' => $frame->harga_jual_frame,
+                'frame_jenis_type' => gettype($frame->jenis_frame),
+                'frame_jenis_length' => strlen($frame->jenis_frame ?? ''),
+                'is_umum' => $frame->jenis_frame === 'Umum',
+                'is_umum_trimmed' => trim($frame->jenis_frame ?? '') === 'Umum'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'frame_id' => $frame->id,
+                    'frame_name' => $frame->merk_frame,
+                    'frame_jenis' => $frame->jenis_frame,
+                    'frame_harga' => $frame->harga_jual_frame,
+                    'is_umum' => $frame->jenis_frame === 'Umum',
+                    'debug_info' => [
+                        'type' => gettype($frame->jenis_frame),
+                        'length' => strlen($frame->jenis_frame ?? ''),
+                        'trimmed' => trim($frame->jenis_frame ?? ''),
+                        'trimmed_is_umum' => trim($frame->jenis_frame ?? '') === 'Umum'
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Debug Frame Data Error:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal debug frame data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

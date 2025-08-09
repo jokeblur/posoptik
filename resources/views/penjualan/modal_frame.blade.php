@@ -11,6 +11,7 @@
                         <tr>
                             <th>Kode</th>
                             <th>Nama</th>
+                            <th>Jenis Frame</th>
                             <th>Stok</th>
                             <th>Harga</th>
                             <th>Aksi</th>
@@ -21,6 +22,23 @@
                         <tr>
                             <td>{{ $frame->kode_frame }}</td>
                             <td>{{ $frame->merk_frame }}</td>
+                            <td>
+                                @if($frame->jenis_frame)
+                                    @if($frame->jenis_frame == 'BPJS I')
+                                        <span class="label label-success">BPJS I</span>
+                                    @elseif($frame->jenis_frame == 'BPJS II')
+                                        <span class="label label-warning">BPJS II</span>
+                                    @elseif($frame->jenis_frame == 'BPJS III')
+                                        <span class="label label-info">BPJS III</span>
+                                    @elseif($frame->jenis_frame == 'Umum')
+                                        <span class="label label-default">Umum</span>
+                                    @else
+                                        <span class="label label-primary">{{ $frame->jenis_frame }}</span>
+                                    @endif
+                                @else
+                                    <span class="label label-default">Umum</span>
+                                @endif
+                            </td>
                             <td>{{ $frame->stok }}</td>
                             <td>{{ format_uang($frame->harga_jual_frame) }}</td>
                             <td>
@@ -28,7 +46,8 @@
                                    data-id="{{ $frame->id }}" 
                                    data-name="{{ $frame->merk_frame }}"
                                    data-price="{{ $frame->harga_jual_frame }}"
-                                   data-type="frame">
+                                   data-type="frame"
+                                   data-jenis-frame="{{ $frame->jenis_frame }}">
                                     <i class="fa fa-plus"></i>
                                 </a>
                             </td>

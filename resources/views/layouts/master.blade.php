@@ -243,6 +243,8 @@
 
             // Populate dropdown
             $.get('{{ route('branches.list') }}', function(branches) {
+                branchSelector.empty(); // Hapus semua option sebelum append baru
+                branchSelector.append('<option value="">Pilih Cabang</option>'); // Optional: option default
                 branches.forEach(function(branch) {
                     branchSelector.append(`<option value="${branch.id}">${branch.name}</option>`);
                 });

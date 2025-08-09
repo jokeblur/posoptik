@@ -7,7 +7,7 @@
     <div class="col-md-12">
         <div class="box">
             <div class="box-header with-border">
-                <button onclick="addForm('{{ route('user.store') }}')" class="btn btn-success btn-flat"><i class="fa fa-plus-circle"></i> Tambah User Baru</button>
+                <button onclick="addForm('{{ route('user.store') }}')" class="btn btn-custom btn-sm"><i class="fa fa-plus-circle"></i> Tambah User Baru</button>
             </div>
             <div class="box-body table-responsive">
                 <table class="table table-striped table-bordered" id="user-table">

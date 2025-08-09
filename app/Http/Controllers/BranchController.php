@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class BranchController extends Controller
 {
@@ -140,6 +141,11 @@ class BranchController extends Controller
     {
         $request->validate(['branch_id' => 'required|exists:branches,id']);
         session(['active_branch_id' => $request->branch_id]);
+        Log::info('Set active branch', [
+            'user_id' => auth()->id(),
+            'branch_id' => $request->branch_id,
+            'session' => session('active_branch_id')
+        ]);
         return response()->json(['success' => true]);
     }
 

@@ -10,7 +10,33 @@ class Transaksi extends Model
     use HasFactory;
     protected $table = 'penjualan';
     protected $primaryKey = 'id';
-    protected $guarded = [] ;
+    protected $guarded = [];
+    
+    protected $fillable = [
+        'kode_penjualan', 'barcode', 'tanggal', 'tanggal_siap', 'pasien_id', 'nama_pasien_manual', 
+        'dokter_id', 'dokter_manual', 'user_id', 'branch_id', 'total', 'diskon', 
+        'bayar', 'kekurangan', 'status', 'transaction_status', 'bpjs_default_price', 
+        'total_additional_cost', 'pasien_service_type', 'status_pengerjaan', 'waktu_sudah_diambil', 
+        'photo_bpjs', 'passet_by_user_id'
+    ];
+    
+    // Menambahkan accessor untuk nama pasien (bisa dari relasi atau manual)
+    public function getNamaPasienAttribute()
+    {
+        if ($this->pasien_id && $this->pasien) {
+            return $this->pasien->nama_pasien;
+        }
+        return $this->nama_pasien_manual;
+    }
+
+    // Menambahkan accessor untuk nama dokter (bisa dari relasi atau manual)
+    public function getNamaDokterAttribute()
+    {
+        if ($this->dokter_id && $this->dokter) {
+            return $this->dokter->nama_dokter;
+        }
+        return $this->dokter_manual;
+    }
 
     /**
      * Get the branch that owns the penjualan

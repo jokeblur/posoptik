@@ -50,12 +50,19 @@ class PassetController extends Controller
             ->make(true);
     }
 
-    public function markAsSelesai($id)
+    public function markAsSelesai($id, Request $request)
     {
         $transaksi = Transaksi::findOrFail($id);
         $transaksi->status_pengerjaan = 'Selesai Dikerjakan';
-        $transaksi->passet_by_user_id = auth()->id(); // Simpan ID user passet
-        $transaksi->waktu_selesai_dikerjakan = now(); // Catat waktu selesai
+        // Jika admin/super admin dan ada user_id di request, pakai user_id tersebut
+        $user = auth()->user();
+        $isAdmin = isset($user->role) && (trim($user->role) === \App\Models\User::ROLE_ADMIN || trim($user->role) === \App\Models\User::ROLE_SUPER_ADMIN);
+        if ($isAdmin) {
+            $transaksi->passet_by_user_id = $request->input('user_id', auth()->id());
+        } else {
+            $transaksi->passet_by_user_id = auth()->id();
+        }
+        $transaksi->waktu_selesai_dikerjakan = now();
         $transaksi->save();
 
         return response()->json(['message' => 'Status berhasil diubah menjadi Selesai.']);

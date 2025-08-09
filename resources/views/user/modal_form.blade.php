@@ -58,8 +58,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary btn-flat">Simpan</button>
-                    <button type="button" class="btn btn-default btn-flat" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-custom btn-sm">Simpan</button>
+                    <!-- <button type="button" class="btn btn-default btn-flat" data-dismiss="modal">Batal</button> -->
                 </div>
             </div>
         </form>

@@ -3,11 +3,19 @@
 @section('title', 'Transaksi Penjualan')
 
 @section('content')
+@if(isset($error_message))
+<div class="alert alert-danger alert-dismissible">
+    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+    <h4><i class="icon fa fa-ban"></i> Peringatan!</h4>
+    {{ $error_message }}
+</div>
+@endif
+
 <form action="{{ route('penjualan.store') }}" method="POST" id="form-penjualan" enctype="multipart/form-data">
     @csrf
     <div class="row">
     {{-- Right Column - Transaction Details --}}
-        <div class="col-md-8">
+        <div class="col-md-12">
             <div class="box">
                 <div class="box-header with-border"><h3 class="box-title">Detail Transaksi</h3></div>
                 <div class="box-body">
@@ -23,31 +31,63 @@
                         <label for="tanggal_siap">Tanggal Siap</label>
                         <input type="date" class="form-control" name="tanggal_siap">
                     </div>
-                    <div class="form-group col-md-6">
+                    <div class="form-group col-md-4">
                         <label>Pasien</label>
                         <div class="input-group">
                             <input type="hidden" name="pasien_id" id="pasien_id">
-                            <input type="text" class="form-control" id="pasien_name"  required placeholder="Pilih Pasien">
+                            <input type="text" class="form-control" id="pasien_name" name="pasien_name" required placeholder="Pilih Pasien atau Input Manual">
                             <span class="input-group-btn">
-                                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-pasien">Cari</button>
+                                <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-pasien">Cari</button>
+                                <button type="button" class="btn btn-default" id="btn-input-manual-pasien">Input Manual</button>
                             </span>
                         </div>
                     </div>
-                     <div class="col-md-12">
-                        <div id="pasien-details-container" style="display: none;">
-                            <h4>Detail Pasien</h4>
-                            <p><strong>Alamat:</strong> <span id="detail-alamat"></span></p>
-                            <p><strong>No. HP:</strong> <span id="detail-nohp"></span></p>
-                            <p><strong>Jenis Layanan</strong> <span id="detail-jenis_layanan"></span></p>
-                            <hr>
-                            <h4>Resep Terakhir (<span id="resep-tanggal"></span>)</h4>
-                            <table class="table table-bordered text-center" style="width: 100%;">
+                    <div class="form-group col-md-4">
+                        <label for="dokter_id">Dokter</label>
+                        <select name="dokter_id" id="dokter_id" class="form-control">
+                            <option value="">Pilih Dokter</option>
+                            @foreach($dokters as $dokter)
+                                <option value="{{ $dokter->id_dokter }}">{{ $dokter->nama_dokter }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="dokter_manual">Dokter Manual</label>
+                        <input type="text" class="form-control" id="dokter_manual" name="dokter_manual" placeholder="Nama dokter manual (opsional)">
+                        <small class="text-muted">Isi jika dokter tidak ada di dropdown</small>
+                    </div>
+                    <div class="row" id="pasien-details-container" style="display: none; margin-bottom: 15px;">
+                        <div class="col-md-12">
+                            <div id="bpjs-pricing-info" class="alert alert-info" style="display: none;">
+                                <h4><i class="fa fa-info-circle"></i> Informasi Pricing BPJS</h4>
+                                <div id="bpjs-pricing-details"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="box box-info" style="margin-bottom:0;">
+                                <div class="box-body" style="padding-bottom:10px;">
+                                    <h4 style="margin-top:0;"><i class="fa fa-user"></i> <span id="detail-nama"></span></h4>
+                                    <p style="margin-bottom:4px;"><strong>Alamat:</strong> <span id="detail-alamat"></span></p>
+                                    <p style="margin-bottom:4px;"><strong>No. HP:</strong> <span id="detail-nohp"></span></p>
+                                    <p style="margin-bottom:4px;"><strong>Jenis Layanan:</strong> <span class="label label-info" id="detail-jenis_layanan"></span></p>
+                                    <p style="margin-bottom:4px;"><strong>No. BPJS:</strong> <span id="detail-no-bpjs"></span></p>
+                                    <p style="margin-bottom:4px;"><strong>Dokter:</strong> <span id="detail-dokter"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="panel panel-default" style="margin-bottom:0;">
+                                <div class="panel-heading" style="padding:6px 10px; font-size:14px; background:#f5f5f5;">
+                                    <b><i class="fa fa-stethoscope"></i> Resep Terakhir</b> <span class="text-muted">(<span id="resep-tanggal"></span>)</span>
+                                </div>
+                                <div class="panel-body" style="padding:8px 10px;">
+                                    <table class="table table-bordered table-condensed text-center" style="margin-bottom:6px;">
                                 <thead>
-                                    <tr>
-                                        <th class="text-center" style="width: 25%;">Mata</th>
-                                        <th class="text-center" style="width: 25%;">SPH</th>
-                                        <th class="text-center" style="width: 25%;">CYL</th>
-                                        <th class="text-center" style="width: 25%;">AXIS</th>
+                                            <tr class="bg-gray">
+                                                <th class="text-center" style="width: 20%;">Mata</th>
+                                                <th class="text-center" style="width: 20%;">SPH</th>
+                                                <th class="text-center" style="width: 20%;">CYL</th>
+                                                <th class="text-center" style="width: 20%;">AXIS</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -66,11 +106,18 @@
                                 </tbody>
                             </table>
                             <div class="row">
-                                <div class="col-xs-6">
-                                    <p><strong>ADD:</strong> <span id="resep-add"></span></p>
+                                        <div class="col-xs-6 text-left">
+                                            <strong>ADD:</strong> <span id="resep-add"></span>
+                                        </div>
+                                        <div class="col-xs-6 text-right">
+                                            <strong>PD:</strong> <span id="resep-pd"></span>
+                                        </div>
+                                    </div>
+                                    <div class="row" style="margin-top:8px;">
+                                        <div class="col-xs-12">
+                                            <strong>Dokter:</strong> <span id="resep-dokter"></span>
+                                        </div>
                                 </div>
-                                <div class="col-xs-6">
-                                    <p><strong>PD:</strong> <span id="resep-pd"></span></p>
                                 </div>
                             </div>
                         </div>
@@ -78,7 +125,7 @@
                 </div>
             </div>            
         </div>
-        <div class="col-md-4">
+        <!-- <div class="col-md-4">
         <div class="box">
                  <div class="box-header with-border"><h3 class="box-title">Pelanggan & Dokter</h3></div>
                  <div class="box-body">
@@ -94,15 +141,22 @@
                     </div>
                  </div>
             </div>
-        </div>
+        </div> -->
     
     {{-- Left Column - Products & Cart --}}
         <div class="col-md-12">
             <div class="box">
                 <div class="box-header">
                     <div class="btn-group">
-                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-frames">Cari Frame</button>
-                        <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modal-lenses">Cari Lensa</button>
+                        <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-frames">Cari Frame</button>
+                       </div>
+                    <div class="btn-group">                        
+                        <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-lenses">Cari Lensa</button>
+                        
+                    </div>
+                    <div class="btn-group">                        
+                       
+                        <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-aksesoris">Cari Aksesoris</button>
                     </div>
                 </div>
                 <div class="box-body table-responsive">
@@ -148,6 +202,10 @@
                             <h2 style="font-weight: bold;">Total: <span id="total-amount">Rp 0</span></h2>
                             <h3 id="kekurangan-container" style="font-weight: bold; display: none;">Kekurangan: <span id="kekurangan-amount">Rp 0</span></h3>
                             <h3 id="kembalian-container" style="font-weight: bold; display: none;">Kembalian: <span id="kembalian-amount">Rp 0</span></h3>
+                            <div id="bpjs-summary" style="display: none; margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+                                <h5 style="margin-top: 0;"><i class="fa fa-calculator"></i> Ringkasan BPJS</h5>
+                                <div id="bpjs-summary-details"></div>
+                            </div>
                         </div>
                     </div>
                     <hr>
@@ -166,7 +224,7 @@
                     <input type="hidden" name="total" id="total-input">
                     <input type="hidden" name="kekurangan" id="kekurangan-input">
                     <input type="hidden" name="items" id="items-input">
-                    <button type="submit" class="btn btn-primary btn-lg btn-block">Simpan Transaksi</button>
+                    <button type="submit" class="btn btn-sm btn-custom">Simpan Transaksi</button>
                 </div>
             </div>
         </div>
@@ -175,8 +233,30 @@
 
 @include('penjualan.modal_frame')
 @include('penjualan.modal_lensa')
+@include('penjualan.modal_aksesoris')
 @include('penjualan.modal_pasien')
 @include('penjualan.modal_webcam')
+<!-- Modal Input Manual Pasien -->
+<div class="modal fade" id="modal-input-manual-pasien" tabindex="-1" role="dialog" aria-labelledby="modal-input-manual-pasien-label">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modal-input-manual-pasien-label">Input Manual Nama Pasien</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="manual-pasien-name">Nama Pasien</label>
+                    <input type="text" class="form-control" id="manual-pasien-name" placeholder="Masukkan nama pasien">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-custom" id="btn-simpan-manual-pasien">Pilih</button>
+                <button type="button" class="btn btn-sm btn-custom-close" data-dismiss="modal">Batal</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -185,9 +265,79 @@ $(function() {
     // Initialize DataTables
     $('#table-frames').DataTable();
     $('#table-lenses').DataTable();
+    $('#table-aksesoris').DataTable();
     $('#table-pasien').DataTable();
 
     let cart = [];
+    let currentBPJSLevel = null; // Variabel global untuk menyimpan level BPJS
+
+    // Auto-fill pasien data jika ada selected_pasien dari form pasien
+    @if(isset($selected_pasien) && $selected_pasien)
+        // Auto-fill data pasien
+        $('#pasien_id').val('{{ $selected_pasien->id_pasien }}');
+        $('#pasien_name').val('{{ $selected_pasien->nama_pasien }}');
+        
+        // Set dokter jika ada
+        @if($selected_pasien->prescriptions && $selected_pasien->prescriptions->count() > 0)
+            @php
+                $latestPrescription = $selected_pasien->prescriptions->last();
+            @endphp
+            @if($latestPrescription->dokter_id)
+                $('#dokter_id').val('{{ $latestPrescription->dokter_id }}');
+                $('#dokter_manual').val('');
+            @elseif($latestPrescription->dokter_manual)
+                $('#dokter_id').val('');
+                $('#dokter_manual').val('{{ $latestPrescription->dokter_manual }}');
+            @endif
+        @endif
+        
+        // Tampilkan detail pasien
+        $('#detail-nama').text('{{ $selected_pasien->nama_pasien }}');
+        $('#detail-alamat').text('{{ $selected_pasien->alamat }}');
+        $('#detail-nohp').text('{{ $selected_pasien->nohp }}');
+        $('#detail-jenis_layanan').text('{{ $selected_pasien->service_type }}');
+        $('#detail-no-bpjs').text('{{ $selected_pasien->no_bpjs ?? "-" }}');
+        
+        // Tampilkan resep jika ada
+        @if($selected_pasien->prescriptions && $selected_pasien->prescriptions->count() > 0)
+            @php
+                $latestPrescription = $selected_pasien->prescriptions->last();
+            @endphp
+            $('#resep-tanggal').text('{{ $latestPrescription->tanggal }}');
+            $('#resep-od-sph').text('{{ $latestPrescription->od_sph ?? "-" }}');
+            $('#resep-od-cyl').text('{{ $latestPrescription->od_cyl ?? "-" }}');
+            $('#resep-od-axis').text('{{ $latestPrescription->od_axis ?? "-" }}');
+            $('#resep-os-sph').text('{{ $latestPrescription->os_sph ?? "-" }}');
+            $('#resep-os-cyl').text('{{ $latestPrescription->os_cyl ?? "-" }}');
+            $('#resep-os-axis').text('{{ $latestPrescription->os_axis ?? "-" }}');
+            $('#resep-add').text('{{ $latestPrescription->add ?? "-" }}');
+            $('#resep-pd').text('{{ $latestPrescription->pd ?? "-" }}');
+            $('#resep-dokter').text('{{ $latestPrescription->dokter_manual ?? ($latestPrescription->dokter->nama_dokter ?? "-") }}');
+            $('#detail-dokter').text('{{ $latestPrescription->dokter_manual ?? ($latestPrescription->dokter->nama_dokter ?? "-") }}');
+        @else
+            $('#resep-tanggal').text('N/A');
+            $('#resep-od-sph, #resep-od-cyl, #resep-od-axis, #resep-os-sph, #resep-os-cyl, #resep-os-axis, #resep-add, #resep-pd, #resep-dokter').text('-');
+            $('#detail-dokter').text('-');
+        @endif
+        
+        // Tampilkan kontainer detail
+        $('#pasien-details-container').slideDown();
+        
+        // Tampilkan input foto BPJS jika layanan BPJS
+        @if(str_contains(strtolower($selected_pasien->service_type), 'bpjs'))
+            $('#photo-bpjs-container').slideDown();
+            $('#photo_bpjs').prop('required', true);
+        @endif
+        
+        // Tampilkan pesan sukses
+        Swal.fire({
+            icon: 'success',
+            title: 'Data Pasien Berhasil Diisi!',
+            text: 'Data pasien {{ $selected_pasien->nama_pasien }} telah otomatis diisi. Silakan lanjutkan dengan memilih produk.',
+            timer: 3000,
+            showConfirmButton: false
+        });
+    @endif
 
     // All event listeners for patient & product selection remain the same...
 
@@ -207,9 +357,24 @@ $(function() {
         $.get(url)
             .done(function(response) {
                 // Tampilkan detail pasien
+                $('#detail-nama').text(response.nama_pasien || '-');
                 $('#detail-alamat').text(response.alamat || '-');
                 $('#detail-nohp').text(response.nohp || '-');
                 $('#detail-jenis_layanan').text(response.service_type || '-');
+                $('#detail-no-bpjs').text(response.no_bpjs || '-');
+                $('#detail-dokter').text(response.dokter_nama || '-');
+                
+                // Set dokter di dropdown jika ada
+                if (response.dokter_id) {
+                    $('#dokter_id').val(response.dokter_id);
+                    $('#dokter_manual').val(''); // Kosongkan dokter manual
+                } else if (response.dokter_nama && response.dokter_nama !== '-') {
+                    $('#dokter_id').val(''); // Kosongkan dropdown
+                    $('#dokter_manual').val(response.dokter_nama); // Set ke manual
+                } else {
+                    $('#dokter_id').val('');
+                    $('#dokter_manual').val('');
+                }
 
                 // Logika untuk menampilkan input foto BPJS
                 if (response.service_type && response.service_type.toLowerCase().includes('bpjs')) {
@@ -233,15 +398,70 @@ $(function() {
                     $('#resep-os-axis').text(resep.os_axis || '-');
                     $('#resep-add').text(resep.add || '-');
                     $('#resep-pd').text(resep.pd || '-');
+                    $('#resep-dokter').text(response.prescriptions?.[response.prescriptions.length-1]?.dokter_nama || '-');
 
                 } else {
                     // Jika tidak ada resep, kosongkan semua field
                     $('#resep-tanggal').text('N/A');
-                    $('#resep-od-sph, #resep-od-cyl, #resep-od-axis, #resep-os-sph, #resep-os-cyl, #resep-os-axis, #resep-add, #resep-pd').text('-');
+                    $('#resep-od-sph, #resep-od-cyl, #resep-od-axis, #resep-os-sph, #resep-os-cyl, #resep-os-axis, #resep-add, #resep-pd, #resep-dokter').text('-');
                 }
 
                 // Tampilkan kontainer detail
                 $('#pasien-details-container').slideDown();
+                
+                // Tampilkan informasi pricing BPJS jika ada
+                if (response.service_type && response.service_type.toLowerCase().includes('bpjs')) {
+                    let serviceTypeLower = response.service_type.toLowerCase();
+                    let bpjsLevel = '';
+                    
+                    // Debug: log service type untuk memastikan data yang diterima
+                    console.log('Service Type:', response.service_type);
+                    console.log('Service Type Lower:', serviceTypeLower);
+                    
+                    // Deteksi level BPJS dengan lebih spesifik
+                    if (serviceTypeLower.includes('bpjs iii') || serviceTypeLower.includes('bpjs 3')) {
+                        bpjsLevel = 'III';
+                    } else if (serviceTypeLower.includes('bpjs ii') || serviceTypeLower.includes('bpjs 2')) {
+                        bpjsLevel = 'II';
+                    } else if (serviceTypeLower.includes('bpjs i') || serviceTypeLower.includes('bpjs 1')) {
+                        bpjsLevel = 'I';
+                    }
+                    
+                    console.log('Detected BPJS Level:', bpjsLevel);
+                    
+                    // Simpan level BPJS ke variabel global
+                    currentBPJSLevel = bpjsLevel;
+                    
+                    let defaultPrice = 0;
+                    switch(bpjsLevel) {
+                        case 'I': defaultPrice = 330000; break;
+                        case 'II': defaultPrice = 220000; break;
+                        case 'III': defaultPrice = 165000; break;
+                    }
+                    
+                    console.log('Default Price:', defaultPrice);
+                    
+                    let pricingDetails = `
+                        <p><strong>Jenis Layanan:</strong> BPJS ${bpjsLevel}</p>
+                        <p><strong>Harga Default:</strong> Rp ${defaultPrice.toLocaleString('id-ID')}</p>
+                        <p><strong>Ketentuan:</strong></p>
+                        <ul>
+                            <li>Frame BPJS sesuai level: Harga default</li>
+                            <li>Frame BPJS level lebih tinggi: Harga default + penambahan</li>
+                            <li>Frame umum: Harga frame + total lensa</li>
+                            <li>Maksimal 2 lensa untuk setiap transaksi</li>
+                        </ul>
+                    `;
+                    
+                    $('#bpjs-pricing-details').html(pricingDetails);
+                    $('#bpjs-pricing-info').slideDown();
+                } else {
+                    $('#bpjs-pricing-info').slideUp();
+                    $('#bpjs-summary').hide();
+                }
+                
+                // Recalculate totals after patient selection
+                renderCartAndTotals();
             })
             .fail(function() {
                 alert('Gagal mengambil detail pasien.');
@@ -251,36 +471,335 @@ $(function() {
     // Add item to cart from modal
     $(document).on('click', '.add-to-cart', function(e) {
         e.preventDefault();
-        let product = { id: $(this).data('id'), name: $(this).data('name'), price: parseFloat($(this).data('price')), type: $(this).data('type'), quantity: 1 };
+        let product = { 
+            id: $(this).data('id'), 
+            name: $(this).data('name'), 
+            price: parseFloat($(this).data('price')), 
+            type: $(this).data('type'), 
+            quantity: 1,
+            jenis_frame: $(this).data('jenis-frame') || ''
+        };
+        
+        // Validasi untuk BPJS: hanya boleh ada 1 frame dan 1 lensa
+        let serviceType = $('#detail-jenis_layanan').text().toLowerCase();
+        let isBPJS = serviceType.includes('bpjs');
+        
+        if (isBPJS) {
+            let existingFrame = cart.find(item => item.type === 'frame');
+            let existingLensa = cart.filter(item => item.type === 'lensa');
+            
+            if (product.type === 'frame' && existingFrame) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan!',
+                    text: 'Pasien BPJS hanya boleh memilih 1 frame.',
+                });
+                return;
+            }
+            
+            if (product.type === 'lensa' && existingLensa.length >= 2) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan!',
+                    text: 'Pasien BPJS hanya boleh memilih maksimal 2 lensa.',
+                });
+                return;
+            }
+        }
+        
         addToCart(product);
         $(this).closest('.modal').modal('hide');
     });
 
     function addToCart(product) {
         let existingItem = cart.find(item => item.id === product.id && item.type === product.type);
-        if (existingItem) { existingItem.quantity++; } else { cart.push(product); }
+        if (existingItem) { 
+            existingItem.quantity++; 
+        } else { 
+            cart.push(product); 
+        }
+        
+        // Validasi komposisi cart untuk BPJS
+        validateBPJSCart();
+        
         $('#bayar').data('user-has-changed', false); // Reset
         renderCartAndTotals();
+    }
+    
+    function validateBPJSCart() {
+        let serviceType = $('#detail-jenis_layanan').text().toLowerCase();
+        let isBPJS = serviceType.includes('bpjs');
+        
+        if (isBPJS) {
+            let frameItems = cart.filter(item => item.type === 'frame');
+            let lensaItems = cart.filter(item => item.type === 'lensa');
+            
+            // Tampilkan peringatan jika ada terlalu banyak frame
+            if (frameItems.length > 1) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan!',
+                    text: 'Pasien BPJS hanya boleh memilih 1 frame. Frame tambahan akan dihapus.',
+                });
+                // Hapus frame tambahan, sisakan yang pertama
+                let firstFrame = frameItems[0];
+                cart = cart.filter(item => item.type !== 'frame');
+                cart.push(firstFrame);
+            }
+            
+            // Tampilkan peringatan jika ada terlalu banyak lensa (maksimal 2)
+            if (lensaItems.length > 2) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan!',
+                    text: 'Pasien BPJS hanya boleh memilih maksimal 2 lensa. Lensa tambahan akan dihapus.',
+                });
+                // Hapus lensa tambahan, sisakan 2 yang pertama
+                let firstTwoLensa = lensaItems.slice(0, 2);
+                cart = cart.filter(item => item.type !== 'lensa');
+                firstTwoLensa.forEach(lensa => cart.push(lensa));
+            }
+        }
+    }
+    
+    function showBPJSSummary(pasienServiceType, calculatedPrice, lensaItems, aksesorisItems) {
+        let summary = `<p><strong>Jenis Layanan:</strong> ${pasienServiceType}</p>`;
+        summary += `<p><strong>Harga Dihitung:</strong> Rp ${calculatedPrice.toLocaleString('id-ID')}</p>`;
+        
+        if (lensaItems.length > 0) {
+            summary += `<p><strong>Lensa:</strong> ${lensaItems.length} item`;
+            if (lensaItems.length > 1) {
+                summary += ` (${lensaItems.map(l => l.name).join(', ')})`;
+            } else {
+                summary += ` (${lensaItems[0].name})`;
+            }
+            summary += `</p>`;
+        }
+        
+        if (aksesorisItems.length > 0) {
+            summary += `<p><strong>Aksesoris:</strong> ${aksesorisItems.length} item</p>`;
+        }
+        
+        $('#bpjs-summary-details').html(summary);
+        $('#bpjs-summary').show();
     }
 
     function renderCartAndTotals() {
         let cartTable = $('#cart-table');
         cartTable.empty();
         let subtotal = 0;
+        let total = 0;
+
+        // Ambil jenis layanan pasien
+        let serviceType = $('#detail-jenis_layanan').text().toLowerCase();
+        let isBPJS = serviceType.includes('bpjs');
+        let bpjsLevel = currentBPJSLevel; // Gunakan level BPJS yang sudah disimpan
+        
+        // Jika belum ada level BPJS yang tersimpan, deteksi dari service type
+        if (isBPJS && !bpjsLevel) {
+            if (serviceType.includes('bpjs iii') || serviceType.includes('bpjs 3')) {
+                bpjsLevel = 'III';
+            } else if (serviceType.includes('bpjs ii') || serviceType.includes('bpjs 2')) {
+                bpjsLevel = 'II';
+            } else if (serviceType.includes('bpjs i') || serviceType.includes('bpjs 1')) {
+                bpjsLevel = 'I';
+            }
+        }
 
         if (cart.length === 0) {
             cartTable.append('<tr><td colspan="5" class="text-center">Keranjang kosong</td></tr>');
         } else {
+            // Hitung subtotal normal terlebih dahulu
             cart.forEach((item, index) => {
                 let itemSubtotal = item.price * item.quantity;
                 subtotal += itemSubtotal;
                 let row = `<tr><td>${item.name}</td><td><input type="number" class="form-control quantity-input" value="${item.quantity}" data-index="${index}" min="1" style="width: 70px;"></td><td>Rp ${item.price.toLocaleString('id-ID')}</td><td>Rp ${itemSubtotal.toLocaleString('id-ID')}</td><td><button class="btn btn-danger btn-sm remove-item" data-index="${index}">&times;</button></td></tr>`;
                 cartTable.append(row);
             });
+
+            // Terapkan logika pricing BPJS menggunakan API
+            if (isBPJS && bpjsLevel) {
+                let frameItems = cart.filter(item => item.type === 'frame');
+                let lensaItems = cart.filter(item => item.type === 'lensa');
+                let aksesorisItems = cart.filter(item => item.type === 'aksesoris');
+                
+                // Default harga berdasarkan level BPJS
+                let defaultPrice = 0;
+                switch(bpjsLevel) {
+                    case 'I': defaultPrice = 330000; break;
+                    case 'II': defaultPrice = 220000; break;
+                    case 'III': defaultPrice = 165000; break;
+                }
+
+                // Jika ada frame dan lensa, gunakan API untuk kalkulasi
+                if (frameItems.length > 0 && lensaItems.length > 0) {
+                    let frameItem = frameItems[0];
+                    let pasienId = $('#pasien_id').val();
+                    
+                    // Gunakan API untuk kalkulasi harga BPJS
+                    if (pasienId && frameItem.id) {
+                        console.log('Calling BPJS pricing API:', {
+                            pasien_id: pasienId,
+                            frame_id: frameItem.id
+                        });
+                        
+                        $.ajax({
+                            url: '{{ route("penjualan.calculate_bpjs_price") }}',
+                            method: 'POST',
+                            data: {
+                                pasien_id: pasienId,
+                                frame_id: frameItem.id,
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(response) {
+                                console.log('BPJS pricing API response:', response);
+                                if (response.success) {
+                                    // Update harga frame berdasarkan hasil API
+                                    frameItem.price = response.data.calculated_price;
+                                    
+                                    // Hitung total dengan harga yang sudah dikalkulasi
+                                    let totalLensaPrice = 0;
+                                    lensaItems.forEach(lensa => {
+                                        totalLensaPrice += lensa.price * lensa.quantity;
+                                    });
+                                    
+                                    total = response.data.calculated_price + totalLensaPrice;
+                                    
+                                    // Tambahkan harga aksesoris
+                                    aksesorisItems.forEach(item => {
+                                        total += item.price * item.quantity;
+                                    });
+                                    
+                                    // Tampilkan informasi pricing
+                                    displayBPJSPricingInfo(response.data, defaultPrice, lensaItems, aksesorisItems);
+                                    
+                                    // Update total di UI
+                                    updateTotalDisplay(total);
+                                } else {
+                                    console.error('BPJS pricing API error:', response.message);
+                                    calculateBPJSPriceFallback(frameItems, lensaItems, aksesorisItems, bpjsLevel, defaultPrice);
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('BPJS pricing API failed:', {
+                                    status: status,
+                                    error: error,
+                                    response: xhr.responseText
+                                });
+                                // Fallback ke logika lama jika API gagal
+                                calculateBPJSPriceFallback(frameItems, lensaItems, aksesorisItems, bpjsLevel, defaultPrice);
+                            }
+                        });
+                    } else {
+                        console.log('Skipping BPJS API call - missing data:', {
+                            pasienId: pasienId,
+                            frameId: frameItem.id
+                        });
+                        // Fallback jika tidak ada pasien_id atau frame_id
+                        calculateBPJSPriceFallback(frameItems, lensaItems, aksesorisItems, bpjsLevel, defaultPrice);
+                    }
+                } else {
+                    // Jika tidak ada frame atau lensa, gunakan default price
+                    total = defaultPrice;
+                    
+                    // Tambahkan harga aksesoris jika ada
+                    aksesorisItems.forEach(item => {
+                        total += item.price * item.quantity;
+                    });
+                    
+                    // Tampilkan informasi pricing default
+                    displayBPJSPricingInfo({
+                        pasien_service_type: 'BPJS ' + bpjsLevel,
+                        frame_type: 'N/A',
+                        calculated_price: defaultPrice,
+                        additional_cost: 0,
+                        reason: 'Harga default BPJS ' + bpjsLevel
+                    }, defaultPrice, [], aksesorisItems);
+                    
+                    updateTotalDisplay(total);
+                }
+            } else {
+                // Non-BPJS: gunakan subtotal normal
+                total = subtotal;
+                $('#bpjs-summary').hide();
+                updateTotalDisplay(total);
+            }
+        }
+    }
+    
+    function calculateBPJSPriceFallback(frameItems, lensaItems, aksesorisItems, bpjsLevel, defaultPrice) {
+        let frameItem = frameItems[0];
+        let frameJenis = frameItem.jenis_frame || '';
+        let isFrameBPJS = frameJenis.includes('BPJS');
+        let frameLevel = null;
+        
+        if (isFrameBPJS) {
+            if (frameJenis.includes('BPJS III')) frameLevel = 'III';
+            else if (frameJenis.includes('BPJS II')) frameLevel = 'II';
+            else if (frameJenis.includes('BPJS I')) frameLevel = 'I';
+        }
+
+        let total = 0;
+        if (isFrameBPJS && frameLevel) {
+            // Logika penambahan untuk frame BPJS
+            let additionalCost = 0;
+            
+            if (bpjsLevel === 'III') {
+                if (frameLevel === 'II') additionalCost = 55000;
+                else if (frameLevel === 'I') additionalCost = 165000;
+            } else if (bpjsLevel === 'II' && frameLevel === 'I') {
+                additionalCost = 110000;
+            }
+            
+            total = defaultPrice + additionalCost;
+        } else {
+            // Frame umum: harga frame + total harga lensa
+            let totalLensaPrice = 0;
+            lensaItems.forEach(lensa => {
+                totalLensaPrice += lensa.price * lensa.quantity;
+            });
+            total = frameItem.price + totalLensaPrice;
         }
         
+        // Tambahkan harga aksesoris
+        aksesorisItems.forEach(item => {
+            total += item.price * item.quantity;
+        });
+        
+        updateTotalDisplay(total);
+    }
+    
+    function displayBPJSPricingInfo(apiData, defaultPrice, lensaItems, aksesorisItems) {
+        let cartTable = $('#cart-table');
+        
+        // Tampilkan informasi pricing di cart
+        let pricingInfo = `<tr class="info"><td colspan="3"><strong>Pricing BPJS:</strong></td><td colspan="2">${apiData.pasien_service_type} - ${apiData.reason}</td></tr>`;
+        cartTable.append(pricingInfo);
+        
+        // Tampilkan informasi tambahan jika ada penambahan biaya
+        if (apiData.additional_cost > 0) {
+            let additionalInfo = '';
+            if (apiData.frame_type === 'Umum') {
+                additionalInfo = `<tr class="warning"><td colspan="3"><strong>BPJS Menanggung:</strong></td><td colspan="2">Rp ${apiData.additional_cost.toLocaleString('id-ID')}</td></tr>`;
+            } else {
+                additionalInfo = `<tr class="warning"><td colspan="3"><strong>Penambahan Biaya:</strong></td><td colspan="2">+ Rp ${apiData.additional_cost.toLocaleString('id-ID')}</td></tr>`;
+            }
+            cartTable.append(additionalInfo);
+        }
+        
+        // Tampilkan informasi jumlah lensa
+        if (lensaItems.length > 1) {
+            let lensaInfo = `<tr class="info"><td colspan="3"><strong>Jumlah Lensa:</strong></td><td colspan="2">${lensaItems.length} lensa</td></tr>`;
+            cartTable.append(lensaInfo);
+        }
+        
+        // Tampilkan ringkasan BPJS
+        showBPJSSummary(apiData.pasien_service_type, apiData.calculated_price, lensaItems, aksesorisItems);
+    }
+    
+    function updateTotalDisplay(total) {
         let diskon = parseFloat($('#diskon').val()) || 0;
-        let total = subtotal - diskon;
+        total = total - diskon;
 
         // Atur default jumlah bayar sama dengan total, hanya jika belum diubah manual oleh user
         let bayarInput = $('#bayar');
@@ -301,12 +820,11 @@ $(function() {
             $('#kekurangan-container').hide();
             $('#kembalian-container').show();
             $('#kembalian-amount').text('Rp ' + selisih.toLocaleString('id-ID'));
-            $('#kekurangan-input').val(0); // Jika lunas atau ada kembalian, kekurangan adalah 0
+            $('#kekurangan-input').val(0);
         }
 
-        $('#subtotal-amount').text('Rp ' + subtotal.toLocaleString('id-ID'));
+        $('#subtotal-amount').text('Rp ' + total.toLocaleString('id-ID'));
         $('#total-amount').text('Rp ' + total.toLocaleString('id-ID'));
-
         $('#total-input').val(total);
         $('#items-input').val(JSON.stringify(cart));
     }
@@ -325,7 +843,12 @@ $(function() {
     $(document).on('change', '.quantity-input', function() {
         let index = $(this).data('index');
         let newQuantity = parseInt($(this).val());
-        if (newQuantity > 0) { cart[index].quantity = newQuantity; }
+        if (newQuantity > 0) { 
+            cart[index].quantity = newQuantity; 
+        } else {
+            // Jika quantity 0 atau negatif, hapus item
+            cart.splice(index, 1);
+        }
         renderCartAndTotals();
     });
 
@@ -336,11 +859,53 @@ $(function() {
         renderCartAndTotals();
     });
 
+    // Event listener untuk perubahan pasien
+    $(document).on('change', '#pasien_id', function() {
+        // Reset cart dan recalculate ketika pasien berubah
+        cart = [];
+        $('#bayar').data('user-has-changed', false);
+        renderCartAndTotals();
+    });
+
+    // Event listener untuk perubahan diskon atau bayar
+    $('#diskon, #bayar').on('keyup change', function() {
+        // Hanya update display, tidak recalculate pricing
+        let currentTotal = parseFloat($('#total-input').val()) || 0;
+        updateTotalDisplay(currentTotal);
+    });
+
     renderCartAndTotals(); // Initial render
 
     // New logic for form submission
     $('#form-penjualan').on('submit', function(e) {
         e.preventDefault(); // Stop normal form submission
+
+        // Validasi form
+        let serviceType = $('#detail-jenis_layanan').text().toLowerCase();
+        let isBPJS = serviceType.includes('bpjs');
+        
+        if (isBPJS) {
+            let frameItems = cart.filter(item => item.type === 'frame');
+            let lensaItems = cart.filter(item => item.type === 'lensa');
+            
+            if (frameItems.length === 0 || lensaItems.length === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'Pasien BPJS harus memilih 1 frame dan minimal 1 lensa.',
+                });
+                return;
+            }
+        }
+        
+        if (cart.length === 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: 'Keranjang tidak boleh kosong.',
+            });
+            return;
+        }
 
         let form = $(this);
         let url = form.attr('action');
@@ -454,6 +1019,49 @@ $(function() {
             stream.getTracks().forEach(track => track.stop());
         }
     }
+
+    // Tombol input manual pasien dari input group
+    $('#btn-input-manual-pasien').on('click', function() {
+        $('#modal-input-manual-pasien').modal('show');
+    });
+    // Simpan manual pasien
+    $('#btn-simpan-manual-pasien').on('click', function() {
+        var nama = $('#manual-pasien-name').val();
+        if (nama.trim() === '') {
+            alert('Nama pasien harus diisi!');
+            return;
+        }
+        $('#pasien_id').val('');
+        $('#pasien_name').val(nama);
+        $('#modal-input-manual-pasien').modal('hide');
+        $('#pasien-details-container').slideUp();
+        $('#bpjs-pricing-info').slideUp();
+        $('#bpjs-summary').hide();
+        
+        // Reset dokter untuk input manual
+        $('#dokter_id').val('');
+        $('#dokter_manual').val('');
+        
+        // Reset BPJS level untuk input manual
+        currentBPJSLevel = null;
+        
+        // Reset BPJS pricing for manual input
+        renderCartAndTotals();
+    });
+
+    // Event listener untuk dropdown dokter - kosongkan input manual jika dipilih
+    $('#dokter_id').on('change', function() {
+        if ($(this).val()) {
+            $('#dokter_manual').val('');
+        }
+    });
+
+    // Event listener untuk input dokter manual - kosongkan dropdown jika diisi
+    $('#dokter_manual').on('input', function() {
+        if ($(this).val().trim()) {
+            $('#dokter_id').val('');
+        }
+    });
 });
 </script>
 @endpush 

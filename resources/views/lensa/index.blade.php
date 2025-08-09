@@ -1,24 +1,16 @@
 @extends('layouts.master')
 
 @section('title')
-    lensa
+    Data Stok Lensa
 @endsection
 
 @section('breadcrumb')
     @parent
-    <li class="active">lensa</li>
+    <li class="active">Lensa</li>
 @endsection
 
 @section('content')
-<div class="row">
-    <div class="col-md-12">
-        <div class="box">
-            <div class="box-header with-border">
-                <button onclick="addform('{{ route('lensa.store') }}')" class="btn btn-primary">Tambah lensa</button>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <div class="row mb-3">
     <div class="col-md-6">
@@ -40,14 +32,18 @@
 
 <div class="row mb-3">
     <div class="col-md-12 d-flex align-items-center gap-2">
-        <form action="{{ route('lensa.import') }}" method="POST" enctype="multipart/form-data" class="d-inline-block">
-            @csrf
-            <div class="input-group mb-3">
-                <input type="file" name="file" class="form-control" required>
-                <button class="btn btn-success" type="submit">Import Lensa</button>
-            </div>
-        </form>
-        <a href="{{ route('lensa.export') }}" class="btn btn-info ms-2">Export Lensa</a>
+        <button onclick="showImportModal()" class="btn btn-success">
+            <i class="fa fa-upload"></i> Import Excel
+        </button>
+        <button onclick="exportLensaData()" class="btn btn-info">
+            <i class="fa fa-download"></i> Export Excel
+        </button>
+        <button onclick="exportLensaDataFull()" class="btn btn-warning">
+            <i class="fa fa-download"></i> Export Lengkap
+        </button>
+        <button onclick="testImportDebug()" class="btn btn-secondary">
+            <i class="fa fa-bug"></i> Test Import Debug
+        </button>
     </div>
 </div>
 
@@ -55,9 +51,15 @@
 <div class="row">
     <div class="col-md-12">
         <div class="box box-info">
+            <div class="box-header with-border">
+                <button onclick="addform('{{ route('lensa.store') }}')" class="btn btn-sm btn-custom">Tambah lensa</button>
+                <button onclick="bulkDelete()" class="btn btn-danger" id="bulk-delete-btn" style="display:none;">
+                    <i class="fa fa-trash"></i> Hapus Terpilih
+                </button>
+            </div>
             
             <div class="box-body table-responsive">
-                <table class="table table-stipet table-bordered" id="table-lensa">
+                <table class="table table-striped table-bordered" id="table-lensa">
                     <thead>
                         <th><input type="checkbox" name="select_all" id="select_all"></th>
                         <th width='5%'>No</th>
@@ -66,10 +68,15 @@
                         <th>Cabang</th>
                         <th>Type</th>
                         <th>Ukuran</th>
+                        <th>ADD</th>
                         <th>Coating</th>
-                        <th>Harga Beli</th>
+                        @if(auth()->user()->isSuperAdmin())
+                            <th>Harga Beli</th>
+                        @endif
                         <th>Harga Jual</th>
                         <th>Stok</th>
+                        <th>Tipe Stok</th>
+                        <th>Sales</th>
                         <th width='10%'><i class="fa fa-cog"></i></th>
                     </thead>
                     <tbody></tbody>
@@ -79,14 +86,85 @@
     </div>
 </div>
 @includeIf('lensa.form')
+
+<!-- Modal Import -->
+<div class="modal fade" id="modal-import" tabindex="-1" role="dialog" aria-labelledby="modal-import-label">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="modal-import-label">Import Data Lensa</h4>
+            </div>
+            <form id="form-import" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="file">File Excel (.xlsx, .xls)</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls" required>
+                        <small class="text-muted">Format: kode_lensa, merk_lensa, type, index, coating, harga_beli_lensa, harga_jual_lensa, stok, cabang, sales, is_custom_order, add</small>
+                        <br>
+                        <a href="{{ route('lensa.template') }}" class="btn btn-sm btn-info">
+                            <i class="fa fa-download"></i> Download Template Excel
+                        </a>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>Petunjuk:</strong>
+                        <ul>
+                            <li>File harus berformat Excel (.xlsx atau .xls)</li>
+                            <li>Baris pertama harus berisi header: kode_lensa, merk_lensa, type, index, coating, harga_beli_lensa, harga_jual_lensa, stok, cabang, sales, is_custom_order, add</li>
+                            <li>Kolom kode_lensa akan dibuat otomatis jika kosong</li>
+                            <li>Kolom cabang harus sesuai dengan nama cabang yang ada di sistem</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Import Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
 <script>
     let table;
     let jenisFilter = '';
+    let allSelectedIds = new Set(); // Untuk menyimpan semua ID yang dipilih dari semua halaman
+    let isSelectAllActive = false; // Status select all
   
  $(function () {
+        // Build columns array dynamically
+        var columns = [
+            {data: 'select_all'},
+            {data: 'DT_RowIndex', searchable: false, sortable: false},
+            {data: 'kode_lensa'},
+            {data: 'merk_lensa'},
+            {data: 'branch_name'},
+            {data: 'type'},
+            {data: 'index'},
+            {data: 'add'},
+            {data: 'coating'}
+        ];
+        
+        @if(auth()->user()->isSuperAdmin())
+        columns.push({data: 'harga_beli_lensa'});
+        @endif
+        
+        columns.push(
+            
+            {data: 'harga_jual_lensa'},
+            {data: 'stok'},
+            {data: 'stock_status'},
+            {data: 'sales_name'},
+           
+            {data: 'aksi', searchable: false, sortable: false}
+        );
+
         table = $('#table-lensa').DataTable({
             responsive: true,
             processing: true,
@@ -100,20 +178,20 @@
                     }
                 }
             },
-            columns: [
-                {data: 'select_all'},
-                {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'kode_lensa'},
-                {data: 'merk_lensa'},
-                {data: 'branch_name'},
-                {data: 'type'},
-                {data: 'index'},
-                {data: 'coating'},
-                {data: 'harga_beli_lensa'},
-                {data: 'harga_jual_lensa'},
-                {data: 'stok'},
-                {data: 'aksi', searchable: false, sortable: false},
-            ]
+            columns: columns,
+            drawCallback: function() {
+                // Update checkbox status setelah tabel di-redraw, tapi hanya jika ada selection
+                if (allSelectedIds.size > 0 || isSelectAllActive) {
+                    setTimeout(function() {
+                        updateCheckboxesOnCurrentPage();
+                        updateSelectAllStatus();
+                    }, 100);
+                } else {
+                    // Reset select all checkbox jika tidak ada selection
+                    $('#select_all').prop('checked', false);
+                    $('#select_all').prop('indeterminate', false);
+                }
+            }
         });
         $('#modal-form').validator().on('submit', function (e) {
             if (!e.preventDefault()) {
@@ -138,13 +216,41 @@
                     });
             }
         });
-        // Inisialisasi ulang event handler setelah DataTables draw
-        table.on('draw', function() {
-            $('#select_all').prop('checked', false);
-            $('#select_all').off('click').on('click', function() {
-                var checked = this.checked;
-                $('#table-lensa tbody input[type="checkbox"][name="id[]"]').prop('checked', checked);
-            });
+        // Event handler untuk select all
+        $(document).on('change', '#select_all', function(){
+            const isChecked = $(this).is(':checked');
+            
+            if (isChecked) {
+                // Select all - pilih semua data di halaman saat ini
+                $('input[name="selected_lensa[]"]').prop('checked', true);
+                $('input[name="selected_lensa[]"]').each(function() {
+                    allSelectedIds.add($(this).val());
+                });
+                isSelectAllActive = true;
+            } else {
+                // Unselect all - hapus semua selection
+                $('input[name="selected_lensa[]"]').prop('checked', false);
+                allSelectedIds.clear();
+                isSelectAllActive = false;
+            }
+            
+            updateBulkDeleteButton();
+        });
+
+        // Event handler untuk checkbox individual
+        $(document).on('change', 'input[name="selected_lensa[]"]', function() {
+            const id = $(this).val();
+            const isChecked = $(this).is(':checked');
+            
+            if (isChecked) {
+                allSelectedIds.add(id);
+            } else {
+                allSelectedIds.delete(id);
+                isSelectAllActive = false;
+            }
+            
+            updateBulkDeleteButton();
+            updateSelectAllStatus();
         });
     });
 
@@ -173,6 +279,10 @@
                 $('#modal-form [name=harga_jual_lensa]').val(response.harga_jual_lensa);
                 $('#modal-form [name=harga_beli_lensa]').val(response.harga_beli_lensa);
                 $('#modal-form [name=stok]').val(response.stok);
+                $('#modal-form [name=branch_id]').val(response.branch_id);
+                $('#modal-form [name=is_custom_order]').val(response.is_custom_order ? '1' : '0');
+                $('#modal-form [name=sales_id]').val(response.sales_id || '');
+                $('#modal-form [name=add]').val(response.add || '');
             })
             .fail((errors) => {
                 alert('Tidak dapat menampilkan data');
@@ -199,5 +309,233 @@
         jenisFilter = jenis;
         table.ajax.reload();
     }
+
+    function bulkDelete() {
+        const selectedIds = Array.from(allSelectedIds);
+
+        if (selectedIds.length === 0) {
+            Swal.fire({
+                title: 'Peringatan',
+                text: 'Pilih data lensa yang akan dihapus terlebih dahulu.',
+                icon: 'warning',
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Konfirmasi Hapus Massal',
+            html: `Yakin ingin menghapus <strong>${selectedIds.length}</strong> data lensa yang dipilih?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, Hapus Semua!',
+            cancelButtonText: 'Batal',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return $.ajax({
+                    url: '{{ route('lensa.bulk-delete') }}',
+                    type: 'POST',
+                    data: {
+                        '_token': $('[name=csrf-token]').attr('content'),
+                        'ids': selectedIds
+                    }
+                }).then(response => {
+                    return response;
+                }).catch(error => {
+                    Swal.showValidationMessage(
+                        `Request failed: ${error.responseJSON?.message || 'Tidak dapat menghapus data'}`
+                    );
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                table.ajax.reload();
+                // Reset semua state
+                allSelectedIds.clear();
+                isSelectAllActive = false;
+                $('#select_all').prop('checked', false);
+                $('#bulk-delete-btn').hide();
+                
+                Swal.fire(
+                    'Berhasil!',
+                    result.value.message || 'Data berhasil dihapus',
+                    'success'
+                );
+            }
+        });
+    }
+
+    // Fungsi untuk update checkbox di halaman saat ini
+    function updateCheckboxesOnCurrentPage() {
+        $('input[name="selected_lensa[]"]').each(function() {
+            const id = $(this).val();
+            const shouldBeChecked = allSelectedIds.has(id);
+            if ($(this).is(':checked') !== shouldBeChecked) {
+                $(this).prop('checked', shouldBeChecked);
+            }
+        });
+    }
+
+    function updateBulkDeleteButton() {
+        const checkedCount = allSelectedIds.size;
+        if (checkedCount > 0) {
+            $('#bulk-delete-btn').show().text(`Hapus Terpilih (${checkedCount})`);
+        } else {
+            $('#bulk-delete-btn').hide();
+        }
+    }
+
+    // Fungsi untuk mengupdate status select all checkbox
+    function updateSelectAllStatus() {
+        const currentPageCheckboxes = $('input[name="selected_lensa[]"]');
+        const currentPageChecked = currentPageCheckboxes.filter(':checked').length;
+        const totalCurrentPage = currentPageCheckboxes.length;
+        
+        if (currentPageChecked === 0) {
+            $('#select_all').prop('checked', false);
+            $('#select_all').prop('indeterminate', false);
+        } else if (currentPageChecked === totalCurrentPage) {
+            $('#select_all').prop('checked', true);
+            $('#select_all').prop('indeterminate', false);
+        } else {
+            $('#select_all').prop('checked', false);
+            $('#select_all').prop('indeterminate', true);
+        }
+    }
+
+    // Fungsi untuk export Lensa data
+    function exportLensaData() {
+        // Tampilkan loading
+        Swal.fire({
+            title: 'Mengexport Data Lensa...',
+            text: 'Mohon tunggu sebentar',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Buat link untuk download dengan proper headers
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = '{{ route('lensa.export') }}';
+        a.download = 'lensa_data.xlsx';
+        a.target = '_blank';
+        
+        // Add proper headers
+        a.setAttribute('type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Tutup loading setelah beberapa detik
+        setTimeout(() => {
+            Swal.close();
+            
+            // Tampilkan pesan sukses
+            Swal.fire({
+                icon: 'success',
+                title: 'Export Berhasil!',
+                text: 'File Excel data lensa telah berhasil diunduh',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }, 2000);
+    }
+
+    function exportLensaDataFull() {
+        // Tampilkan loading
+        Swal.fire({
+            title: 'Mengexport Data Lensa Lengkap...',
+            text: 'Mohon tunggu sebentar',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Buat link untuk download dengan proper headers
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = '{{ route('lensa.export-full') }}';
+        a.download = 'lensa_data_lengkap.xlsx';
+        a.target = '_blank';
+        
+        // Add proper headers
+        a.setAttribute('type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Tutup loading setelah beberapa detik
+        setTimeout(() => {
+            Swal.close();
+            
+            // Tampilkan pesan sukses
+            Swal.fire({
+                icon: 'success',
+                title: 'Export Berhasil!',
+                text: 'File Excel data lensa lengkap telah berhasil diunduh',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }, 2000);
+    }
+
+    // Fungsi untuk menampilkan modal import
+    function showImportModal() {
+        $('#modal-import').modal('show');
+    }
+
+    // Handle form import submission
+    $('#form-import').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        $.ajax({
+            url: '{{ route('lensa.import') }}',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    $('#modal-import').modal('hide');
+                    table.ajax.reload();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: response.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: response.message
+                    });
+                }
+            },
+            error: function(xhr) {
+                let message = 'Terjadi kesalahan saat import data';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    message = xhr.responseJSON.message;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: message
+                });
+            }
+        });
+    });
 </script>
 @endpush

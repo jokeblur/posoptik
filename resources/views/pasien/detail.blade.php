@@ -1,30 +1,52 @@
-<div class="modal fade" id="modal-detail" tabindex="-1" role="dialog" aria-labelledby="modal-detail-title">
+<!-- Modal Detail Pasien -->
+<div class="modal fade" id="modal-detail" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="modal-detail-title">Detail Pasien</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Detail Pasien</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <strong>Nama:</strong> <p id="detail-nama"></p>
-                        <strong>Alamat:</strong> <p id="detail-alamat"></p>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Telepon:</strong> <p id="detail-nohp"></p>
-                        <strong>Jenis Layanan:</strong> <p id="detail-service_type"></p>
+                <div style="margin-bottom:20px; border:1px solid #e0e0e0; border-radius:6px; padding:24px 32px; background:#fafbfc;">
+                    <div style="max-width:500px; margin:auto;">
+                        <table style="width:100%; font-size:16px; border-collapse:collapse;">
+                            <tr>
+                                <td style="padding:4px 8px; font-weight:bold;">Nama</td>
+                                <td style="padding:4px 8px;">: <span id="detail-nama"></span></td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px 8px; font-weight:bold;">Alamat</td>
+                                <td style="padding:4px 8px;">: <span id="detail-alamat"></span></td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px 8px; font-weight:bold;">No. HP</td>
+                                <td style="padding:4px 8px;">: <span id="detail-nohp"></span></td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px 8px; font-weight:bold;">Jenis Layanan</td>
+                                <td style="padding:4px 8px;">: <span id="detail-service_type"></span></td>
+                            </tr>
+                            <tr id="row-no-bpjs">
+                                <td style="padding:4px 8px; font-weight:bold;">No. BPJS</td>
+                                <td style="padding:4px 8px;">: <span id="detail-no-bpjs"></span></td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px 8px; font-weight:bold;">Dokter</td>
+                                <td style="padding:4px 8px;">: <span id="detail-dokter"></span></td>
+                            </tr>
+                        </table>
                     </div>
                 </div>
-                <hr>
-                <h4>Riwayat Resep</h4>
-                <div id="detail-prescriptions-container">
-                    <!-- Prescription details will be populated here by JavaScript -->
+                <div class="box box-default">
+                    <div class="box-header with-border">
+                        <h4 class="box-title"><i class="fa fa-stethoscope"></i> Riwayat Resep</h4>
+                    </div>
+                    <div class="box-body">
+                        <div id="detail-prescriptions-container"></div>
+                    </div>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
-</div> 
+</div>
+<!-- JS: isi $('#detail-no-bpjs').text(response.no_bpjs || '-') dan $('#detail-dokter').text(latestPrescription.dokter_nama || '-') --> 

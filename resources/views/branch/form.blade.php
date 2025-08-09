@@ -68,8 +68,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-sm btn-custom"><i class="fa fa-save"></i> Simpan</button>
-                    <button type="button" class="btn btn-sm btn-custom-close" data-dismiss="modal"><i class="fa fa-arrow-circle-left"></i> Batal</button>
+                    <button class="btn btn-sm btn-custom">Simpan</button>
+                    <button type="button" class="btn btn-sm btn-custom-close" data-dismiss="modal"> Batal</button>
                 </div>
             </div>
         </form>

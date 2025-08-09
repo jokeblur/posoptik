@@ -41,14 +41,20 @@ body {
 }
 
 .btn-custom-close {
-    background-color: #444141; /* Warna hijau */
-rgb(134, 134, 134)
+    background-color: #ecd96d; /* Warna hijau */
     color: #ffffff; /* Warna teks */
     border-radius: 20px; /* Sudut tombol melengkung */
     padding: 8px 20px; /* Ukuran tombol */
 }
 
 .btn-custom-close:hover {
-    background-color: #f0a8a8; /* Warna saat hover */
+    background-color: #f9fcf2; /* Warna saat hover */
     color: rgb(49, 49, 49); /* Warna teks */
+}
+
+.glass-box {
+    background: rgba(241, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }

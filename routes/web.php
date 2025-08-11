@@ -12,6 +12,7 @@ use App\Http\Controllers\AksesorisController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OpenDayController;
 use App\Http\Controllers\LaporanPosController;
+use App\Http\Controllers\StockTransferController;
 
 use Illuminate\Routing\Console\MiddlewareMakeCommand;
 use Illuminate\Support\Facades\Route;
@@ -53,7 +54,9 @@ Route::middleware([
     Route::get('/penjualan/data', [PenjualanController::class, 'data'])->name('penjualan.data');
     Route::get('/penjualan/statistics', [PenjualanController::class, 'statistics'])->name('penjualan.statistics');
     Route::get('/penjualan/{penjualan}/cetak', [PenjualanController::class, 'cetak'])->name('penjualan.cetak');
-Route::get('/penjualan/{penjualan}/cetak-half', [PenjualanController::class, 'cetakHalf'])->name('penjualan.cetak-half');
+    Route::get('/penjualan/{penjualan}/cetak-half', [PenjualanController::class, 'cetakHalf'])->name('penjualan.cetak-half');
+    Route::get('/pasien/{pasien}/cetak-resep', [PasienController::class, 'cetakResep'])->name('pasien.cetak-resep');
+    Route::get('/pasien/{pasien}/cetak-resep-a4', [PasienController::class, 'cetakResepA4'])->name('pasien.cetak-resep-a4');
     Route::post('/penjualan/{penjualan}/lunas', [PenjualanController::class, 'lunas'])->name('penjualan.lunas');
     Route::post('/penjualan/{id}/diambil', [PenjualanController::class, 'diambil'])->name('penjualan.diambil');
     Route::get('penjualan/omset-harian', [\App\Http\Controllers\PenjualanController::class, 'omsetHarian'])->name('penjualan.omset_harian');
@@ -71,8 +74,18 @@ Route::get('/penjualan/{penjualan}/cetak-half', [PenjualanController::class, 'ce
     Route::get('/laporan-bpjs/summary', [App\Http\Controllers\LaporanBpjsController::class, 'summary'])->name('laporan.bpjs.summary')->middleware('role:admin,super admin');
     Route::get('/laporan-bpjs/export', [App\Http\Controllers\LaporanBpjsController::class, 'export'])->name('laporan.bpjs.export')->middleware('role:admin,super admin');
     
+    // Laporan Tanda Tangan BPJS routes
+    Route::get('/laporan-signature-bpjs', [App\Http\Controllers\PenjualanController::class, 'signatureReport'])->name('laporan.signature.bpjs')->middleware('role:admin,super admin');
+    Route::get('/laporan-signature-bpjs/data', [App\Http\Controllers\PenjualanController::class, 'signatureReportData'])->name('laporan.signature.bpjs.data')->middleware('role:admin,super admin');
+    
     // API untuk dashboard charts
     Route::get('/api/dashboard/chart-data', [App\Http\Controllers\DashboardController::class, 'getChartData'])->name('dashboard.chart-data')->middleware('role:admin,super admin');
+    
+    // Real-time endpoints
+    Route::get('/realtime/dashboard', [App\Http\Controllers\RealtimeController::class, 'dashboard'])->name('realtime.dashboard');
+    Route::get('/realtime/omset-kasir', [App\Http\Controllers\RealtimeController::class, 'omsetKasir'])->name('realtime.omset-kasir');
+    Route::get('/realtime/notifications', [App\Http\Controllers\RealtimeController::class, 'notifications'])->name('realtime.notifications');
+    Route::get('/realtime/stock-updates', [App\Http\Controllers\RealtimeController::class, 'stockUpdates'])->name('realtime.stock-updates');
     
     // Barcode routes - scan direct tidak perlu auth
     Route::get('/barcode/scan/{barcode}', [App\Http\Controllers\BarcodeController::class, 'scanDirect'])->name('barcode.scan.direct');
@@ -84,6 +97,21 @@ Route::get('/penjualan/{penjualan}/cetak-half', [PenjualanController::class, 'ce
     Route::post('/barcode/generate', [App\Http\Controllers\BarcodeController::class, 'generateBarcode'])->name('barcode.generate');
     Route::get('/barcode/print/{id}', [App\Http\Controllers\BarcodeController::class, 'printBarcode'])->name('barcode.print');
     Route::post('/barcode/bulk-generate', [App\Http\Controllers\BarcodeController::class, 'bulkGenerateBarcode'])->name('barcode.bulk-generate')->middleware('role:admin,super admin');
+    
+    // Barcode index route
+    Route::get('/barcode', [App\Http\Controllers\BarcodeController::class, 'index'])->name('barcode.index')->middleware('role:admin,super admin');
+    
+    // Stock Transfer routes
+                   Route::get('/stock-transfer/dashboard', [StockTransferController::class, 'dashboard'])->name('stock-transfer.dashboard');
+               Route::get('/stock-transfer/stats', [StockTransferController::class, 'getStats'])->name('stock-transfer.stats');
+               Route::get('/stock-transfer/products', [StockTransferController::class, 'getProducts'])->name('stock-transfer.products');
+               Route::post('/stock-transfer/{id}/approve', [StockTransferController::class, 'approve'])->name('stock-transfer.approve')->middleware('role:admin,super admin');
+               Route::post('/stock-transfer/{id}/reject', [StockTransferController::class, 'reject'])->name('stock-transfer.reject')->middleware('role:admin,super admin');
+               Route::post('/stock-transfer/{id}/complete', [StockTransferController::class, 'complete'])->name('stock-transfer.complete');
+               Route::post('/stock-transfer/{id}/cancel', [StockTransferController::class, 'cancel'])->name('stock-transfer.cancel');
+               Route::get('/stock-transfer/branch/{branchId}/history', [StockTransferController::class, 'branchHistory'])->name('stock-transfer.branch-history');
+               Route::get('/stock-transfer/export', [StockTransferController::class, 'export'])->name('stock-transfer.export')->middleware('role:admin,super admin');
+               Route::resource('stock-transfer', StockTransferController::class);
     
     // Test route untuk QR Code
     Route::get('/test-qrcode', function() {

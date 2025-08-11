@@ -37,6 +37,7 @@ class PasienController extends Controller
                 return '
             <div class="btn-group">
                 <button onclick="showDetail(`' . route('pasien.show', $pasien->id_pasien) . '`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-eye"></i></button>
+                <a href="' . route('pasien.cetak-resep', $pasien->id_pasien) . '" target="_blank" class="btn btn-xs btn-warning btn-flat"><i class="fa fa-print"></i></a>
                 <button onclick="editform(`' . route('pasien.update', $pasien->id_pasien) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-pencil"></i></button>
                 <button onclick="deleteData(`' . route('pasien.destroy', $pasien->id_pasien) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
             </div>
@@ -313,5 +314,39 @@ class PasienController extends Controller
                 'message' => 'Gagal menghapus data: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Cetak resep pasien
+     */
+    public function cetakResep($id)
+    {
+        $pasien = Pasien::with(['prescriptions.dokter'])->findOrFail($id);
+        
+        // Ambil resep terbaru
+        $latestPrescription = $pasien->prescriptions->sortByDesc('tanggal')->first();
+        
+        if (!$latestPrescription) {
+            abort(404, 'Tidak ada resep untuk pasien ini');
+        }
+        
+        return view('pasien.cetak-resep', compact('pasien', 'latestPrescription'));
+    }
+
+    /**
+     * Cetak resep pasien ukuran A4
+     */
+    public function cetakResepA4($id)
+    {
+        $pasien = Pasien::with(['prescriptions.dokter'])->findOrFail($id);
+        
+        // Ambil resep terbaru
+        $latestPrescription = $pasien->prescriptions->sortByDesc('tanggal')->first();
+        
+        if (!$latestPrescription) {
+            abort(404, 'Tidak ada resep untuk pasien ini');
+        }
+        
+        return view('pasien.cetak-resep-a4', compact('pasien', 'latestPrescription'));
     }
 }

@@ -36,4 +36,9 @@ class Penjualan extends Model
     {
         return $this->hasMany(PenjualanDetail::class);
     }
+
+    public function passetByUser()
+    {
+        return $this->belongsTo(User::class, 'passet_by_user_id');
+    }
 }

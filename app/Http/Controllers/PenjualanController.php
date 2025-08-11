@@ -1,6 +1,6 @@
 <?php
 namespace App\Http\Controllers;
-use App\Models\Transaksi;
+use App\Models\Penjualan;
 use App\Models\PenjualanDetail;
 use App\Models\Frame;
 use App\Models\Lensa;
@@ -9,6 +9,7 @@ use App\Models\Pasien;
 use App\Services\BpjsPricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\OpenDay;
 use Carbon\Carbon;
 
@@ -33,7 +34,7 @@ class PenjualanController extends Controller
     public function statistics()
     {
         $user = auth()->user();
-        $query = Transaksi::query();
+        $query = Penjualan::query();
 
         // Jika user bukan super admin, filter berdasarkan cabang mereka
         if ($user->role !== 'super admin') {
@@ -58,7 +59,7 @@ class PenjualanController extends Controller
     public function data(Request $request)
     {
         $user = auth()->user();
-        $query = Transaksi::with('user', 'branch', 'passetByUser', 'dokter', 'pasien')->latest();
+        $query = Penjualan::with('user', 'branch', 'passetByUser', 'dokter', 'pasien')->latest();
 
         // Jika user bukan super admin, filter berdasarkan cabang mereka
         if ($user->role !== 'super admin') {
@@ -94,10 +95,10 @@ class PenjualanController extends Controller
                 return $penjualan->passetByUser->name ?? '-';
             })
             ->addColumn('nama_pasien', function ($penjualan) {
-                return $penjualan->nama_pasien ?? '-';
+                return $penjualan->pasien->nama_pasien ?? '-';
             })
             ->addColumn('nama_dokter', function ($penjualan) {
-                return $penjualan->nama_dokter ?? '-';
+                return $penjualan->dokter->nama_dokter ?? '-';
             })
             ->addColumn('status_transaksi', function ($penjualan) {
                 if ($penjualan->transaction_status == 'Naik Kelas') {
@@ -130,6 +131,7 @@ class PenjualanController extends Controller
             ->addColumn('aksi', function ($penjualan) {
                 $user = auth()->user();
                 $detailButton = '<a href="'. route('penjualan.show', $penjualan->id) .'" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i> Detail</a>';
+                $editButton = '<a href="'. route('penjualan.edit', $penjualan->id) .'" class="btn btn-xs btn-warning btn-flat"><i class="fa fa-edit"></i> Edit</a>';
                 $ambilButton = '';
                 $deleteButton = '';
                 
@@ -146,10 +148,14 @@ class PenjualanController extends Controller
                 return '
                 <div class="btn-group">
                     '. $detailButton .'
+                    '. $editButton .'
                     '. $ambilButton .'
                     '. $deleteButton .'
                 </div>
                 ';
+            })
+            ->addColumn('barcode', function ($penjualan) {
+                return $penjualan->barcode ?? null;
             })
             ->rawColumns(['aksi', 'kode_penjualan', 'status_pengerjaan', 'status_transaksi'])
             ->make(true);
@@ -309,7 +315,7 @@ class PenjualanController extends Controller
             }
 
             // Generate barcode
-            $barcode = 'TRX' . date('Ymd') . str_pad(Transaksi::max('id') + 1, 6, '0', STR_PAD_LEFT);
+            $barcode = 'TRX' . date('Ymd') . str_pad(Penjualan::max('id') + 1, 6, '0', STR_PAD_LEFT);
             
             $penjualanData = [
                 'kode_penjualan' => $request->kode_penjualan,
@@ -341,7 +347,13 @@ class PenjualanController extends Controller
                 $penjualanData['photo_bpjs'] = $path;
             }
 
-            $penjualan = Transaksi::create($penjualanData);
+            // Handle signature for BPJS patients
+            if ($request->filled('signature_bpjs') && $pasien && in_array($pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+                $penjualanData['signature_bpjs'] = $request->signature_bpjs;
+                $penjualanData['signature_date'] = now();
+            }
+
+            $penjualan = Penjualan::create($penjualanData);
 
             foreach ($items as $itemData) {
                 $itemModel = null;
@@ -406,25 +418,74 @@ class PenjualanController extends Controller
     }
     public function show($id)
     {
-        $penjualan = Transaksi::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
+        $penjualan = Penjualan::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
         return view('penjualan.show', compact('penjualan'));
+    }
+
+    public function edit($id)
+    {
+        $penjualan = Penjualan::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
+        $dokters = \App\Models\Dokter::all();
+        $pasiens = \App\Models\Pasien::all();
+        
+        return view('penjualan.edit', compact('penjualan', 'dokters', 'pasiens'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'pasien_id' => 'required',
+            'bayar' => 'required|numeric|min:0',
+            'status' => 'required|in:Belum Lunas,Lunas',
+            'status_pengerjaan' => 'required|in:Menunggu Pengerjaan,Sedang Dikerjakan,Selesai Dikerjakan,Sudah Diambil',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $penjualan = Penjualan::findOrFail($id);
+            
+            // Update basic information
+            $penjualan->pasien_id = $request->pasien_id;
+            $penjualan->dokter_id = $request->dokter_id ?: null;
+            $penjualan->dokter_manual = $request->dokter_manual;
+            $penjualan->tanggal_siap = $request->tanggal_siap;
+            $penjualan->bayar = $request->bayar;
+            $penjualan->status = $request->status;
+            $penjualan->status_pengerjaan = $request->status_pengerjaan;
+            
+            // Calculate kekurangan
+            $penjualan->kekurangan = $penjualan->total - $request->bayar;
+            
+            $penjualan->save();
+
+            DB::commit();
+
+            return redirect()->route('penjualan.index')
+                ->with('success', 'Transaksi berhasil diupdate!');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->withInput()
+                ->with('error', 'Gagal mengupdate transaksi: ' . $e->getMessage());
+        }
     }
 
     public function cetak($id)
     {
-        $penjualan = Transaksi::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
+        $penjualan = Penjualan::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
         return view('penjualan.cetak', compact('penjualan'));
     }
 
     public function cetakHalf($id)
     {
-        $penjualan = Transaksi::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
+        $penjualan = Penjualan::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
         return view('penjualan.cetak_half', compact('penjualan'));
     }
 
     public function lunas($id)
     {
-        $penjualan = Transaksi::findOrFail($id);
+        $penjualan = Penjualan::findOrFail($id);
 
         if ($penjualan->status == 'Lunas') {
             return response()->json(['message' => 'Transaksi ini sudah lunas.'], 422);
@@ -440,7 +501,7 @@ class PenjualanController extends Controller
 
     public function diambil($id)
     {
-        $penjualan = Transaksi::findOrFail($id);
+        $penjualan = Penjualan::findOrFail($id);
 
         // Cek apakah transaksi sudah lunas
         if ($penjualan->status !== 'Lunas') {
@@ -463,7 +524,7 @@ class PenjualanController extends Controller
             return response()->json(['message' => 'Anda tidak memiliki izin untuk menghapus transaksi.'], 403);
         }
 
-        $penjualan = Transaksi::findOrFail($id);
+        $penjualan = Penjualan::findOrFail($id);
 
         // Cek apakah user memiliki akses ke cabang transaksi ini
         if ($user->role !== 'super admin' && $penjualan->branch_id !== $user->branch_id) {
@@ -520,7 +581,7 @@ class PenjualanController extends Controller
         }
         
         $today = now()->toDateString();
-        $omset = Transaksi::where('branch_id', $branch_id)
+        $omset = Penjualan::where('branch_id', $branch_id)
                           ->whereDate('created_at', $today)
                           ->sum('total');
         
@@ -678,5 +739,76 @@ class PenjualanController extends Controller
                 'message' => 'Gagal debug frame data: ' . $e->getMessage()
             ], 500);
         }
+    }
+    
+    /**
+     * Laporan tanda tangan BPJS
+     */
+    public function signatureReport()
+    {
+        return view('penjualan.signature-report');
+    }
+    
+    /**
+     * Data untuk laporan tanda tangan BPJS
+     */
+    public function signatureReportData(Request $request)
+    {
+        $query = Penjualan::with(['pasien', 'user', 'branch'])
+            ->whereNotNull('signature_bpjs')
+            ->whereHas('pasien', function($q) {
+                $q->whereIn('service_type', ['BPJS I', 'BPJS II', 'BPJS III']);
+            });
+            
+        // Filter by date range
+        if ($request->filled('start_date')) {
+            $query->whereDate('tanggal', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('tanggal', '<=', $request->end_date);
+        }
+        
+        // Filter by branch
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
+        }
+        
+        // Filter by service type
+        if ($request->filled('service_type')) {
+            $query->whereHas('pasien', function($q) use ($request) {
+                $q->where('service_type', $request->service_type);
+            });
+        }
+        
+        $penjualan = $query->orderBy('tanggal', 'desc')->get();
+        
+        return DataTables::of($penjualan)
+            ->addColumn('tanggal', function($p) {
+                return $p->tanggal ? $p->tanggal->format('d/m/Y') : '-';
+            })
+            ->addColumn('nama_pasien', function($p) {
+                return $p->pasien->nama_pasien ?? $p->nama_pasien_manual ?? '-';
+            })
+            ->addColumn('service_type', function($p) {
+                return $p->pasien->service_type ?? '-';
+            })
+            ->addColumn('kasir', function($p) {
+                return $p->user->name ?? '-';
+            })
+            ->addColumn('cabang', function($p) {
+                return $p->branch->name ?? '-';
+            })
+            ->addColumn('signature_date', function($p) {
+                return $p->signature_date ? $p->signature_date->format('d/m/Y H:i') : '-';
+            })
+            ->addColumn('actions', function($p) {
+                $buttons = '<a href="' . route('penjualan.show', $p->id) . '" class="btn btn-xs btn-info" title="Lihat Detail"><i class="fa fa-eye"></i></a>';
+                if ($p->signature_bpjs) {
+                    $buttons .= ' <button class="btn btn-xs btn-success" onclick="viewSignature(\'' . $p->signature_bpjs . '\', \'' . $p->pasien->nama_pasien . '\')" title="Lihat Tanda Tangan"><i class="fa fa-signature"></i></button>';
+                }
+                return $buttons;
+            })
+            ->rawColumns(['actions'])
+            ->make(true);
     }
 }

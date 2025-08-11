@@ -106,6 +106,19 @@
 
     {{-- Box untuk Kasir --}}
     @if(auth()->user()->isKasir())
+    {{-- Real-time Status Indicator --}}
+    <div class="row" style="margin-bottom: 16px;">
+        <div class="col-md-12">
+            <div id="kasir-status-info">
+                <!-- Status akan diupdate via JavaScript -->
+            </div>
+            <div id="realtime-status" class="alert alert-info text-center" style="margin-bottom: 10px; padding: 8px;">
+                <i class="fa fa-wifi" style="margin-right: 5px;"></i>
+                <span id="connection-status">Menghubungkan ke real-time server...</span>
+            </div>
+        </div>
+    </div>
+    
     <div class="row" style="margin-bottom: 32px;">
         <div class="col-md-3">
             <div class="small-box bg-aqua">
@@ -152,30 +165,39 @@
     {{-- Box Omset untuk Kasir --}}
     <div class="row" style="margin-bottom: 32px;">
         <div class="col-md-4">
-            <div class="small-box bg-success">
+            <div class="small-box bg-success omset-total">
                 <div class="inner">
                     <h3>Rp {{ number_format($omsetKasir ?? 0, 0, ',', '.') }}</h3>
                     <p>Omset Hari Ini</p>
                 </div>
                 <div class="icon"><i class="fa fa-money"></i></div>
+                <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
+                    <span class="jumlah-transaksi-badge">{{ $transaksiKasir ? $transaksiKasir->count() : 0 }}</span> transaksi hari ini
+                </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="small-box bg-info">
+            <div class="small-box bg-info omset-bpjs">
                 <div class="inner">
                     <h3>Rp {{ number_format($omsetBpjs ?? 0, 0, ',', '.') }}</h3>
                     <p>Omset BPJS Hari Ini</p>
                 </div>
                 <div class="icon"><i class="fa fa-heartbeat"></i></div>
+                <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
+                    Real-time update
+                </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="small-box bg-warning">
+            <div class="small-box bg-warning omset-umum">
                 <div class="inner">
                     <h3>Rp {{ number_format($omsetUmum ?? 0, 0, ',', '.') }}</h3>
                     <p>Omset Umum Hari Ini</p>
                 </div>
                 <div class="icon"><i class="fa fa-users"></i></div>
+                <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
+                    Auto refresh
+                </div>
             </div>
         </div>
     </div>
@@ -190,11 +212,11 @@
                 </div>
                 <div class="box-body">
                     <div class="table-responsive">
-                        <table class="table table-bordered table-striped">
+                        <table id="transaksi-terbaru-table" class="table table-bordered table-striped">
                             <thead>
                                 <tr>
                                     <th>No</th>
-                                    <th>Waktu</th>
+                                    <th>Tanggal</th>
                                     <th>No. Transaksi</th>
                                     <th>Nama Pasien</th>
                                     <th>Jenis Layanan</th>
@@ -206,9 +228,9 @@
                                 @foreach($transaksiKasir as $index => $transaksi)
                                 <tr>
                                     <td>{{ $index + 1 }}</td>
-                                    <td>{{ $transaksi->created_at->format('H:i') }}</td>
-                                    <td>{{ $transaksi->no_transaksi }}</td>
-                                    <td>{{ $transaksi->pasien->nama ?? '-' }}</td>
+                                    <td>{{ $transaksi->created_at->format('d/m/Y') }}</td>
+                                                       <td>{{ $transaksi->kode_penjualan }}</td>
+                   <td>{{ $transaksi->pasien->nama_pasien ?? '-' }}</td>
                                     <td>
                                         @if($transaksi->pasien && $transaksi->pasien->service_type)
                                             <span class="label label-info">{{ $transaksi->pasien->service_type }}</span>
@@ -257,26 +279,155 @@
   20%, 60% { transform: translateX(-8px); }
   40%, 80% { transform: translateX(8px); }
 }
+
+/* Real-time animations */
+.pulse-animation {
+  animation: pulse-glow 1s ease-in-out;
+}
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 5px rgba(0,255,0,0.3); }
+  50% { box-shadow: 0 0 20px rgba(0,255,0,0.6); }
+  100% { box-shadow: 0 0 5px rgba(0,255,0,0.3); }
+}
+
+.realtime-indicator {
+  position: relative;
+}
+.realtime-indicator:after {
+  content: "●";
+  color: #00ff00;
+  animation: blink 2s infinite;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  font-size: 12px;
+}
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+#realtime-status {
+  transition: all 0.3s ease;
+}
+
+/* Stock update animations */
+.stock-updated {
+  background-color: rgba(255, 255, 0, 0.3) !important;
+  transition: background-color 2s ease-out;
+}
+
+.stock-low {
+  background-color: rgba(255, 0, 0, 0.1) !important;
+}
+
+.stock-medium {
+  background-color: rgba(255, 165, 0, 0.1) !important;
+}
+
+.stock-normal {
+  background-color: rgba(0, 255, 0, 0.1) !important;
+}
 </style>
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ asset('js/realtime.js') }}"></script>
 <script>
 window.APP_BASE_URL = '{{ url('/') }}';
+
 @if(auth()->user()->isKasir())
 var KASIR_BRANCH_ID = {{ auth()->user()->branch_id ?? 0 }};
+
+// Setup real-time connections with custom callbacks
 $(function() {
-    setInterval(function() {
-        $.getJSON(window.APP_BASE_URL + '/api/open-day-status?branch_id=' + KASIR_BRANCH_ID, function(res) {
-            if(res.is_open) {
-                $('#kasir-status-info').html('<div class="alert alert-success text-center" style="font-size:16px; margin-bottom:10px;"><b>KASIR BUKA</b> &mdash; Kasir cabang sudah dibuka (' + (res.open_time ? new Date(res.open_time).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) : '-') + ')</div>');
-            } else {
-                $('#kasir-status-info').html('<div class="alert alert-danger text-center" style="font-size:16px; margin-bottom:10px;"><b>KASIR TUTUP</b> &mdash; Kasir cabang belum dibuka atau sudah ditutup</div>');
+    // Setup real-time dashboard connection
+    window.RealtimeManager.connectDashboard({
+        onOpen: function() {
+            $('#connection-status').text('Terhubung ke real-time server');
+            $('#realtime-status').removeClass('alert-info alert-danger').addClass('alert-success');
+        },
+        onError: function() {
+            $('#connection-status').text('Koneksi terputus, mencoba reconnect...');
+            $('#realtime-status').removeClass('alert-info alert-success').addClass('alert-danger');
+        }
+    });
+    
+    // Setup real-time omset connection
+    window.RealtimeManager.connectOmsetKasir({
+        onData: function(data) {
+            // Update omset displays
+            $('.omset-total h3').text('Rp ' + new Intl.NumberFormat('id-ID').format(data.omset_kasir || 0));
+            $('.omset-bpjs h3').text('Rp ' + new Intl.NumberFormat('id-ID').format(data.omset_bpjs || 0));
+            $('.omset-umum h3').text('Rp ' + new Intl.NumberFormat('id-ID').format(data.omset_umum || 0));
+            $('.jumlah-transaksi-badge').text(data.jumlah_transaksi || 0);
+            
+            // Update table if data available
+            if (data.transaksi_terbaru) {
+                updateTransaksiTable(data.transaksi_terbaru);
             }
-        });
-    }, 5000);
+            
+            // Add visual feedback
+            $('.omset-total, .omset-bpjs, .omset-umum').addClass('pulse-animation');
+            setTimeout(function() {
+                $('.omset-total, .omset-bpjs, .omset-umum').removeClass('pulse-animation');
+            }, 1000);
+        }
+    });
+    
+    // Setup notifications
+    window.RealtimeManager.connectNotifications({
+        onData: function(notification) {
+            showRealtimeNotification(notification);
+        }
+    });
 });
+
+function updateTransaksiTable(transaksiList) {
+    const tableBody = $('#transaksi-terbaru-table tbody');
+    if (!tableBody.length || !transaksiList) return;
+    
+    tableBody.empty();
+    
+    transaksiList.forEach(function(transaksi, index) {
+        const row = $('<tr>').html(`
+            <td>${index + 1}</td>
+            <td>${transaksi.tanggal}</td>
+            <td>${transaksi.no_transaksi || '-'}</td>
+            <td>${transaksi.nama_pasien || '-'}</td>
+            <td><span class="label label-info">${transaksi.service_type || 'UMUM'}</span></td>
+            <td>Rp ${new Intl.NumberFormat('id-ID').format(transaksi.total || 0)}</td>
+            <td><span class="label ${transaksi.status === 'Sudah Diambil' ? 'label-success' : 'label-warning'}">${transaksi.status || 'Sedang Dikerjakan'}</span></td>
+        `);
+        tableBody.append(row);
+    });
+}
+
+function showRealtimeNotification(notification) {
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 5000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+    });
+    
+    let icon = 'info';
+    if (notification.type === 'new_transaction') icon = 'success';
+    if (notification.type === 'ready_for_pickup') icon = 'warning';
+    
+    Toast.fire({
+        icon: icon,
+        title: notification.title,
+        text: notification.message
+    });
+}
+
 @endif
 
 @if(auth()->user()->isSuperAdmin() && isset($chartData))

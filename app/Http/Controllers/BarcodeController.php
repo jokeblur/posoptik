@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Transaksi;
+use App\Models\Penjualan;
+use App\Models\Penjualan as Transaksi; // Alias untuk kompatibilitas
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -26,7 +27,7 @@ class BarcodeController extends Controller
         Log::info('Scan Direct - Barcode: ' . $barcode);
         
         // Cari transaksi berdasarkan barcode
-        $transaksi = Transaksi::with('user', 'branch', 'pasien', 'dokter', 'details.itemable')
+        $transaksi = Penjualan::with('user', 'branch', 'pasien', 'dokter', 'details.itemable')
             ->where('barcode', $barcode)
             ->first();
 
@@ -49,9 +50,12 @@ class BarcodeController extends Controller
 
         $barcode = $request->barcode;
         
-        // Cari transaksi berdasarkan barcode
-        $transaksi = Transaksi::with('user', 'branch', 'pasien', 'dokter', 'details.itemable')
-            ->where('barcode', $barcode)
+        // Cari transaksi berdasarkan barcode atau kode_penjualan
+        $transaksi = Penjualan::with('user', 'branch', 'pasien', 'dokter', 'details.itemable')
+            ->where(function($query) use ($barcode) {
+                $query->where('barcode', $barcode)
+                      ->orWhere('kode_penjualan', 'LIKE', '%' . $barcode . '%');
+            })
             ->first();
 
         if (!$transaksi) {
@@ -63,7 +67,14 @@ class BarcodeController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $transaksi,
+            'transaction' => [
+                'id' => $transaksi->id,
+                'kode_penjualan' => $transaksi->kode_penjualan,
+                'tanggal' => tanggal_indonesia($transaksi->created_at, false),
+                'nama_pasien' => $transaksi->nama_pasien,
+                'status_pengerjaan' => $transaksi->status_pengerjaan,
+                'barcode' => $transaksi->barcode
+            ],
             'message' => 'Transaksi ditemukan'
         ]);
     }
@@ -75,7 +86,7 @@ class BarcodeController extends Controller
             'status_pengerjaan' => 'required|in:Menunggu Pengerjaan,Sedang Dikerjakan,Selesai Dikerjakan,Sudah Diambil'
         ]);
 
-        $transaksi = Transaksi::findOrFail($request->transaksi_id);
+        $transaksi = Penjualan::findOrFail($request->transaksi_id);
         $user = auth()->user();
 
         // Update status berdasarkan role
@@ -127,7 +138,7 @@ class BarcodeController extends Controller
             'transaksi_id' => 'required|exists:penjualan,id'
         ]);
 
-        $transaksi = Transaksi::findOrFail($request->transaksi_id);
+        $transaksi = Penjualan::findOrFail($request->transaksi_id);
         
         // Generate barcode jika belum ada
         if (!$transaksi->barcode) {
@@ -143,13 +154,9 @@ class BarcodeController extends Controller
         ]);
     }
 
-    public function printBarcode(Request $request)
+    public function printBarcode($id)
     {
-        $request->validate([
-            'transaksi_id' => 'required|exists:penjualan,id'
-        ]);
-
-        $transaksi = Transaksi::with('user', 'branch', 'pasien')->findOrFail($request->transaksi_id);
+        $transaksi = Penjualan::with('user', 'branch', 'pasien')->findOrFail($id);
         
         // Generate barcode jika belum ada
         if (!$transaksi->barcode) {
@@ -164,7 +171,7 @@ class BarcodeController extends Controller
     public function bulkGenerateBarcode()
     {
         // Generate barcode untuk semua transaksi yang belum memiliki barcode
-        $transaksis = Transaksi::whereNull('barcode')->get();
+        $transaksis = Penjualan::whereNull('barcode')->get();
         
         foreach ($transaksis as $transaksi) {
             $barcode = 'TRX' . date('Ymd') . str_pad($transaksi->id, 6, '0', STR_PAD_LEFT);

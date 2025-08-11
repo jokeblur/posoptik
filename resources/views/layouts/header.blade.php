@@ -1,18 +1,8 @@
+
+
 <header class="main-header">
-    <!-- Logo -->
-    <a href="{{ url('/') }}" class="logo">
-        <!-- mini logo for sidebar mini 50x50 pixels -->
-        <span class="logo-mini"><b>O</b>M</span>
-        <!-- logo for regular state and mobile devices -->
-        <span class="logo-lg">{{ config('app.name') }}</span>
-    </a>
     <!-- Header Navbar: style can be found in header.less -->
     <nav class="navbar navbar-static-top">
-        <!-- Sidebar toggle button-->
-        <a href="#" class="sidebar-toggle" data-toggle="push-menu" role="button">
-            <i class="fa fa-bars"></i>
-            <span class="sr-only">Toggle navigation</span>
-        </a>
         <div class="navbar-custom-menu">
             <ul class="nav navbar-nav">
                 @if(isset($openDay) && auth()->user()->isKasir())
@@ -29,7 +19,7 @@
                 @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
                     <!-- Hanya tampilkan native select branch -->
                     <li style="padding: 10px 15px;">
-                        <select id="branch-selector" class="form-control" style="width: 180px; display: inline-block;">
+                        <select id="branch-selector" class="form-control" style="width: 160px; display: inline-block;">
                             <option value="">-- Pilih Cabang --</option>
                             @foreach(\App\Models\Branch::all() as $branch)
                                 <option value="{{ $branch->id }}" @if(session('active_branch_id', auth()->user()->branch_id) == $branch->id) selected @endif>{{ $branch->name }}</option>
@@ -38,19 +28,41 @@
                     </li>
                 @endif
                 
+                <!-- Stock Transfer Notifications -->
+                @include('partials.stock-transfer-notifications')
+                
                 <!-- User Account: style can be found in dropdown.less -->
                 <li class="dropdown user user-menu">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        <img src="{{ asset('AdminLTE2/dist/img/user2-160x160.jpg') }}" class="user-image" alt="User Image">
-                        <span class="hidden-xs">{{ auth()->user()->name }}</span>
+                        <div class="user-image-initials" data-role="{{ auth()->user()->role }}">
+                            {{ \App\Helpers\UserHelper::getInitials(auth()->user()->name) }}
+                        </div>
+                        <div class="hidden-xs user-info-vertical">
+                            <div class="user-name">{{ auth()->user()->name }}</div>
+                            <div class="user-role">{{ \App\Helpers\UserHelper::getRoleDisplayName(auth()->user()->role) }}</div>
+                            @if(auth()->user()->branch)
+                                <div class="user-branch">{{ auth()->user()->branch->name }}</div>
+                            @endif
+                        </div>
                     </a>
                     <ul class="dropdown-menu">
                         <!-- User image -->
                         <li class="user-header">
-                            <img src="{{ asset('AdminLTE2/dist/img/user2-160x160.jpg') }}" class="img-circle" alt="User Image">
-                            <p>
-                                {{ auth()->user()->name }} - {{ auth()->user()->email }}
-                            </p>
+                            <div class="user-image-initials-large" data-role="{{ auth()->user()->role }}">
+                                {{ \App\Helpers\UserHelper::getInitials(auth()->user()->name) }}
+                            </div>
+                            <div class="user-details">
+                                <h4 class="user-name-large">{{ auth()->user()->name }}</h4>
+                                <p class="user-email">{{ auth()->user()->email }}</p>
+                                <p class="user-role-large">
+                                    <i class="fa fa-user-circle"></i> {{ \App\Helpers\UserHelper::getRoleDisplayName(auth()->user()->role) }}
+                                </p>
+                                @if(auth()->user()->branch)
+                                    <p class="user-branch-large">
+                                        <i class="fa fa-building"></i> {{ auth()->user()->branch->name }}
+                                    </p>
+                                @endif
+                            </div>
                         </li>
                         <!-- Menu Footer-->
                         <li class="user-footer">
@@ -62,10 +74,6 @@
                             </div>
                         </li>
                     </ul>
-                </li>
-                <!-- Control Sidebar Toggle Button -->
-                <li>
-                    <a href="#" data-toggle="control-sidebar"><i class="fa fa-gears"></i></a>
                 </li>
             </ul>
         </div>

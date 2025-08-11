@@ -1,60 +1,4382 @@
-body,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
-a,
-button,
-input,
-select,
-textarea,
-li,
-ul {
+/* Import Poppins Font */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+/* Global Font Family - Apply Poppins to all elements */
+* {
     font-family: "Poppins", sans-serif !important;
-    font-size: 15px;
 }
 
 body {
-    background: url("/login/images/bg.jpg") no-repeat center center fixed !important;
-    background-size: cover;
-    font-size: 15px;
+    font-family: "Poppins", sans-serif !important;
 }
 
+html {
+    font-family: "Poppins", sans-serif !important;
+}
+
+/* Navigation Menu Improvements - STRONG OVERRIDE */
+nav.bg-white,
+nav[class*="bg-white"],
+.nav.bg-white,
+.nav[class*="bg-white"],
+.bg-white.border-b,
+[class*="bg-white"][class*="border-b"] {
+    position: relative !important;
+    z-index: 50 !important;
+    background-color: #a4193d !important;
+    border-bottom-color: #8b1532 !important;
+    background: #a4193d !important;
+}
+
+/* Force override any background colors */
+nav,
+.nav,
+nav.bg-white,
+.nav.bg-white {
+    background-color: #a4193d !important;
+    background: #a4193d !important;
+}
+
+/* Change navbar text colors for better contrast */
+.nav.bg-white .text-gray-500,
+.nav.bg-white .text-gray-400,
+nav .text-gray-500,
+nav .text-gray-400,
+.nav .text-gray-500,
+.nav .text-gray-400 {
+    color: #ffffff !important;
+}
+
+.nav.bg-white .hover\:text-gray-700:hover,
+.nav.bg-white .hover\:text-gray-500:hover,
+nav .hover\:text-gray-700:hover,
+nav .hover\:text-gray-500:hover {
+    color: #f3f4f6 !important;
+}
+
+.nav.bg-white .hover\:bg-gray-50:hover,
+.nav.bg-white .hover\:bg-gray-100:hover,
+nav .hover\:bg-gray-50:hover,
+nav .hover\:bg-gray-100:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.nav.bg-white .focus\:bg-gray-50:focus,
+.nav.bg-white .focus\:bg-gray-100:focus,
+nav .focus\:bg-gray-50:focus,
+nav .focus\:bg-gray-100:focus {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* User Menu and Hamburger Positioning */
+.nav .flex.items-center,
+nav .flex.items-center {
+    gap: 0.75rem;
+}
+
+/* Ensure proper spacing between navigation elements */
+.nav .hidden.sm\:flex.sm\:items-center,
+nav .hidden.sm\:flex.sm\:items-center {
+    margin-left: 0.75rem;
+}
+
+/* Hamburger button improvements */
+.nav .flex.items-center.sm\:hidden button,
+nav .flex.items-center.sm\:hidden button {
+    transition: all 0.15s ease-in-out;
+    border-radius: 0.375rem;
+}
+
+.nav .flex.items-center.sm\:hidden button:hover,
+nav .flex.items-center.sm\:hidden button:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #f3f4f6 !important;
+}
+
+.nav .flex.items-center.sm\:hidden button:focus,
+nav .flex.items-center.sm\:hidden button:focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #f3f4f6 !important;
+}
+
+/* Responsive navigation improvements */
+.nav .hidden.sm\:hidden,
+nav .hidden.sm\:hidden {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Ensure dropdowns are properly positioned */
+.nav .relative,
+nav .relative {
+    position: relative;
+}
+
+/* Additional navbar styling for red theme */
+.nav.bg-white,
+nav.bg-white,
+nav,
+.nav {
+    color: #ffffff !important;
+}
+
+/* Logo and brand styling */
+.nav .shrink-0 a,
+nav .shrink-0 a {
+    color: #ffffff !important;
+}
+
+/* Navigation links styling */
+.nav .space-x-8 a,
+nav .space-x-8 a {
+    color: #ffffff !important;
+}
+
+.nav .space-x-8 a:hover,
+nav .space-x-8 a:hover {
+    color: #f3f4f6 !important;
+}
+
+.nav .space-x-8 a.active,
+nav .space-x-8 a.active {
+    color: #ffffff !important;
+    border-color: #ffffff !important;
+}
+
+/* Dropdown buttons styling */
+.nav button.inline-flex,
+nav button.inline-flex {
+    color: #ffffff !important;
+    background-color: transparent !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.nav button.inline-flex:hover,
+nav button.inline-flex:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.nav button.inline-flex:focus,
+nav button.inline-flex:focus {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Profile photo border */
+.nav button.flex img,
+nav button.flex img {
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.nav button.flex:focus img,
+nav button.flex:focus img {
+    border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Responsive mobile menu styling */
+.nav .hidden.sm\:hidden,
+nav .hidden.sm\:hidden {
+    background-color: #a4193d !important;
+    border-top-color: #8b1532 !important;
+}
+
+.nav .hidden.sm\:hidden .border-t,
+nav .hidden.sm\:hidden .border-t {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.nav .hidden.sm\:hidden .text-gray-800,
+nav .hidden.sm\:hidden .text-gray-800 {
+    color: #ffffff !important;
+}
+
+.nav .hidden.sm\:hidden .text-gray-500,
+nav .hidden.sm\:hidden .text-gray-500 {
+    color: #f3f4f6 !important;
+}
+
+/* Force override any remaining blue colors */
+nav *,
+.nav * {
+    background-color: inherit !important;
+}
+
+nav.bg-white *,
+.nav.bg-white * {
+    background-color: inherit !important;
+}
+
+/* NAVBAR STYLING - Force red background */
+nav,
+.nav,
+nav.bg-white,
+.nav.bg-white,
+nav.border-b,
+.nav.border-b,
+nav.bg-white.border-b,
+.nav.bg-white.border-b {
+    background-color: #a4193d !important;
+    background: #a4193d !important;
+    background-image: none !important;
+    border-bottom-color: #8b1532 !important;
+    border-color: #8b1532 !important;
+}
+
+/* Override any Tailwind blue classes */
+.bg-blue-500,
+.bg-blue-600,
+.bg-blue-700,
+.bg-blue-800,
+.bg-blue-900,
+.bg-indigo-500,
+.bg-indigo-600,
+.bg-indigo-700,
+.bg-indigo-800,
+.bg-indigo-900 {
+    background-color: #a4193d !important;
+}
+
+/* Force override for any element with blue background */
+[class*="bg-blue"],
+[class*="bg-indigo"] {
+    background-color: #a4193d !important;
+}
+
+/* Specific override for navigation elements */
+nav.bg-white,
+.nav.bg-white,
+nav.border-b,
+.nav.border-b {
+    background: #a4193d !important;
+    background-color: #a4193d !important;
+    background-image: none !important;
+}
+
+/* Override any CSS variables that might be setting blue */
+:root {
+    --navbar-bg: #a4193d !important;
+    --primary-color: #a4193d !important;
+}
+
+/* Force override for any remaining blue elements */
+*[style*="background-color: rgb(59, 130, 246)"],
+*[style*="background-color: rgb(37, 99, 235)"],
+*[style*="background-color: rgb(29, 78, 216)"],
+*[style*="background-color: rgb(30, 64, 175)"],
+*[style*="background-color: rgb(30, 58, 138)"] {
+    background-color: #a4193d !important;
+}
+
+/* SIDEBAR SPECIFIC STYLING - Fix all sidebar issues */
+.main-sidebar,
+.main-sidebar *,
+.sidebar,
+.sidebar * {
+    background-color: inherit !important;
+}
+
+/* Sidebar header - Force red color */
+.sidebar-header,
+.sidebar .sidebar-header,
+.main-sidebar .sidebar-header {
+    background-color: #a4193d !important;
+    background: #a4193d !important;
+    margin-top: 0 !important;
+    padding: 8px 15px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Sidebar menu container - Move higher */
+.sidebar-menu,
+.sidebar .sidebar-menu,
+.main-sidebar .sidebar-menu {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Sidebar menu headers - Force red color and reduce spacing */
+.sidebar-menu .header,
+.sidebar .sidebar-menu .header,
+.main-sidebar .sidebar-menu .header {
+    background-color: #a4193d !important;
+    background: #a4193d !important;
+    color: #ffffff !important;
+    padding: 8px 15px !important;
+    margin: 8px 0 0 0 !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    border: none !important;
+}
+
+/* Sidebar menu items - Reduce spacing */
+.sidebar-menu li,
+.sidebar .sidebar-menu li,
+.main-sidebar .sidebar-menu li {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.sidebar-menu li a,
+.sidebar .sidebar-menu li a,
+.main-sidebar .sidebar-menu li a {
+    padding: 8px 15px !important;
+    margin: 0 !important;
+    color: #333333 !important;
+    text-decoration: none !important;
+    display: block !important;
+    transition: all 0.2s ease !important;
+}
+
+.sidebar-menu li a:hover,
+.sidebar .sidebar-menu li a:hover,
+.main-sidebar .sidebar-menu li a:hover {
+    background-color: rgba(164, 25, 61, 0.1) !important;
+    color: #a4193d !important;
+}
+
+/* Sidebar menu icons */
+.sidebar-menu li a i,
+.sidebar .sidebar-menu li a i,
+.main-sidebar .sidebar-menu li a i {
+    margin-right: 8px !important;
+    width: 16px !important;
+    text-align: center !important;
+}
+
+/* Override any AdminLTE default styles */
+.skin-red-light .sidebar-menu .header,
+.skin-red-light .sidebar .sidebar-menu .header {
+    background-color: #a4193d !important;
+    background: #a4193d !important;
+}
+
+.skin-red-light .sidebar-header {
+    background-color: #a4193d !important;
+    background: #a4193d !important;
+}
+
+/* Force sidebar position higher */
+.main-sidebar {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.sidebar {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Override any remaining blue colors in sidebar */
+.main-sidebar *[class*="bg-blue"],
+.sidebar *[class*="bg-blue"],
+.main-sidebar *[class*="bg-indigo"],
+.sidebar *[class*="bg-indigo"] {
+    background-color: #a4193d !important;
+}
+
+/* Ensure sidebar is positioned correctly */
+.wrapper .main-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100% !important;
+    z-index: 1000 !important;
+}
+
+/* PROFESSIONAL LOGO AND BRAND STYLING */
+.brand-container {
+    text-align: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.logo-icon {
+    width: 60px !important;
+    height: 60px !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-radius: 50% !important;
+    margin: 0 auto 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.logo-icon::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    ) !important;
+    border-radius: 50% !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+}
+
+.logo-icon:hover::before {
+    opacity: 1 !important;
+}
+
+.logo-icon:hover {
+    transform: scale(1.05) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Logo image styling */
+.logo-icon img {
+    width: 45px !important;
+    height: 45px !important;
+    object-fit: contain !important;
+    border-radius: 50% !important;
+    transition: all 0.3s ease !important;
+}
+
+.logo-icon:hover img {
+    transform: scale(1.1) !important;
+}
+
+.brand-name {
+    color: #ffffff !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    letter-spacing: 1px !important;
+    transition: all 0.3s ease !important;
+}
+
+.brand-tagline {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 11px !important;
+    margin: 5px 0 0 0 !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.5px !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Enhanced hamburger button styling */
+.hamburger-container {
+    margin-top: 15px !important;
+}
+
+.sidebar-hamburger-toggle {
+    color: #ffffff !important;
+    font-size: 14px !important;
+    text-decoration: none !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    padding: 8px 16px !important;
+    border-radius: 20px !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    transition: all 0.3s ease !important;
+    display: inline-block !important;
+    font-weight: 500 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.sidebar-hamburger-toggle:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.sidebar-hamburger-toggle:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Mobile hamburger styles moved to bottom of file to avoid duplication */
+
+/* Body scroll prevention when mobile sidebar is open */
+body.sidebar-open {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+}
+
+/* MOBILE RESPONSIVENESS - Force visibility */
+@media (max-width: 768px) {
+    .main-sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: -250px !important;
+        width: 250px !important;
+        height: 100vh !important;
+        z-index: 1000 !important;
+        transition: left 0.3s ease !important;
+        transform: none !important;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1) !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        margin-left: 0 !important;
+        margin-top: 0 !important;
+        background: #222d32 !important;
+    }
+
+    /* Override AdminLTE mobile styles */
+    .skin-red-light.sidebar-mini .main-sidebar {
+        left: -250px !important;
+        display: block !important;
+        visibility: visible !important;
+    }
+
+    .skin-red-light .main-sidebar {
+        left: -250px !important;
+        display: block !important;
+        visibility: visible !important;
+    }
+
+    .main-sidebar.mobile-active {
+        left: 0 !important;
+        box-shadow: 2px 0 20px rgba(0, 0, 0, 0.3) !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        transform: translateX(0) !important;
+    }
+
+    /* Force sidebar content to be visible */
+    .main-sidebar.mobile-active .sidebar {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .main-sidebar.mobile-active .sidebar-header,
+    .main-sidebar.mobile-active .sidebar-menu {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .sidebar-overlay {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100vh !important;
+        background: rgba(0, 0, 0, 0.5) !important;
+        z-index: 999 !important;
+        display: none !important;
+        opacity: 0 !important;
+        transition: opacity 0.3s ease !important;
+        pointer-events: none !important;
+    }
+
+    .sidebar-overlay.active {
+        display: block !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+
+    /* Mobile hamburger handled by global CSS below */
+
+    .brand-container {
+        margin-bottom: 12px !important;
+    }
+
+    .logo-icon {
+        width: 55px !important;
+        height: 55px !important;
+        margin: 0 auto 15px !important;
+    }
+
+    .logo-icon i {
+        font-size: 26px !important;
+    }
+
+    .logo-icon img {
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    .brand-name {
+        font-size: 17px !important;
+    }
+
+    .brand-tagline {
+        font-size: 11px !important;
+    }
+
+    .sidebar-header {
+        padding: 18px 16px !important;
+    }
+
+    .hamburger-container {
+        margin-top: 12px !important;
+    }
+
+    .sidebar-hamburger-toggle {
+        padding: 10px 18px !important;
+        font-size: 15px !important;
+    }
+
+    /* Hide desktop hamburger on mobile */
+    .hamburger-container {
+        display: none !important;
+    }
+
+    /* Ensure content doesn't overlap with mobile sidebar */
+    .content-wrapper {
+        margin-left: 0 !important;
+        margin-top: 70px !important; /* Extra space for mobile hamburger */
+        padding-top: 10px !important;
+    }
+
+    /* Mobile sidebar menu adjustments */
+    .sidebar-menu li a {
+        padding: 14px 18px !important;
+        margin: 4px 8px !important;
+        font-size: 15px !important;
+    }
+
+    .sidebar-menu .header {
+        padding: 12px 18px !important;
+        margin: 16px 8px 8px 8px !important;
+        font-size: 13px !important;
+    }
+}
+
+/* Tablet adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .main-sidebar:not(.sidebar-collapse) {
+        width: 220px !important;
+    }
+
+    .sidebar-collapse .main-sidebar {
+        width: 55px !important;
+    }
+
+    .logo-icon {
+        width: 55px !important;
+        height: 55px !important;
+    }
+
+    .logo-icon i {
+        font-size: 26px !important;
+    }
+
+    .brand-name {
+        font-size: 17px !important;
+    }
+
+    .brand-tagline {
+        font-size: 11px !important;
+    }
+
+    .sidebar-header {
+        padding: 18px 16px !important;
+    }
+}
+
+/* Mobile hamburger - Global styles */
+.mobile-hamburger-fixed {
+    position: fixed !important;
+    top: 20px !important;
+    left: 20px !important;
+    z-index: 9999 !important;
+    width: 50px !important;
+    height: 50px !important;
+}
+
+.mobile-hamburger-btn {
+    background: #a4193d !important;
+    color: white !important;
+    border: none !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.mobile-hamburger-btn:hover {
+    background: #8b1532 !important;
+    transform: translateY(-2px) !important;
+}
+
+.mobile-hamburger-btn:active {
+    transform: translateY(0) !important;
+}
+
+/* Desktop hamburger visibility */
+@media (min-width: 769px) {
+    .mobile-hamburger-fixed {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    .hamburger-container {
+        display: block !important;
+    }
+
+    .sidebar-overlay {
+        display: none !important;
+    }
+}
+
+/* Mobile specific - show hamburger */
+@media (max-width: 768px) {
+    .mobile-hamburger-fixed {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+}
+
+/* Large screen enhancements */
+@media (min-width: 1025px) {
+    .main-sidebar:not(.sidebar-collapse) {
+        width: 280px !important;
+    }
+
+    .sidebar-collapse .main-sidebar {
+        width: 70px !important;
+    }
+
+    .logo-icon {
+        width: 60px !important;
+        height: 60px !important;
+    }
+
+    .logo-icon i {
+        font-size: 28px !important;
+    }
+
+    .brand-name {
+        font-size: 18px !important;
+    }
+
+    .brand-tagline {
+        font-size: 11px !important;
+    }
+
+    .sidebar-header {
+        padding: 20px !important;
+    }
+}
+
+/* Sidebar collapse animation - Mini sidebar instead of complete hide */
+.sidebar-collapse .main-sidebar {
+    width: 60px !important;
+    transition: width 0.3s ease !important;
+}
+
+.sidebar-collapse .main-sidebar .sidebar-header {
+    padding: 15px 5px !important;
+    text-align: center !important;
+}
+
+.sidebar-collapse .main-sidebar .brand-container {
+    margin-bottom: 10px !important;
+}
+
+.sidebar-collapse .main-sidebar .logo-icon {
+    width: 40px !important;
+    height: 40px !important;
+    margin: 0 auto 8px !important;
+}
+
+.sidebar-collapse .main-sidebar .logo-icon i {
+    font-size: 20px !important;
+}
+
+.sidebar-collapse .main-sidebar .logo-icon img {
+    width: 30px !important;
+    height: 30px !important;
+}
+
+.sidebar-collapse .main-sidebar .brand-name,
+.sidebar-collapse .main-sidebar .brand-tagline {
+    display: none !important;
+}
+
+.sidebar-collapse .main-sidebar .hamburger-container {
+    margin-top: 10px !important;
+}
+
+.sidebar-collapse .main-sidebar .sidebar-hamburger-toggle {
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+    border-radius: 50% !important;
+    width: 40px !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.sidebar-collapse .main-sidebar .sidebar-hamburger-toggle span {
+    display: none !important;
+}
+
+.sidebar-collapse .main-sidebar .sidebar-menu .header {
+    padding: 6px 5px !important;
+    margin: 8px 5px 4px 5px !important;
+    font-size: 10px !important;
+    text-align: center !important;
+}
+
+.sidebar-collapse .main-sidebar .sidebar-menu li a {
+    padding: 12px 5px !important;
+    margin: 2px 5px !important;
+    text-align: center !important;
+    border-radius: 8px !important;
+}
+
+.sidebar-collapse .main-sidebar .sidebar-menu li a span {
+    display: none !important;
+}
+
+.sidebar-collapse .main-sidebar .sidebar-menu li a i {
+    margin-right: 0 !important;
+    font-size: 16px !important;
+    display: block !important;
+    text-align: center !important;
+}
+
+/* Ensure sidebar is visible when not collapsed */
+.main-sidebar:not(.sidebar-collapse) {
+    width: 250px !important;
+    transition: width 0.3s ease !important;
+}
+
+/* Enhanced responsive design for logo elements */
+@media (max-width: 480px) {
+    .brand-container {
+        margin-bottom: 10px !important;
+    }
+
+    .logo-icon {
+        width: 50px !important;
+        height: 50px !important;
+        margin: 0 auto 10px !important;
+    }
+
+    .logo-icon i {
+        font-size: 24px !important;
+    }
+
+    .logo-icon img {
+        width: 35px !important;
+        height: 35px !important;
+    }
+
+    .brand-name {
+        font-size: 16px !important;
+    }
+
+    .brand-tagline {
+        font-size: 10px !important;
+    }
+
+    .sidebar-header {
+        padding: 15px 12px !important;
+    }
+}
+
+@media (max-width: 360px) {
+    .logo-icon {
+        width: 45px !important;
+        height: 45px !important;
+    }
+
+    .logo-icon i {
+        font-size: 22px !important;
+    }
+
+    .logo-icon img {
+        width: 32px !important;
+        height: 32px !important;
+    }
+
+    .brand-name {
+        font-size: 14px !important;
+    }
+
+    .brand-tagline {
+        font-size: 9px !important;
+    }
+
+    .sidebar-header {
+        padding: 12px 10px !important;
+    }
+}
+
+/* Sidebar mini mode for medium screens */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .main-sidebar:not(.sidebar-collapse) {
+        width: 200px !important;
+    }
+
+    .sidebar-collapse .main-sidebar {
+        width: 50px !important;
+    }
+
+    .sidebar-collapse .main-sidebar .logo-icon {
+        width: 35px !important;
+        height: 35px !important;
+    }
+
+    .sidebar-collapse .main-sidebar .logo-icon i {
+        font-size: 18px !important;
+    }
+
+    .sidebar-collapse .main-sidebar .logo-icon img {
+        width: 25px !important;
+        height: 25px !important;
+    }
+}
+
+/* Large screen enhancements */
+@media (min-width: 1025px) {
+    .main-sidebar:not(.sidebar-collapse) {
+        width: 280px !important;
+    }
+
+    .sidebar-collapse .main-sidebar {
+        width: 70px !important;
+    }
+
+    .sidebar-collapse .main-sidebar .logo-icon {
+        width: 45px !important;
+        height: 45px !important;
+    }
+
+    .sidebar-collapse .main-sidebar .logo-icon i {
+        font-size: 22px !important;
+    }
+
+    .sidebar-collapse .main-sidebar .logo-icon img {
+        width: 35px !important;
+        height: 35px !important;
+    }
+}
+
+/* HIDE NAVBAR SCROLLBAR */
+nav::-webkit-scrollbar,
+.nav::-webkit-scrollbar,
+nav.bg-white::-webkit-scrollbar,
+.nav.bg-white::-webkit-scrollbar {
+    display: none !important;
+}
+
+nav,
+.nav,
+nav.bg-white,
+.nav.bg-white {
+    -ms-overflow-style: none !important; /* IE and Edge */
+    scrollbar-width: none !important; /* Firefox */
+}
+
+/* SIDEBAR GLASSMORPHISM EFFECTS */
+.sidebar-menu li a,
+.sidebar .sidebar-menu li a,
+.main-sidebar .sidebar-menu li a {
+    padding: 12px 20px !important;
+    margin: 4px 8px !important;
+    color: #333333 !important;
+    text-decoration: none !important;
+    display: block !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border-radius: 12px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+/* Glassmorphism hover effect */
+.sidebar-menu li a:hover,
+.sidebar .sidebar-menu li a:hover,
+.main-sidebar .sidebar-menu li a:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    transform: translateY(-2px) !important;
+    color: #a4193d !important;
+}
+
+/* Glassmorphism focus effect */
+.sidebar-menu li a:focus,
+.sidebar .sidebar-menu li a:focus,
+.main-sidebar .sidebar-menu li a:focus {
+    outline: none !important;
+    background: rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 0 0 3px rgba(164, 25, 61, 0.1) !important;
+}
+
+/* Active state with enhanced glassmorphism */
+.sidebar-menu li.active a,
+.sidebar .sidebar-menu li.active a,
+.main-sidebar .sidebar-menu li.active a,
+.sidebar-menu li a.active,
+.sidebar .sidebar-menu li a.active,
+.main-sidebar .sidebar-menu li a.active {
+    background: rgba(164, 25, 61, 0.15) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(164, 25, 61, 0.3) !important;
+    box-shadow: 0 8px 25px -8px rgba(164, 25, 61, 0.3) !important;
+    color: #a4193d !important;
+    font-weight: 600 !important;
+}
+
+/* Sidebar menu icons with glassmorphism */
+.sidebar-menu li a i,
+.sidebar .sidebar-menu li a i,
+.main-sidebar .sidebar-menu li a i {
+    margin-right: 12px !important;
+    width: 18px !important;
+    text-align: center !important;
+    font-size: 16px !important;
+    color: #a4193d !important;
+    transition: all 0.3s ease !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Icon hover effect */
+.sidebar-menu li a:hover i,
+.sidebar .sidebar-menu li a:hover i,
+.main-sidebar .sidebar-menu li a:hover i {
+    color: #a4193d !important;
+    transform: scale(1.1) !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Sidebar headers with glassmorphism */
+.sidebar-menu .header,
+.sidebar .sidebar-menu .header,
+.main-sidebar .sidebar-menu .header {
+    background: rgba(164, 25, 61, 0.9) !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+    color: #ffffff !important;
+    padding: 12px 20px !important;
+    margin: 16px 8px 8px 8px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    border: none !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Sidebar header hover effect */
+.sidebar-menu .header:hover,
+.sidebar .sidebar-menu .header:hover,
+.main-sidebar .sidebar-menu .header:hover {
+    background: rgba(164, 25, 61, 1) !important;
+    box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Sidebar header with enhanced glassmorphism */
+.sidebar-header,
+.sidebar .sidebar-header,
+.main-sidebar .sidebar-header {
+    background: linear-gradient(
+        135deg,
+        rgba(164, 25, 61, 0.95),
+        rgba(164, 25, 61, 0.85)
+    ) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    margin-top: 0 !important;
+    padding: 15px 20px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 0 0 15px 0 !important;
+    box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.1) !important;
+    position: relative !important;
+}
+
+/* Sidebar header glassmorphism enhancement */
+.sidebar-header::before,
+.sidebar .sidebar-header::before,
+.main-sidebar .sidebar-header::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.1),
+        rgba(255, 255, 255, 0.05)
+    ) !important;
+    border-radius: 0 0 15px 0 !important;
+    pointer-events: none !important;
+}
+
+/* Sidebar hamburger toggle with glassmorphism */
+.sidebar-hamburger-toggle {
+    color: #ffffff !important;
+    font-size: 16px !important;
+    text-decoration: none !important;
+    font-weight: 600 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+.sidebar-hamburger-toggle:hover {
+    color: #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+    transform: scale(1.05) !important;
+}
+
+/* Sidebar container glassmorphism background */
+.main-sidebar {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.05),
+        rgba(255, 255, 255, 0.02)
+    ) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Enhanced glassmorphism for sidebar menu container */
+.sidebar-menu,
+.sidebar .sidebar-menu,
+.main-sidebar .sidebar-menu {
+    margin-top: 0 !important;
+    padding: 8px !important;
+    background: transparent !important;
+}
+
+/* Smooth transitions for all sidebar elements */
+.sidebar-menu *,
+.sidebar .sidebar-menu *,
+.main-sidebar .sidebar-menu * {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* HIDE SIDEBAR SCROLLBARS */
+.main-sidebar::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar,
+.sidebar-menu::-webkit-scrollbar {
+    width: 0px !important;
+    display: none !important;
+}
+
+.main-sidebar,
+.sidebar,
+.sidebar-menu {
+    -ms-overflow-style: none !important; /* IE and Edge */
+    scrollbar-width: none !important; /* Firefox */
+}
+
+/* Additional Glassmorphism enhancements */
+.sidebar-menu li a::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+    ) !important;
+    transition: left 0.5s ease !important;
+}
+
+.sidebar-menu li a:hover::before {
+    left: 100% !important;
+}
+
+/* Enhanced focus states for accessibility */
+.sidebar-menu li a:focus-visible {
+    outline: 2px solid rgba(164, 25, 61, 0.5) !important;
+    outline-offset: 2px !important;
+}
+
+/* Glassmorphism depth effect */
+.sidebar-menu li a::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.1),
+        transparent
+    ) !important;
+    border-radius: 12px !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+    pointer-events: none !important;
+}
+
+.sidebar-menu li a:hover::after {
+    opacity: 1 !important;
+}
+
+/* Override any remaining Tailwind background classes */
+.bg-white,
+.bg-gray-50,
+.bg-gray-100,
+.bg-gray-200,
+.bg-gray-300,
+.bg-gray-400,
+.bg-gray-500,
+.bg-gray-600,
+.bg-gray-700,
+.bg-gray-800,
+.bg-gray-900 {
+    background-color: #a4193d !important;
+}
+
+/* Force override for any element that might have blue background */
+* {
+    background-color: inherit !important;
+}
+
+/* Specific override for navigation container */
+.max-w-7xl.mx-auto.px-4.sm\:px-6.lg\:px-8 {
+    background-color: #a4193d !important;
+}
+
+/* Override any flex container backgrounds */
+.flex.justify-between.h-16 {
+    background-color: #a4193d !important;
+}
+
+/* Force red background on all navigation children */
+nav *,
+.nav *,
+nav.bg-white *,
+.nav.bg-white * {
+    background-color: transparent !important;
+}
+
+nav,
+.nav,
+nav.bg-white,
+.nav.bg-white {
+    background-color: #a4193d !important;
+}
+
+/* Icon fixes - ensure icons display properly */
+.fa,
+.fas,
+.far,
+.fal,
+.fab {
+    font-family: "FontAwesome" !important;
+    display: inline-block !important;
+    font-style: normal !important;
+    font-variant: normal !important;
+    text-rendering: auto !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Force icon display in specific areas */
+.sidebar-menu .fa,
+.sidebar-menu .fas,
+.sidebar-menu .far,
+.sidebar-menu .fal,
+.sidebar-menu .fab {
+    font-family: "FontAwesome" !important;
+    display: inline-block !important;
+    font-style: normal !important;
+}
+
+.navbar .fa,
+.navbar .fas,
+.navbar .far,
+.navbar .fal,
+.navbar .fab {
+    font-family: "FontAwesome" !important;
+    display: inline-block !important;
+    font-style: normal !important;
+}
+
+.content-wrapper .fa,
+.content-wrapper .fas,
+.content-wrapper .far,
+.content-wrapper .fal,
+.content-wrapper .fab {
+    font-family: "FontAwesome" !important;
+    display: inline-block !important;
+    font-style: normal !important;
+}
+
+/* Ensure breadcrumb icons display */
+.breadcrumb .fa,
+.breadcrumb .fas,
+.breadcrumb .far,
+.breadcrumb .fal,
+.breadcrumb .fab {
+    font-family: "FontAwesome" !important;
+    display: inline-block !important;
+    font-style: normal !important;
+}
+
+/* Force icon display with !important */
+[class*="fa-"] {
+    font-family: "FontAwesome" !important;
+    display: inline-block !important;
+    font-style: normal !important;
+    font-variant: normal !important;
+    text-rendering: auto !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Override any conflicting font-family for icons */
+i.fa,
+i.fas,
+i.far,
+i.fal,
+i.fab,
+span.fa,
+span.fas,
+span.far,
+span.fal,
+span.fab {
+    font-family: "FontAwesome" !important;
+    display: inline-block !important;
+}
+
+/* Icon sizing utilities */
+.icon-sm {
+    font-size: 12px !important;
+}
+
+.icon-md {
+    font-size: 16px !important;
+}
+
+.icon-lg {
+    font-size: 20px !important;
+}
+
+.icon-xl {
+    font-size: 24px !important;
+}
+
+/* Hide scrollbar for sidebar */
+.main-sidebar::-webkit-scrollbar {
+    display: none !important;
+}
+
+.main-sidebar {
+    position: fixed !important;
+    top: 60px !important;
+    left: 0 !important;
+    height: calc(100vh - 60px) !important;
+    width: 250px !important;
+    background: #ffdfb9 !important;
+    z-index: 810 !important;
+    transition: transform 0.3s ease !important;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1) !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+/* Sidebar general styling */
+.main-sidebar .sidebar {
+    height: 100% !important;
+    overflow-y: auto !important;
+}
+
+.sidebar {
+    height: 100% !important;
+    overflow-y: auto !important;
+}
+
+/* Sidebar header spacing */
+.sidebar-header {
+    background: rgba(139, 69, 19, 0.08) !important;
+    margin-bottom: 15px !important;
+    padding: 20px 15px !important;
+    border-bottom: 1px solid rgba(139, 69, 19, 0.15) !important;
+}
+
+.sidebar-hamburger-toggle {
+    display: block !important;
+    width: 100% !important;
+    padding: 12px 15px !important;
+    color: #8b4513 !important;
+    font-size: 16px !important;
+    transition: all 0.3s ease !important;
+    background: rgba(139, 69, 19, 0.1) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    text-align: left !important;
+    margin-bottom: 0 !important;
+    text-decoration: none !important;
+    font-family: "Poppins", sans-serif !important;
+    font-weight: 500 !important;
+}
+
+.sidebar-hamburger-toggle:hover {
+    color: #654321 !important;
+    background-color: rgba(139, 69, 19, 0.2) !important;
+    text-decoration: none !important;
+    transform: scale(1.02) !important;
+    box-shadow: 0 2px 8px rgba(139, 69, 19, 0.2) !important;
+}
+
+/* Main header spacing */
+.main-header {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 60px !important;
+    background: #3c8dbc !important;
+    z-index: 1000 !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Navbar static top - simple flexible layout */
+.navbar-static-top {
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    height: 60px !important;
+    padding: 0 30px !important;
+    width: 100% !important;
+    min-height: 60px !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+.navbar-custom-menu {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+    margin-left: auto !important;
+    padding-right: 0 !important;
+    flex-shrink: 0 !important;
+    overflow: visible !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+.navbar-nav {
+    display: flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    margin-left: auto !important;
+    height: 100% !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+    flex-shrink: 0 !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+.navbar-nav > li {
+    margin-left: 20px !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    overflow: visible !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+/* User menu specific positioning - no grid constraints */
+.user.user-menu {
+    position: relative !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    overflow: visible !important;
+    min-width: auto !important;
+    max-width: none !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+.user.user-menu .dropdown-toggle {
+    display: flex !important;
+    align-items: center !important;
+    padding: 12px 18px !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    min-height: 50px !important;
+    height: auto !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    flex-shrink: 0 !important;
+    min-width: auto !important;
+    max-width: none !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+.user.user-menu .dropdown-toggle:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* User info layout - flexible without grid constraints */
+.user-info-vertical {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    margin-left: 15px !important;
+    min-width: auto !important;
+    max-width: none !important;
+    height: 40px !important;
+    overflow: visible !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+.user-info-vertical .user-name {
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    color: #ffffff !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    max-width: none !important;
+    min-width: auto !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    flex-shrink: 0 !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+.user-info-vertical .user-role {
+    font-weight: 500 !important;
+    font-size: 12px !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    max-width: none !important;
+    min-width: auto !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+.user-info-vertical .user-branch {
+    font-weight: 400 !important;
+    font-size: 11px !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    max-width: none !important;
+    min-width: auto !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+/* Sidebar menu spacing */
+.sidebar-menu {
+    padding: 0 !important;
+    margin: 0 !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+.sidebar-menu .header {
+    padding: 15px 20px 8px 20px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #8b4513 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    margin-top: 15px !important;
+    font-family: "Poppins", sans-serif !important;
+    text-shadow: 0 1px 2px rgba(139, 69, 19, 0.1) !important;
+}
+
+.sidebar-menu li > a {
+    padding: 14px 20px !important;
+    margin: 3px 15px !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+    color: #654321 !important;
+    font-weight: 500 !important;
+    font-family: "Poppins", sans-serif !important;
+    font-size: 14px !important;
+    letter-spacing: 0.3px !important;
+}
+
+.sidebar-menu li > a:hover {
+    background: rgba(139, 69, 19, 0.12) !important;
+    color: #8b4513 !important;
+    transform: translateX(5px) !important;
+    box-shadow: 0 2px 8px rgba(139, 69, 19, 0.15) !important;
+}
+
+.sidebar-menu li > a i {
+    margin-right: 12px !important;
+    width: 18px !important;
+    text-align: center !important;
+    color: #8b4513 !important;
+    font-size: 16px !important;
+    font-family: "FontAwesome" !important;
+    display: inline-block !important;
+}
+
+/* Active menu item */
+.sidebar-menu li.active > a {
+    background: rgba(139, 69, 19, 0.15) !important;
+    color: #8b4513 !important;
+    font-weight: 600 !important;
+    border-left: 3px solid #8b4513 !important;
+}
+
+/* Content wrapper spacing */
 .content-wrapper {
-    background-color: transparent;
+    margin-left: 265px !important; /* Increased to prevent sidebar overlap */
+    margin-top: 50px !important; /* Optimized for navbar clearance */
+    min-height: calc(100vh - 50px) !important;
+    background: #f4f6f9 !important;
+    padding: 25px !important; /* Increased padding for better content spacing */
+    transition: margin-left 0.3s ease !important;
 }
 
-.btn-custom {
-    background-color: #f0a8a8; /* Warna hijau */
-
-    color: #ffffff; /* Warna teks */
-    border-radius: 20px; /* Sudut tombol melengkung */
-    padding: 8px 20px; /* Ukuran tombol */
+/* Content area spacing */
+.content-header {
+    padding: 20px 0 25px 0 !important;
+    margin-bottom: 25px !important;
+    border-bottom: 2px solid rgba(164, 25, 61, 0.1) !important;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(244, 246, 249, 0.95) 100%
+    ) !important;
+    border-radius: 12px 12px 0 0 !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
 }
 
-.btn-custom:hover {
-    background-color: #f0a8a8; /* Warna saat hover */
-    color: rgb(49, 49, 49); /* Warna teks */
+.content-header h1 {
+    margin: 0 !important;
+    font-size: 28px !important;
+    font-weight: 700 !important;
+    color: #a4193d !important;
+    font-family: "Poppins", sans-serif !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    letter-spacing: 0.5px !important;
 }
 
-.btn-custom-close {
-    background-color: #ecd96d; /* Warna hijau */
-    color: #ffffff; /* Warna teks */
-    border-radius: 20px; /* Sudut tombol melengkung */
-    padding: 8px 20px; /* Ukuran tombol */
+.breadcrumb {
+    background: rgba(164, 25, 61, 0.05) !important;
+    border-radius: 25px !important;
+    padding: 8px 16px !important;
+    margin: 10px 0 0 0 !important;
+    font-size: 13px !important;
+    font-family: "Poppins", sans-serif !important;
+    border: 1px solid rgba(164, 25, 61, 0.1) !important;
 }
 
-.btn-custom-close:hover {
-    background-color: #f9fcf2; /* Warna saat hover */
-    color: rgb(49, 49, 49); /* Warna teks */
+/* Enhanced breadcrumb navigation */
+.breadcrumb > li + li:before {
+    color: #a4193d !important;
+    content: "›" !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
 }
 
-.glass-box {
-    background: rgba(241, 0, 0, 0.2);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+.breadcrumb > li > a {
+    color: #a4193d !important;
+    text-decoration: none !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+}
+
+.breadcrumb > li > a:hover {
+    color: #8b1532 !important;
+    text-decoration: none !important;
+}
+
+.breadcrumb > .active {
+    color: #6c757d !important;
+    font-weight: 600 !important;
+}
+
+.breadcrumb > li + li:before {
+    content: ">" !important;
+    color: #6c757d !important;
+    padding: 0 8px !important;
+}
+
+/* Ensure navbar is completely flexible */
+.navbar {
+    min-width: auto !important;
+    max-width: none !important;
+    width: auto !important;
+    flex: 1 !important;
+    overflow: visible !important;
+}
+
+.navbar-nav > li > a {
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    min-width: auto !important;
+    max-width: none !important;
+}
+
+/* Branch selector positioning */
+#branch-selector {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 6px !important;
+    color: #333 !important;
+    font-size: 13px !important;
+    height: 36px !important;
+    transition: all 0.3s ease !important;
+    flex-shrink: 0 !important;
+    min-width: auto !important;
+    max-width: none !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+#branch-selector:focus {
+    background: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1) !important;
+    outline: none !important;
+}
+
+/* Ensure no flexbox constraints */
+.navbar-static-top > * {
+    flex-shrink: 0 !important;
+    min-width: auto !important;
+    max-width: none !important;
+}
+
+.navbar-custom-menu > * {
+    flex-shrink: 0 !important;
+    min-width: auto !important;
+    max-width: none !important;
+}
+
+/* Form elements and UI components */
+.form-control {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.btn {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.table {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.table th {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.table td {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.card {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.card-header {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.card-title {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.card-body {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.alert {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.modal {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.modal-header {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.modal-title {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.modal-body {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.modal-footer {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.dropdown-menu {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.dropdown-item {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.nav-tabs {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.nav-tabs .nav-link {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.tab-content {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.pagination {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.page-link {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.badge {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.label {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.progress {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.progress-bar {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.list-group {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.list-group-item {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.input-group {
+    font-family: "Poppins", sans-serif !important;
+}
+
+.input-group-text {
+    font-family: "Poppins", sans-serif !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1400px) {
+    .user-info-vertical {
+        min-width: auto !important;
+        max-width: none !important;
+    }
+    .user-info-vertical .user-name,
+    .user-info-vertical .user-role,
+    .user-info-vertical .user-branch {
+        max-width: none !important;
+        min-width: auto !important;
+    }
+    #branch-selector {
+        width: 140px !important;
+    }
+}
+
+@media (max-width: 1200px) {
+    .user-info-vertical {
+        min-width: auto !important;
+        max-width: none !important;
+    }
+    .user-info-vertical .user-name,
+    .user-info-vertical .user-role,
+    .user-info-vertical .user-branch {
+        max-width: none !important;
+        min-width: auto !important;
+    }
+    .navbar-nav > li {
+        margin-left: 15px !important;
+    }
+}
+
+@media (max-width: 992px) {
+    .navbar-static-top {
+        padding: 0 20px !important;
+    }
+    .user-info-vertical {
+        min-width: auto !important;
+        max-width: none !important;
+    }
+    .user-info-vertical .user-name,
+    .user-info-vertical .user-role,
+    .user-info-vertical .user-branch {
+        max-width: none !important;
+        min-width: auto !important;
+    }
+    #branch-selector {
+        width: 130px !important;
+    }
+    .navbar-nav > li {
+        margin-left: 12px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-header {
+        height: 50px !important;
+    }
+    .main-sidebar {
+        transform: translateX(-100%) !important;
+        width: 250px !important;
+    }
+    .sidebar-open .main-sidebar {
+        transform: translateX(0) !important;
+    }
+    .content-wrapper {
+        margin-left: 0 !important;
+        margin-top: 50px !important;
+    }
+    .sidebar-hamburger-toggle {
+        padding: 8px 12px !important;
+        font-size: 14px !important;
+    }
+    .navbar-static-top {
+        height: 50px !important;
+        padding: 0 20px !important;
+    }
+    .sidebar-collapse .navbar-static-top {
+        margin-left: 0 !important;
+    }
+    .sidebar-collapse .content-wrapper {
+        margin-left: 70px !important; /* Space for mini-sidebar */
+    }
+    .main-sidebar {
+        top: 50px !important;
+        height: calc(100vh - 50px) !important;
+    }
+    .sidebar-open .main-sidebar {
+        transform: translateX(0) !important;
+    }
+    .sidebar-collapse .main-sidebar {
+        transform: translateX(-100%) !important;
+    }
+    .navbar-custom-menu {
+        padding-right: 0 !important;
+    }
+    .navbar-nav {
+        margin-left: auto !important;
+    }
+    .navbar-nav > li {
+        margin-left: 10px !important;
+    }
+    .user-info-vertical {
+        min-width: auto !important;
+        max-width: none !important;
+    }
+    .user.user-menu .dropdown-toggle {
+        padding: 8px 12px !important;
+        min-height: 40px !important;
+    }
+    .user.user-menu .dropdown-menu {
+        position: absolute !important;
+        right: 0 !important;
+        left: auto !important;
+        min-width: 200px !important;
+    }
+    .content-wrapper {
+        margin-left: 0 !important;
+        margin-top: 60px !important; /* Increased for mobile hamburger clearance */
+        padding: 20px 15px !important; /* Better mobile padding */
+    }
+    .content-header {
+        padding: 15px 0 20px 0 !important;
+        margin-bottom: 20px !important;
+        border-radius: 8px 8px 0 0 !important;
+    }
+    .content-header h1 {
+        font-size: 22px !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+    }
+    .breadcrumb {
+        padding: 6px 12px !important;
+        font-size: 12px !important;
+    }
+}
+
+/* Responsive glassmorphism adjustments */
+@media (max-width: 768px) {
+    .sidebar-menu li a,
+    .sidebar .sidebar-menu li a,
+    .main-sidebar .sidebar-menu li a {
+        padding: 10px 16px !important;
+        margin: 3px 6px !important;
+        border-radius: 8px !important;
+    }
+
+    .sidebar-menu .header,
+    .sidebar .sidebar-menu .header,
+    .main-sidebar .sidebar-menu .header {
+        padding: 10px 16px !important;
+        margin: 12px 6px 6px 6px !important;
+        border-radius: 8px !important;
+    }
+
+    .sidebar-header,
+    .sidebar .sidebar-header,
+    .main-sidebar .sidebar-header {
+        padding: 12px 16px !important;
+        border-radius: 0 0 12px 0 !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .sidebar-menu li a {
+        border: 2px solid rgba(164, 25, 61, 0.8) !important;
+        background: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .sidebar-menu .header {
+        background: rgba(164, 25, 61, 1) !important;
+        border: 2px solid rgba(255, 255, 255, 0.8) !important;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .sidebar-menu *,
+    .sidebar .sidebar-menu *,
+    .main-sidebar .sidebar-menu * {
+        transition: none !important;
+        animation: none !important;
+    }
+
+    .sidebar-menu li a::before,
+    .sidebar-menu li a::after {
+        display: none !important;
+    }
+}
+
+/* SMALL-BOX GLASSMORPHISM ENHANCEMENT */
+.small-box {
+    border-radius: 20px !important;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 218, 185, 0.9) 0%,
+        rgba(255, 182, 193, 0.8) 25%,
+        rgba(255, 160, 122, 0.7) 50%,
+        rgba(255, 192, 203, 0.8) 75%,
+        rgba(255, 228, 196, 0.9) 100%
+    ) !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 8px 32px rgba(255, 182, 193, 0.4),
+        0 4px 16px rgba(255, 160, 122, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+}
+
+.small-box::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+    ) !important;
+    transition: left 0.6s ease !important;
+    z-index: 1 !important;
+}
+
+.small-box:hover::before {
+    left: 100% !important;
+}
+
+.small-box:hover {
+    transform: translateY(-8px) scale(1.02) !important;
+    box-shadow: 0 16px 48px rgba(255, 182, 193, 0.6),
+        0 8px 24px rgba(255, 160, 122, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 218, 185, 0.95) 0%,
+        rgba(255, 182, 193, 0.85) 25%,
+        rgba(255, 160, 122, 0.75) 50%,
+        rgba(255, 192, 203, 0.85) 75%,
+        rgba(255, 228, 196, 0.95) 100%
+    ) !important;
+}
+
+.small-box .inner {
+    position: relative !important;
+    z-index: 2 !important;
+    padding: 20px 15px !important;
+}
+
+.small-box .inner h3,
+.small-box .inner h4,
+.small-box .inner h1 {
+    color: #8b4513 !important;
+    font-weight: 700 !important;
+    text-shadow: 0 2px 4px rgba(255, 255, 255, 0.3) !important;
+    margin: 0 0 10px 0 !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+.small-box .inner p {
+    color: #a0522d !important;
+    font-weight: 500 !important;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.2) !important;
+    font-size: 14px !important;
+    margin: 0 !important;
+    font-family: "Poppins", sans-serif !important;
+}
+
+.small-box .icon {
+    position: absolute !important;
+    top: 15px !important;
+    right: 15px !important;
+    z-index: 2 !important;
+    width: 80px !important;
+    height: 80px !important;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.3) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 100%
+    ) !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 2px solid rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 4px 20px rgba(139, 69, 19, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    opacity: 0.8 !important;
+}
+
+.small-box .icon::before {
+    content: "" !important;
+    position: absolute !important;
+    top: -2px !important;
+    left: -2px !important;
+    right: -2px !important;
+    bottom: -2px !important;
+    background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.6) 50%,
+        transparent 70%
+    ) !important;
+    border-radius: 50% !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+    z-index: -1 !important;
+}
+
+.small-box .icon i {
+    font-size: 40px !important;
+    color: #8b4513 !important;
+    text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5),
+        0 4px 8px rgba(139, 69, 19, 0.3) !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+.small-box:hover .icon {
+    opacity: 1 !important;
+    transform: translateY(-5px) scale(1.15) rotate(10deg) !important;
+    box-shadow: 0 8px 30px rgba(139, 69, 19, 0.4),
+        inset 0 2px 0 rgba(255, 255, 255, 0.8),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.15), 0 0 20px rgba(255, 218, 185, 0.6) !important;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.5) 0%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.1) 100%
+    ) !important;
+}
+
+.small-box:hover .icon::before {
+    opacity: 1 !important;
+    animation: iconShine 2s ease-in-out infinite !important;
+}
+
+.small-box:hover .icon i {
+    color: #654321 !important;
+    transform: scale(1.1) !important;
+    text-shadow: 0 3px 6px rgba(255, 255, 255, 0.7),
+        0 6px 12px rgba(139, 69, 19, 0.4), 0 0 15px rgba(255, 218, 185, 0.8) !important;
+}
+
+.small-box-footer {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: #8b4513 !important;
+    text-decoration: none !important;
+    padding: 8px 15px !important;
+    border-radius: 0 0 20px 20px !important;
+    font-weight: 600 !important;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.3) !important;
+    position: relative !important;
+    z-index: 2 !important;
+    transition: all 0.3s ease !important;
+}
+
+.small-box-footer:hover {
+    background: rgba(255, 255, 255, 0.35) !important;
+    color: #654321 !important;
+    text-decoration: none !important;
+    transform: none !important;
+}
+
+.small-box-footer i {
+    margin-left: 5px !important;
+    transition: transform 0.3s ease !important;
+}
+
+.small-box-footer:hover i {
+    transform: translateX(3px) !important;
+}
+
+/* Override specific color classes with peach gradients */
+.small-box.bg-aqua {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 218, 185, 0.9) 0%,
+        rgba(255, 182, 193, 0.8) 50%,
+        rgba(255, 228, 196, 0.9) 100%
+    ) !important;
+}
+
+.small-box.bg-red {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 182, 193, 0.9) 0%,
+        rgba(255, 160, 122, 0.8) 50%,
+        rgba(255, 192, 203, 0.9) 100%
+    ) !important;
+}
+
+.small-box.bg-green {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 228, 196, 0.9) 0%,
+        rgba(255, 218, 185, 0.8) 50%,
+        rgba(255, 192, 203, 0.9) 100%
+    ) !important;
+}
+
+.small-box.bg-purple {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 192, 203, 0.9) 0%,
+        rgba(255, 160, 122, 0.8) 50%,
+        rgba(255, 218, 185, 0.9) 100%
+    ) !important;
+}
+
+.small-box.bg-yellow {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 218, 185, 0.9) 0%,
+        rgba(255, 228, 196, 0.8) 50%,
+        rgba(255, 182, 193, 0.9) 100%
+    ) !important;
+}
+
+@keyframes iconShine {
+    0% {
+        transform: rotate(0deg);
+        opacity: 0.3;
+    }
+    50% {
+        transform: rotate(180deg);
+        opacity: 0.8;
+    }
+    100% {
+        transform: rotate(360deg);
+        opacity: 0.3;
+    }
+}
+
+/* ================================
+   GLASSMORPHISM BUTTONS & ELEMENTS
+   ================================ */
+
+/* Base button styling with Glassmorphism */
+.btn,
+button,
+input[type="submit"],
+input[type="button"] {
+    border-radius: 25px !important; /* Pill rounded */
+    padding: 12px 24px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1), 0 2px 10px rgba(164, 25, 61, 0.1) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    text-transform: none !important;
+    letter-spacing: 0.5px !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+/* Button shine effect */
+.btn::before,
+button::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    ) !important;
+    transition: left 0.5s ease !important;
+    z-index: 1 !important;
+}
+
+.btn:hover::before,
+button:hover::before {
+    left: 100% !important;
+}
+
+/* Primary/Custom Button - Brand Color */
+.btn-custom,
+.btn-primary {
+    background: linear-gradient(
+        135deg,
+        rgba(164, 25, 61, 0.9) 0%,
+        rgba(139, 21, 50, 0.85) 50%,
+        rgba(164, 25, 61, 0.9) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-color: rgba(164, 25, 61, 0.3) !important;
+}
+
+.btn-custom:hover,
+.btn-primary:hover {
+    background: linear-gradient(
+        135deg,
+        rgba(164, 25, 61, 1) 0%,
+        rgba(139, 21, 50, 0.95) 50%,
+        rgba(164, 25, 61, 1) 100%
+    ) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(164, 25, 61, 0.3),
+        0 4px 15px rgba(0, 0, 0, 0.15) !important;
+    color: #ffffff !important;
+}
+
+/* Success Button */
+.btn-success {
+    background: linear-gradient(
+        135deg,
+        rgba(40, 167, 69, 0.9) 0%,
+        rgba(34, 142, 59, 0.85) 50%,
+        rgba(40, 167, 69, 0.9) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-color: rgba(40, 167, 69, 0.3) !important;
+}
+
+.btn-success:hover {
+    background: linear-gradient(
+        135deg,
+        rgba(40, 167, 69, 1) 0%,
+        rgba(34, 142, 59, 0.95) 50%,
+        rgba(40, 167, 69, 1) 100%
+    ) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3),
+        0 4px 15px rgba(0, 0, 0, 0.15) !important;
+    color: #ffffff !important;
+}
+
+/* Info Button */
+.btn-info {
+    background: linear-gradient(
+        135deg,
+        rgba(23, 162, 184, 0.9) 0%,
+        rgba(20, 138, 157, 0.85) 50%,
+        rgba(23, 162, 184, 0.9) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-color: rgba(23, 162, 184, 0.3) !important;
+}
+
+.btn-info:hover {
+    background: linear-gradient(
+        135deg,
+        rgba(23, 162, 184, 1) 0%,
+        rgba(20, 138, 157, 0.95) 50%,
+        rgba(23, 162, 184, 1) 100%
+    ) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(23, 162, 184, 0.3),
+        0 4px 15px rgba(0, 0, 0, 0.15) !important;
+    color: #ffffff !important;
+}
+
+/* Warning Button */
+.btn-warning {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 193, 7, 0.9) 0%,
+        rgba(227, 172, 6, 0.85) 50%,
+        rgba(255, 193, 7, 0.9) 100%
+    ) !important;
+    color: #212529 !important;
+    border-color: rgba(255, 193, 7, 0.3) !important;
+    font-weight: 700 !important;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 193, 7, 1) 0%,
+        rgba(227, 172, 6, 0.95) 50%,
+        rgba(255, 193, 7, 1) 100%
+    ) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(255, 193, 7, 0.3),
+        0 4px 15px rgba(0, 0, 0, 0.15) !important;
+    color: #212529 !important;
+}
+
+/* Danger Button */
+.btn-danger {
+    background: linear-gradient(
+        135deg,
+        rgba(220, 53, 69, 0.9) 0%,
+        rgba(186, 45, 58, 0.85) 50%,
+        rgba(220, 53, 69, 0.9) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-color: rgba(220, 53, 69, 0.3) !important;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(
+        135deg,
+        rgba(220, 53, 69, 1) 0%,
+        rgba(186, 45, 58, 0.95) 50%,
+        rgba(220, 53, 69, 1) 100%
+    ) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3),
+        0 4px 15px rgba(0, 0, 0, 0.15) !important;
+    color: #ffffff !important;
+}
+
+/* Small buttons */
+.btn-sm {
+    padding: 8px 16px !important;
+    font-size: 12px !important;
+    border-radius: 20px !important;
+}
+
+/* ================================
+   BADGES & LABELS GLASSMORPHISM
+   ================================ */
+
+/* Base badge/label styling */
+.label,
+.badge,
+span.label,
+span.badge {
+    border-radius: 15px !important; /* Pill rounded */
+    padding: 6px 12px !important;
+    font-weight: 600 !important;
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Primary/Default badge */
+.label-primary,
+.badge-primary {
+    background: linear-gradient(
+        135deg,
+        rgba(164, 25, 61, 0.9) 0%,
+        rgba(139, 21, 50, 0.85) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-color: rgba(164, 25, 61, 0.3) !important;
+}
+
+/* Success badge */
+.label-success,
+.badge-success {
+    background: linear-gradient(
+        135deg,
+        rgba(40, 167, 69, 0.9) 0%,
+        rgba(34, 142, 59, 0.85) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-color: rgba(40, 167, 69, 0.3) !important;
+}
+
+/* Info badge */
+.label-info,
+.badge-info {
+    background: linear-gradient(
+        135deg,
+        rgba(23, 162, 184, 0.9) 0%,
+        rgba(20, 138, 157, 0.85) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-color: rgba(23, 162, 184, 0.3) !important;
+}
+
+/* Warning badge */
+.label-warning,
+.badge-warning {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 193, 7, 0.9) 0%,
+        rgba(227, 172, 6, 0.85) 100%
+    ) !important;
+    color: #212529 !important;
+    border-color: rgba(255, 193, 7, 0.3) !important;
+    font-weight: 700 !important;
+}
+
+/* Danger badge */
+.label-danger,
+.badge-danger {
+    background: linear-gradient(
+        135deg,
+        rgba(220, 53, 69, 0.9) 0%,
+        rgba(186, 45, 58, 0.85) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-color: rgba(220, 53, 69, 0.3) !important;
+}
+
+/* Badge hover effects */
+.label:hover,
+.badge:hover {
+    transform: translateY(-1px) scale(1.05) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ================================
+   ROUNDED ICON ACTION BUTTONS
+   ================================ */
+
+/* Base action button styling - only for small circular action buttons */
+.btn-action,
+.action-btn,
+.btn.btn-circle,
+.btn-sm.btn-circle,
+table .btn,
+.table .btn,
+.btn[onclick*="editForm"],
+.btn[onclick*="deleteData"],
+.btn[onclick*="viewData"],
+a.btn.fa,
+button.btn.fa {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important; /* Perfect circle */
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 14px !important;
+    line-height: 1 !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    margin: 0 2px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+}
+
+/* Edit action button */
+.btn-edit,
+.btn[onclick*="editForm"],
+.btn[onclick*="edit"],
+a[href*="edit"] {
+    background: linear-gradient(
+        135deg,
+        rgba(23, 162, 184, 0.9) 0%,
+        rgba(20, 138, 157, 0.85) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-color: rgba(23, 162, 184, 0.3) !important;
+}
+
+.btn-edit:hover,
+.btn[onclick*="editForm"]:hover,
+.btn[onclick*="edit"]:hover,
+a[href*="edit"]:hover {
+    transform: translateY(-2px) scale(1.1) !important;
+    box-shadow: 0 8px 20px rgba(23, 162, 184, 0.4),
+        0 4px 15px rgba(0, 0, 0, 0.15) !important;
+    color: #ffffff !important;
+}
+
+/* Delete action button */
+.btn-delete,
+.btn[onclick*="deleteData"],
+.btn[onclick*="delete"],
+.btn-danger.btn-circle {
+    background: linear-gradient(
+        135deg,
+        rgba(220, 53, 69, 0.9) 0%,
+        rgba(186, 45, 58, 0.85) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-color: rgba(220, 53, 69, 0.3) !important;
+}
+
+.btn-delete:hover,
+.btn[onclick*="deleteData"]:hover,
+.btn[onclick*="delete"]:hover,
+.btn-danger.btn-circle:hover {
+    transform: translateY(-2px) scale(1.1) !important;
+    box-shadow: 0 8px 20px rgba(220, 53, 69, 0.4),
+        0 4px 15px rgba(0, 0, 0, 0.15) !important;
+    color: #ffffff !important;
+}
+
+/* View action button */
+.btn-view,
+.btn[onclick*="viewData"],
+.btn[onclick*="view"],
+.btn-info.btn-circle {
+    background: linear-gradient(
+        135deg,
+        rgba(164, 25, 61, 0.9) 0%,
+        rgba(139, 21, 50, 0.85) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-color: rgba(164, 25, 61, 0.3) !important;
+}
+
+.btn-view:hover,
+.btn[onclick*="viewData"]:hover,
+.btn[onclick*="view"]:hover,
+.btn-info.btn-circle:hover {
+    transform: translateY(-2px) scale(1.1) !important;
+    box-shadow: 0 8px 20px rgba(164, 25, 61, 0.4),
+        0 4px 15px rgba(0, 0, 0, 0.15) !important;
+    color: #ffffff !important;
+}
+
+/* Icon shine effect for action buttons */
+.btn-action::before,
+.action-btn::before,
+.btn.btn-circle::before {
+    content: "" !important;
+    position: absolute !important;
+    top: -50% !important;
+    left: -50% !important;
+    width: 200% !important;
+    height: 200% !important;
+    background: linear-gradient(
+        45deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    ) !important;
+    transform: rotate(45deg) !important;
+    transition: all 0.5s ease !important;
+    opacity: 0 !important;
+}
+
+.btn-action:hover::before,
+.action-btn:hover::before,
+.btn.btn-circle:hover::before {
+    opacity: 1 !important;
+    transform: rotate(45deg) translate(50%, 50%) !important;
+}
+
+/* ================================
+   RESPONSIVE ADJUSTMENTS
+   ================================ */
+
+/* Mobile button adjustments */
+@media (max-width: 768px) {
+    .btn,
+    button,
+    input[type="submit"],
+    input[type="button"] {
+        padding: 10px 20px !important;
+        font-size: 13px !important;
+        border-radius: 20px !important;
+    }
+
+    .btn-sm {
+        padding: 6px 12px !important;
+        font-size: 11px !important;
+        border-radius: 15px !important;
+    }
+
+    .btn-action,
+    .action-btn,
+    .btn.btn-circle {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 12px !important;
+        min-width: 28px !important;
+        min-height: 28px !important;
+    }
+
+    .label,
+    .badge {
+        padding: 4px 8px !important;
+        font-size: 10px !important;
+        border-radius: 12px !important;
+    }
+
+    /* Mobile input adjustments */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="search"],
+    input[type="date"],
+    input[type="datetime-local"],
+    input[type="time"],
+    input[type="month"],
+    input[type="week"],
+    textarea,
+    .form-control {
+        padding: 10px 14px !important;
+        font-size: 13px !important;
+        border-radius: 12px !important;
+    }
+
+    /* Mobile select specific adjustments */
+    select,
+    .form-control.select {
+        padding: 10px 35px 10px 14px !important;
+        font-size: 13px !important;
+        border-radius: 12px !important;
+        min-height: 42px !important; /* Ensure adequate height on mobile */
+        line-height: 1.6 !important; /* Better text alignment */
+        background-size: 10px !important;
+        background-position: right 10px center !important;
+        height: auto !important;
+    }
+
+    select.form-control {
+        padding: 10px 35px 10px 14px !important;
+        min-height: 42px !important;
+        height: auto !important;
+    }
+
+    input[type="checkbox"],
+    input[type="radio"] {
+        width: 16px !important;
+        height: 16px !important;
+        margin-right: 6px !important;
+    }
+
+    input[type="file"] {
+        padding: 15px !important;
+        border-radius: 10px !important;
+    }
+}
+
+/* ================================
+   SPECIAL BUTTON ENHANCEMENTS
+   ================================ */
+
+/* Focus states for accessibility */
+.btn:focus,
+button:focus,
+.btn-action:focus,
+.action-btn:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(164, 25, 61, 0.3), 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Disabled state */
+.btn:disabled,
+button:disabled,
+.btn.disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn:disabled:hover,
+button:disabled:hover,
+.btn.disabled:hover {
+    transform: none !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Button groups */
+.btn-group .btn {
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+
+.btn-group .btn:first-child {
+    border-radius: 25px 0 0 25px !important;
+}
+
+.btn-group .btn:last-child {
+    border-radius: 0 25px 25px 0 !important;
+}
+
+.btn-group .btn:only-child {
+    border-radius: 25px !important;
+}
+
+/* Special enhancement for table action buttons */
+table .btn-action,
+table .action-btn,
+table .btn.btn-circle,
+.table .btn-action,
+.table .action-btn,
+.table .btn.btn-circle {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 13px !important;
+    margin: 0 1px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+}
+
+/* Button text improvements */
+.btn i,
+button i {
+    position: relative !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+}
+
+.btn span,
+button span {
+    position: relative !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+}
+
+/* Link buttons */
+a.btn {
+    text-decoration: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+a.btn:hover,
+a.btn:focus {
+    text-decoration: none !important;
+}
+
+/* ================================
+   ADMINLTE OVERRIDES & COMPATIBILITY
+   ================================ */
+
+/* Override AdminLTE default button styles */
+.btn.btn-default {
+    background: linear-gradient(
+        135deg,
+        rgba(108, 117, 125, 0.9) 0%,
+        rgba(73, 80, 87, 0.85) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-color: rgba(108, 117, 125, 0.3) !important;
+}
+
+.btn.btn-default:hover {
+    background: linear-gradient(
+        135deg,
+        rgba(108, 117, 125, 1) 0%,
+        rgba(73, 80, 87, 0.95) 100%
+    ) !important;
+    color: #ffffff !important;
+}
+
+/* DataTable button styling */
+.dataTables_wrapper .btn {
+    margin: 0 2px !important;
+}
+
+/* Modal buttons */
+.modal-footer .btn {
+    margin: 0 5px !important;
+}
+
+/* Box header buttons */
+.box-header .btn {
+    margin: 0 3px !important;
+}
+
+/* Ensure proper z-index for button elements */
+.btn,
+button,
+.btn-action,
+.action-btn {
+    z-index: 10 !important;
+}
+
+/* Fix button icon alignment */
+.btn i {
+    margin-right: 5px !important;
+}
+
+.btn i:only-child {
+    margin-right: 0 !important;
+}
+
+/* Progress bars in badges (if any) */
+.label .progress,
+.badge .progress {
+    height: 4px !important;
+    margin-top: 2px !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-radius: 2px !important;
+}
+
+/* Final theme consistency check */
+.btn-outline-primary {
+    border-color: #a4193d !important;
+    color: #a4193d !important;
+    background: rgba(164, 25, 61, 0.1) !important;
+}
+
+.btn-outline-primary:hover {
+    background: #a4193d !important;
+    color: #ffffff !important;
+    border-color: #a4193d !important;
+}
+
+/* ================================
+   INPUT FIELDS GLASSMORPHISM
+   ================================ */
+
+/* Base input styling */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="month"],
+input[type="week"],
+textarea,
+select,
+.form-control {
+    border-radius: 15px !important; /* Rounded corners */
+    padding: 12px 16px !important;
+    border: 1px solid rgba(164, 25, 61, 0.2) !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05),
+        inset 0 1px 3px rgba(164, 25, 61, 0.1) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    color: #2c3e50 !important;
+}
+
+/* Focus state for inputs */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="tel"]:focus,
+input[type="url"]:focus,
+input[type="search"]:focus,
+input[type="date"]:focus,
+input[type="datetime-local"]:focus,
+input[type="time"]:focus,
+input[type="month"]:focus,
+input[type="week"]:focus,
+textarea:focus,
+select:focus,
+.form-control:focus {
+    outline: none !important;
+    border-color: #a4193d !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    box-shadow: 0 0 0 3px rgba(164, 25, 61, 0.2),
+        0 4px 15px rgba(164, 25, 61, 0.1),
+        inset 0 1px 3px rgba(164, 25, 61, 0.15) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Placeholder styling */
+input::placeholder,
+textarea::placeholder {
+    color: rgba(44, 62, 80, 0.6) !important;
+    font-style: italic !important;
+    transition: all 0.3s ease !important;
+}
+
+input:focus::placeholder,
+textarea:focus::placeholder {
+    color: rgba(164, 25, 61, 0.7) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Select dropdown styling */
+select,
+.form-control.select {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%23a4193d' d='m2 0-2 2h4zm0 5 2-2h-4z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    background-size: 12px !important;
+    padding-right: 40px !important;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+    height: auto !important;
+    min-height: 46px !important; /* Increased height for better text display */
+    line-height: 1.6 !important; /* Better line height for text readability */
+    vertical-align: middle !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+}
+
+/* Select option styling */
+select option {
+    padding: 8px 12px !important;
+    background: #ffffff !important;
+    color: #2c3e50 !important;
+    border: none !important;
+    line-height: 1.5 !important;
+}
+
+/* Select focus state specific */
+select:focus,
+.form-control.select:focus {
+    height: auto !important;
+    min-height: 46px !important;
+}
+
+/* Fix for specific select elements */
+select.form-control {
+    height: auto !important;
+    min-height: 46px !important;
+    padding: 12px 40px 12px 16px !important;
+}
+
+/* File input styling */
+input[type="file"] {
+    border: 2px dashed rgba(164, 25, 61, 0.3) !important;
+    background: rgba(164, 25, 61, 0.05) !important;
+    border-radius: 12px !important;
+    padding: 20px !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+}
+
+input[type="file"]:hover {
+    border-color: rgba(164, 25, 61, 0.5) !important;
+    background: rgba(164, 25, 61, 0.1) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Checkbox and radio styling */
+input[type="checkbox"],
+input[type="radio"] {
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 4px !important;
+    border: 2px solid rgba(164, 25, 61, 0.3) !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(5px) !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    margin-right: 8px !important;
+}
+
+input[type="radio"] {
+    border-radius: 50% !important;
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+    background: linear-gradient(
+        135deg,
+        rgba(164, 25, 61, 0.9) 0%,
+        rgba(139, 21, 50, 0.85) 100%
+    ) !important;
+    border-color: #a4193d !important;
+    box-shadow: 0 2px 8px rgba(164, 25, 61, 0.3) !important;
+}
+
+/* Input group styling */
+.input-group .form-control {
+    border-radius: 0 !important;
+}
+
+.input-group .form-control:first-child {
+    border-radius: 15px 0 0 15px !important;
+}
+
+.input-group .form-control:last-child {
+    border-radius: 0 15px 15px 0 !important;
+}
+
+.input-group-addon,
+.input-group-btn .btn {
+    border-radius: 0 !important;
+    border-color: rgba(164, 25, 61, 0.2) !important;
+    background: rgba(164, 25, 61, 0.1) !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+.input-group-btn:first-child .btn {
+    border-radius: 15px 0 0 15px !important;
+}
+
+.input-group-btn:last-child .btn {
+    border-radius: 0 15px 15px 0 !important;
+}
+
+/* Range input styling */
+input[type="range"] {
+    appearance: none !important;
+    background: transparent !important;
+    height: 6px !important;
+    border-radius: 3px !important;
+    background: rgba(164, 25, 61, 0.2) !important;
+    outline: none !important;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none !important;
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(
+        135deg,
+        rgba(164, 25, 61, 0.9) 0%,
+        rgba(139, 21, 50, 0.85) 100%
+    ) !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 8px rgba(164, 25, 61, 0.3) !important;
+    backdrop-filter: blur(5px) !important;
+}
+
+/* Disabled input styling */
+input:disabled,
+textarea:disabled,
+select:disabled,
+.form-control:disabled {
+    background: rgba(108, 117, 125, 0.1) !important;
+    color: rgba(108, 117, 125, 0.6) !important;
+    cursor: not-allowed !important;
+    opacity: 0.7 !important;
+}
+
+/* Search input special styling */
+input[type="search"] {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a4193d'%3E%3Cpath d='M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    background-size: 16px !important;
+    padding-right: 40px !important;
+}
+
+/* ================================
+   MODAL GLASSMORPHISM STYLING
+   ================================ */
+
+/* Modal backdrop/overlay - Fix white background issue */
+.modal-backdrop,
+.modal-backdrop.fade,
+.modal-backdrop.in,
+.modal-backdrop.show {
+    background: rgba(
+        44,
+        62,
+        80,
+        0.85
+    ) !important; /* Dark semi-transparent overlay */
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    z-index: 1040 !important;
+    opacity: 1 !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    visibility: visible !important;
+    display: block !important;
+}
+
+/* Force backdrop to show properly */
+.modal.show ~ .modal-backdrop,
+.modal.in ~ .modal-backdrop {
+    opacity: 1 !important;
+    background: rgba(44, 62, 80, 0.85) !important;
+}
+
+/* Additional backdrop fixes */
+body.modal-open {
+    overflow: hidden !important;
+}
+
+body.modal-open .modal-backdrop {
+    background: rgba(44, 62, 80, 0.85) !important;
+    opacity: 1 !important;
+}
+
+/* Modal positioning */
+.modal {
+    z-index: 1050 !important;
+    background: transparent !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    outline: 0 !important;
+}
+
+/* Ensure modal displays properly */
+.modal.show,
+.modal.in {
+    display: block !important;
+}
+
+.modal.fade .modal-dialog {
+    transform: translate(0, -50px) !important;
+    transition: transform 0.3s ease-out !important;
+}
+
+.modal.show .modal-dialog,
+.modal.in .modal-dialog {
+    transform: translate(0, 0) !important;
+}
+
+/* Modal dialog */
+.modal-dialog {
+    margin: 30px auto !important;
+    z-index: 1060 !important;
+    position: relative !important;
+}
+
+/* Modal content - main styling */
+.modal-content {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(164, 25, 61, 0.2) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
+        0 10px 30px rgba(164, 25, 61, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+/* Modal header */
+.modal-header {
+    background: linear-gradient(
+        135deg,
+        rgba(164, 25, 61, 0.9) 0%,
+        rgba(139, 21, 50, 0.85) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding: 20px 25px !important;
+    position: relative !important;
+}
+
+.modal-header::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 1px !important;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.5),
+        transparent
+    ) !important;
+}
+
+/* Modal title */
+.modal-title,
+.modal-header h1,
+.modal-header h4 {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 20px !important;
+    margin: 0 !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* Modal close button */
+.modal-header .close,
+.modal-header .btn-close {
+    color: #ffffff !important;
+    opacity: 0.8 !important;
+    font-size: 28px !important;
+    font-weight: 300 !important;
+    text-shadow: none !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 50% !important;
+    width: 35px !important;
+    height: 35px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.3s ease !important;
+    position: absolute !important;
+    right: 15px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+}
+
+.modal-header .close:hover,
+.modal-header .close:focus,
+.modal-header .btn-close:hover,
+.modal-header .btn-close:focus {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Modal body */
+.modal-body {
+    background: rgba(255, 255, 255, 0.9) !important;
+    padding: 25px !important;
+    color: #2c3e50 !important;
+    position: relative !important;
+}
+
+/* Modal footer */
+.modal-footer {
+    background: rgba(248, 249, 250, 0.9) !important;
+    border-top: 1px solid rgba(164, 25, 61, 0.1) !important;
+    border-radius: 0 0 20px 20px !important;
+    padding: 20px 25px !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+}
+
+/* Modal size adjustments */
+.modal-lg {
+    max-width: 900px !important;
+}
+
+.modal-sm {
+    max-width: 400px !important;
+}
+
+/* Mobile modal adjustments */
+@media (max-width: 768px) {
+    .modal-dialog {
+        margin: 15px !important;
+        max-width: calc(100% - 30px) !important;
+    }
+
+    .modal-content {
+        border-radius: 15px !important;
+    }
+
+    .modal-header {
+        padding: 15px 20px !important;
+        border-radius: 15px 15px 0 0 !important;
+    }
+
+    .modal-title,
+    .modal-header h1,
+    .modal-header h4 {
+        font-size: 18px !important;
+    }
+
+    .modal-body {
+        padding: 20px !important;
+    }
+
+    .modal-footer {
+        padding: 15px 20px !important;
+        border-radius: 0 0 15px 15px !important;
+    }
+}
+
+/* Fix for specific modal forms */
+.modal .form-group {
+    margin-bottom: 20px !important;
+}
+
+.modal .form-control {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(164, 25, 61, 0.2) !important;
+}
+
+.modal .form-control:focus {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-color: #a4193d !important;
+    box-shadow: 0 0 0 3px rgba(164, 25, 61, 0.1) !important;
+}
+
+/* Icon enhancements for specific types */
+.small-box.bg-aqua .icon i {
+    color: #2e8b57 !important;
+}
+
+.small-box.bg-red .icon i {
+    color: #b22222 !important;
+}
+
+.small-box.bg-green .icon i {
+    color: #228b22 !important;
+}
+
+.small-box.bg-purple .icon i {
+    color: #9932cc !important;
+}
+
+/* ================================
+   RESPONSIVE DATATABLES STYLING
+   ================================ */
+
+/* DataTable wrapper and container */
+.dataTables_wrapper {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border-radius: 15px !important;
+    border: 1px solid rgba(164, 25, 61, 0.1) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+    padding: 20px !important;
+    margin-top: 20px !important;
+    overflow: visible !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+/* Table responsive container */
+.table-responsive {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 15px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    position: relative !important;
+}
+
+/* Main table styling */
+.table,
+.dataTable {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-radius: 12px !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    width: 100% !important;
+    margin-bottom: 0 !important;
+    overflow: visible !important;
+    position: relative !important;
+}
+
+/* DataTables specific positioning fixes */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing,
+.dataTables_wrapper .dataTables_paginate {
+    position: relative !important;
+    z-index: 2 !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    padding: 10px !important;
+    border-radius: 8px !important;
+    margin: 5px 0 !important;
+}
+
+.dataTables_wrapper .dataTables_length {
+    float: left !important;
+    margin-right: 20px !important;
+}
+
+.dataTables_wrapper .dataTables_filter {
+    float: right !important;
+    margin-left: 20px !important;
+}
+
+.dataTables_wrapper .dataTables_info {
+    clear: both !important;
+    float: left !important;
+    padding-top: 10px !important;
+}
+
+.dataTables_wrapper .dataTables_paginate {
+    clear: both !important;
+    float: right !important;
+    padding-top: 10px !important;
+}
+
+/* Fix for DataTables elements overlapping */
+.dataTables_wrapper::after {
+    content: "" !important;
+    display: table !important;
+    clear: both !important;
+}
+
+/* Ensure proper spacing between DataTables elements */
+.dataTables_wrapper > div {
+    margin-bottom: 10px !important;
+}
+
+.dataTables_wrapper > div:last-child {
+    margin-bottom: 0 !important;
+}
+
+/* Table header */
+.table thead th,
+.dataTable thead th {
+    background: linear-gradient(
+        135deg,
+        rgba(164, 25, 61, 0.9) 0%,
+        rgba(139, 21, 50, 0.85) 100%
+    ) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    padding: 15px 12px !important;
+    border: none !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    position: relative !important;
+}
+
+.table thead th:first-child,
+.dataTable thead th:first-child {
+    border-radius: 12px 0 0 0 !important;
+}
+
+.table thead th:last-child,
+.dataTable thead th:last-child {
+    border-radius: 0 12px 0 0 !important;
+}
+
+/* Table body */
+.table tbody td,
+.dataTable tbody td {
+    padding: 12px !important;
+    font-size: 13px !important;
+    border-bottom: 1px solid rgba(164, 25, 61, 0.1) !important;
+    border-left: none !important;
+    border-right: none !important;
+    vertical-align: middle !important;
+    text-align: center !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Table row hover effects */
+.table tbody tr:hover,
+.dataTable tbody tr:hover {
+    background: rgba(164, 25, 61, 0.05) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(164, 25, 61, 0.1) !important;
+}
+
+.table tbody tr:hover td,
+.dataTable tbody tr:hover td {
+    background: rgba(164, 25, 61, 0.05) !important;
+}
+
+/* Striped rows */
+.table-striped tbody tr:nth-of-type(even),
+.dataTable tbody tr:nth-of-type(even) {
+    background: rgba(248, 249, 250, 0.8) !important;
+}
+
+.table-striped tbody tr:nth-of-type(even):hover,
+.dataTable tbody tr:nth-of-type(even):hover {
+    background: rgba(164, 25, 61, 0.05) !important;
+}
+
+/* DataTable controls styling */
+.dataTables_length,
+.dataTables_filter,
+.dataTables_info,
+.dataTables_paginate {
+    margin: 10px 0 !important;
+    font-size: 13px !important;
+    color: #2c3e50 !important;
+}
+
+/* Length dropdown */
+.dataTables_length select {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(164, 25, 61, 0.3) !important;
+    border-radius: 8px !important;
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+    color: #2c3e50 !important;
+    margin: 0 5px !important;
+}
+
+/* Search input */
+.dataTables_filter input {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(164, 25, 61, 0.3) !important;
+    border-radius: 20px !important;
+    padding: 8px 16px !important;
+    font-size: 13px !important;
+    color: #2c3e50 !important;
+    margin-left: 10px !important;
+    transition: all 0.3s ease !important;
+}
+
+.dataTables_filter input:focus {
+    outline: none !important;
+    border-color: #a4193d !important;
+    box-shadow: 0 0 0 3px rgba(164, 25, 61, 0.2) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Pagination styling */
+.dataTables_paginate .paginate_button {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(164, 25, 61, 0.2) !important;
+    border-radius: 8px !important;
+    color: #a4193d !important;
+    padding: 6px 12px !important;
+    margin: 0 2px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    text-decoration: none !important;
+}
+
+.dataTables_paginate .paginate_button:hover {
+    background: rgba(164, 25, 61, 0.1) !important;
+    border-color: #a4193d !important;
+    color: #8b1532 !important;
+    transform: translateY(-1px) !important;
+}
+
+.dataTables_paginate .paginate_button.current {
+    background: linear-gradient(
+        135deg,
+        rgba(164, 25, 61, 0.9) 0%,
+        rgba(139, 21, 50, 0.85) 100%
+    ) !important;
+    color: #ffffff !important;
+    border-color: #a4193d !important;
+}
+
+.dataTables_paginate .paginate_button.disabled {
+    background: rgba(108, 117, 125, 0.1) !important;
+    color: rgba(108, 117, 125, 0.6) !important;
+    border-color: rgba(108, 117, 125, 0.2) !important;
+    cursor: not-allowed !important;
+}
+
+/* Processing indicator */
+.dataTables_processing {
+    background: rgba(164, 25, 61, 0.9) !important;
+    color: #ffffff !important;
+    border-radius: 10px !important;
+    padding: 15px 20px !important;
+    font-weight: 600 !important;
+    backdrop-filter: blur(10px) !important;
+    box-shadow: 0 4px 20px rgba(164, 25, 61, 0.3) !important;
+}
+
+/* Responsive controls */
+.dtr-control {
+    background: rgba(164, 25, 61, 0.1) !important;
+    border: 1px solid rgba(164, 25, 61, 0.3) !important;
+    border-radius: 50% !important;
+    color: #a4193d !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+}
+
+.dtr-control:hover {
+    background: rgba(164, 25, 61, 0.2) !important;
+    border-color: #a4193d !important;
+    transform: scale(1.1) !important;
+}
+
+/* Responsive DataTable child rows */
+.dtr-details {
+    background: rgba(248, 249, 250, 0.9) !important;
+    border: 1px solid rgba(164, 25, 61, 0.1) !important;
+    border-radius: 8px !important;
+    padding: 15px !important;
+    margin: 5px 0 !important;
+}
+
+.dtr-details li {
+    border-bottom: 1px solid rgba(164, 25, 61, 0.1) !important;
+    padding: 8px 0 !important;
+    color: #2c3e50 !important;
+}
+
+.dtr-details li:last-child {
+    border-bottom: none !important;
+}
+
+.dtr-title {
+    font-weight: 600 !important;
+    color: #a4193d !important;
+    margin-right: 10px !important;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .dataTables_wrapper {
+        padding: 15px !important;
+        border-radius: 12px !important;
+    }
+
+    .table thead th,
+    .dataTable thead th {
+        font-size: 11px !important;
+        padding: 10px 8px !important;
+        letter-spacing: 0.3px !important;
+    }
+
+    .table tbody td,
+    .dataTable tbody td {
+        font-size: 12px !important;
+        padding: 8px !important;
+    }
+
+    .dataTables_length,
+    .dataTables_filter,
+    .dataTables_info,
+    .dataTables_paginate {
+        text-align: center !important;
+        margin: 8px 0 !important;
+    }
+
+    .dataTables_filter input {
+        width: 100% !important;
+        max-width: 200px !important;
+        margin: 5px 0 !important;
+        padding: 6px 12px !important;
+    }
+
+    .dataTables_paginate .paginate_button {
+        padding: 4px 8px !important;
+        font-size: 11px !important;
+        margin: 0 1px !important;
+    }
+
+    /* Hide less important columns on mobile */
+    .table th:nth-child(n + 6),
+    .table td:nth-child(n + 6),
+    .dataTable th:nth-child(n + 6),
+    .dataTable td:nth-child(n + 6) {
+        display: none !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .dataTables_wrapper {
+        padding: 10px !important;
+        margin-top: 10px !important;
+    }
+
+    .table thead th,
+    .dataTable thead th {
+        font-size: 10px !important;
+        padding: 8px 6px !important;
+    }
+
+    .table tbody td,
+    .dataTable tbody td {
+        font-size: 11px !important;
+        padding: 6px !important;
+    }
+
+    /* Hide even more columns on very small screens */
+    .table th:nth-child(n + 4),
+    .table td:nth-child(n + 4),
+    .dataTable th:nth-child(n + 4),
+    .dataTable td:nth-child(n + 4) {
+        display: none !important;
+    }
+
+    .dataTables_filter input {
+        max-width: 150px !important;
+        font-size: 12px !important;
+    }
+
+    .dataTables_paginate .paginate_button {
+        padding: 3px 6px !important;
+        font-size: 10px !important;
+    }
+}
+
+/* DataTable sorting indicators */
+.dataTable th.sorting,
+.dataTable th.sorting_asc,
+.dataTable th.sorting_desc {
+    position: relative !important;
+    cursor: pointer !important;
+}
+
+.dataTable th.sorting:after,
+.dataTable th.sorting_asc:after,
+.dataTable th.sorting_desc:after {
+    position: absolute !important;
+    right: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    font-family: "FontAwesome" !important;
+    font-size: 12px !important;
+}
+
+.dataTable th.sorting:after {
+    content: "\f0dc" !important;
+}
+
+.dataTable th.sorting_asc:after {
+    content: "\f0de" !important;
+    color: #ffffff !important;
+}
+
+.dataTable th.sorting_desc:after {
+    content: "\f0dd" !important;
+    color: #ffffff !important;
+}
+
+/* Scroll indicators for mobile */
+.table-responsive::before,
+.table-responsive::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 20px !important;
+    pointer-events: none !important;
+    z-index: 10 !important;
+}
+
+.table-responsive::before {
+    left: 0 !important;
+    background: linear-gradient(
+        to right,
+        rgba(164, 25, 61, 0.1),
+        transparent
+    ) !important;
+}
+
+.table-responsive::after {
+    right: 0 !important;
+    background: linear-gradient(
+        to left,
+        rgba(164, 25, 61, 0.1),
+        transparent
+    ) !important;
+}
+
+/* Box container enhancements */
+.box .box-body.table-responsive {
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+.box {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border-radius: 15px !important;
+    border: 1px solid rgba(164, 25, 61, 0.1) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+    overflow: hidden !important;
+}
+
+.box-header {
+    background: linear-gradient(
+        135deg,
+        rgba(248, 249, 250, 0.9) 0%,
+        rgba(255, 255, 255, 0.8) 100%
+    ) !important;
+    border-bottom: 1px solid rgba(164, 25, 61, 0.1) !important;
+    padding: 20px !important;
+    border-radius: 15px 15px 0 0 !important;
+}
+
+.small-box.bg-yellow .icon i {
+    color: #daa520 !important;
+}
+
+.small-box:hover.bg-aqua .icon i {
+    color: #20b2aa !important;
+    text-shadow: 0 0 20px rgba(32, 178, 170, 0.8) !important;
+}
+
+.small-box:hover.bg-red .icon i {
+    color: #dc143c !important;
+    text-shadow: 0 0 20px rgba(220, 20, 60, 0.8) !important;
+}
+
+.small-box:hover.bg-green .icon i {
+    color: #32cd32 !important;
+    text-shadow: 0 0 20px rgba(50, 205, 50, 0.8) !important;
+}
+
+.small-box:hover.bg-purple .icon i {
+    color: #da70d6 !important;
+    text-shadow: 0 0 20px rgba(218, 112, 214, 0.8) !important;
+}
+
+.small-box:hover.bg-yellow .icon i {
+    color: #ffd700 !important;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8) !important;
+}
+
+/* Responsive adjustments for small boxes */
+@media (max-width: 768px) {
+    .small-box .inner {
+        padding: 15px 12px !important;
+    }
+
+    .small-box .inner h3,
+    .small-box .inner h1 {
+        font-size: 24px !important;
+    }
+
+    .small-box .icon {
+        width: 60px !important;
+        height: 60px !important;
+        top: 10px !important;
+        right: 10px !important;
+    }
+
+    .small-box .icon i {
+        font-size: 30px !important;
+    }
+}
+
+/* SweetAlert Custom Styling */
+.swal2-popup {
+    background: #ffffff !important;
+    border: 2px solid rgba(164, 25, 61, 0.2) !important;
+    border-radius: 15px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+}
+
+.swal2-title {
+    color: #212529 !important;
+    font-weight: 600 !important;
+    font-size: 20px !important;
+}
+
+.swal2-content {
+    color: #6c757d !important;
+    font-size: 14px !important;
+}
+
+.swal2-confirm {
+    background: linear-gradient(135deg, #a4193d 0%, #8b1532 100%) !important;
+    border: none !important;
+    border-radius: 25px !important;
+    padding: 10px 25px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(164, 25, 61, 0.3) !important;
+}
+
+.swal2-confirm:hover {
+    background: linear-gradient(135deg, #8b1532 0%, #721c24 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(164, 25, 61, 0.4) !important;
+}
+
+.swal2-cancel {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
+    border: none !important;
+    border-radius: 25px !important;
+    padding: 10px 25px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3) !important;
+}
+
+.swal2-cancel:hover {
+    background: linear-gradient(135deg, #5a6268 0%, #495057 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4) !important;
+}
+
+.swal2-icon {
+    border-width: 3px !important;
+}
+
+.swal2-timer-progress-bar {
+    background: linear-gradient(90deg, #a4193d 0%, #28a745 100%) !important;
+}
+
+/* Ensure SweetAlert backdrop is visible */
+.swal2-backdrop-show {
+    background: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Fix for DataTables elements overlapping */
+
+/* DataTables Pagination Specific Fixes */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    background: #ffffff !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 6px !important;
+    padding: 6px 12px !important;
+    margin: 0 2px !important;
+    color: #495057 !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    display: inline-block !important;
+    text-decoration: none !important;
+    min-width: 32px !important;
+    text-align: center !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: #e9ecef !important;
+    border-color: #adb5bd !important;
+    color: #212529 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: linear-gradient(135deg, #a4193d 0%, #8b1532 100%) !important;
+    border-color: #a4193d !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(164, 25, 61, 0.3) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+    background: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    color: #6c757d !important;
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.previous,
+.dataTables_wrapper .dataTables_paginate .paginate_button.next {
+    background: #ffffff !important;
+    border: 1px solid #dee2e6 !important;
+    color: #495057 !important;
+    font-weight: 500 !important;
+    padding: 6px 16px !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.previous:hover,
+.dataTables_wrapper .dataTables_paginate .paginate_button.next:hover {
+    background: #e9ecef !important;
+    border-color: #adb5bd !important;
+    color: #212529 !important;
+}
+
+/* Fix for empty square outlines */
+.dataTables_wrapper .dataTables_paginate .paginate_button:empty,
+.dataTables_wrapper .dataTables_paginate .paginate_button[style*="display: none"] {
+    display: none !important;
+}
+
+/* DataTables Length and Filter styling */
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    background: #ffffff !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 6px !important;
+    padding: 6px 12px !important;
+    font-size: 14px !important;
+    color: #495057 !important;
+    transition: all 0.3s ease !important;
+}
+
+.dataTables_wrapper .dataTables_length select:focus,
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: #a4193d !important;
+    box-shadow: 0 0 0 0.2rem rgba(164, 25, 61, 0.25) !important;
+    outline: none !important;
+}
+
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_filter label {
+    color: #495057 !important;
+    font-weight: 500 !important;
+    margin-bottom: 0 !important;
+}
+
+/* DataTables Info styling */
+.dataTables_wrapper .dataTables_info {
+    color: #6c757d !important;
+    font-size: 14px !important;
+    padding: 10px 0 !important;
+    background: rgba(255, 255, 255, 0.8) !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+}
+
+/* DataTables Processing styling */
+.dataTables_wrapper .dataTables_processing {
+    background: rgba(164, 25, 61, 0.9) !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    padding: 15px 25px !important;
+    font-weight: 500 !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Ensure proper spacing and alignment */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+    margin: 10px 0 !important;
+    padding: 8px 12px !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(164, 25, 61, 0.1) !important;
+}
+
+/* Fix for DataTables responsive issues */
+@media (max-width: 768px) {
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter {
+        float: none !important;
+        text-align: left !important;
+        margin: 10px 0 !important;
+    }
+    
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        float: none !important;
+        text-align: center !important;
+        margin: 10px 0 !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        margin: 2px !important;
+        padding: 4px 8px !important;
+        font-size: 12px !important;
+    }
+}
+
+/* Additional DataTables Layout Fixes */
+.dataTables_wrapper .dataTables_scroll {
+    border: 1px solid #dee2e6 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+.dataTables_wrapper .dataTables_scrollHead {
+    background: #f8f9fa !important;
+    border-bottom: 2px solid #dee2e6 !important;
+}
+
+.dataTables_wrapper .dataTables_scrollBody {
+    background: #ffffff !important;
+}
+
+.dataTables_wrapper .dataTables_scrollFoot {
+    background: #f8f9fa !important;
+    border-top: 2px solid #dee2e6 !important;
+}
+
+/* Fix for table header styling */
+.dataTables_wrapper .dataTable thead th {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    border: 1px solid #dee2e6 !important;
+    color: #495057 !important;
+    font-weight: 600 !important;
+    padding: 12px 8px !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+.dataTables_wrapper .dataTable thead th:first-child {
+    border-top-left-radius: 8px !important;
+}
+
+.dataTables_wrapper .dataTable thead th:last-child {
+    border-top-right-radius: 8px !important;
+}
+
+/* Fix for table body styling */
+.dataTables_wrapper .dataTable tbody td {
+    border: 1px solid #dee2e6 !important;
+    padding: 10px 8px !important;
+    vertical-align: middle !important;
+    background: #ffffff !important;
+}
+
+.dataTables_wrapper .dataTable tbody tr:nth-child(even) td {
+    background: #f8f9fa !important;
+}
+
+.dataTables_wrapper .dataTable tbody tr:hover td {
+    background: #e3f2fd !important;
+    transition: background-color 0.3s ease !important;
+}
+
+/* Fix for table footer styling */
+.dataTables_wrapper .dataTable tfoot th {
+    background: #f8f9fa !important;
+    border: 1px solid #dee2e6 !important;
+    color: #495057 !important;
+    font-weight: 600 !important;
+    padding: 12px 8px !important;
+    text-align: center !important;
+}
+
+/* Fix for DataTables empty state */
+.dataTables_wrapper .dataTables_empty {
+    text-align: center !important;
+    padding: 40px 20px !important;
+    color: #6c757d !important;
+    font-style: italic !important;
+    background: #f8f9fa !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 8px !important;
+}
+
+/* Fix for DataTables loading state */
+.dataTables_wrapper .dataTables_processing {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 1000 !important;
+}
+
+/* Ensure proper table container */
+.table-responsive {
+    border: none !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Fix for any remaining positioning issues */
+.dataTables_wrapper * {
+    box-sizing: border-box !important;
+}
+
+.dataTables_wrapper .dataTables_wrapper {
+    position: relative !important;
+    width: 100% !important;
 }

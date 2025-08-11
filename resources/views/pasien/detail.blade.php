@@ -4,7 +4,15 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title">Detail Pasien</h4>
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <div>
+                    <a href="#" id="btn-cetak-resep" class="btn btn-warning btn-sm" target="_blank" style="margin-right: 10px;">
+                        <i class="fa fa-print"></i> Cetak Resep
+                    </a>
+                    <a href="#" id="btn-cetak-resep-a4" class="btn btn-info btn-sm" target="_blank" style="margin-right: 10px;">
+                        <i class="fa fa-print"></i> Cetak A4
+                    </a>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
             </div>
             <div class="modal-body">
                 <div style="margin-bottom:20px; border:1px solid #e0e0e0; border-radius:6px; padding:24px 32px; background:#fafbfc;">

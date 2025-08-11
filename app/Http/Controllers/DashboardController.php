@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\OpenDay;
 use App\Models\Branch;
+use App\Services\BpjsPricingService;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -50,44 +51,141 @@ class DashboardController extends Controller
         $jumlahAksesoris = null;
         $jumlahTransaksiAktif = null;
         if ($user->isSuperAdmin() || $user->isAdmin()) {
-            $rekapOmset = \App\Models\Transaksi::where('branch_id', $selectedBranchId)
+            // Ambil semua transaksi dengan relasi pasien untuk admin
+            $adminTransactions = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->when($omsetStart, fn($q) => $q->where('created_at', '>=', $omsetStart))
                 ->when($omsetEnd, fn($q) => $q->where('created_at', '<=', $omsetEnd))
-                ->selectRaw('user_id, SUM(total) as total_omset, COUNT(*) as jumlah_transaksi')
-                ->groupBy('user_id')
-                ->with('user')
+                ->with(['user', 'pasien'])
                 ->get();
+                
+            // Hitung rekap omset per kasir dengan harga default BPJS
+            $rekapOmset = $adminTransactions->groupBy('user_id')->map(function($transactions) {
+                $firstTransaction = $transactions->first();
+                $totalOmset = $transactions->sum(function($transaksi) {
+                    $serviceType = $transaksi->pasien->service_type ?? 'UMUM';
+                    
+                    // Untuk transaksi BPJS, gunakan harga default
+                    if (in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+                        switch ($serviceType) {
+                            case 'BPJS I':
+                                return BpjsPricingService::BPJS_I_PRICE;
+                            case 'BPJS II':
+                                return BpjsPricingService::BPJS_II_PRICE;
+                            case 'BPJS III':
+                                return BpjsPricingService::BPJS_III_PRICE;
+                        }
+                    }
+                    
+                    // Untuk transaksi non-BPJS, gunakan total asli
+                    return $transaksi->total;
+                });
+                
+                return (object) [
+                    'user_id' => $firstTransaction->user_id,
+                    'user' => $firstTransaction->user,
+                    'total_omset' => $totalOmset,
+                    'jumlah_transaksi' => $transactions->count()
+                ];
+            })->values();
         } else {
-            $omsetKasir = \App\Models\Transaksi::where('branch_id', $selectedBranchId)
+            // Ambil semua transaksi kasir dengan relasi pasien
+            $kasirTransactions = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
                 ->when($omsetStart, fn($q) => $q->where('created_at', '>=', $omsetStart))
                 ->when($omsetEnd, fn($q) => $q->where('created_at', '<=', $omsetEnd))
-                ->sum('total');
-            $omsetBpjs = \App\Models\Transaksi::where('branch_id', $selectedBranchId)
+                ->with('pasien')
+                ->get();
+                
+            // Hitung omset kasir dengan harga default BPJS
+            $omsetKasir = $kasirTransactions->sum(function($transaksi) {
+                $serviceType = $transaksi->pasien->service_type ?? 'UMUM';
+                
+                // Untuk transaksi BPJS, gunakan harga default
+                if (in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+                    switch ($serviceType) {
+                        case 'BPJS I':
+                            return BpjsPricingService::BPJS_I_PRICE;
+                        case 'BPJS II':
+                            return BpjsPricingService::BPJS_II_PRICE;
+                        case 'BPJS III':
+                            return BpjsPricingService::BPJS_III_PRICE;
+                    }
+                }
+                
+                // Untuk transaksi non-BPJS, gunakan total asli
+                return $transaksi->total;
+            });
+            
+            // Hitung omset BPJS dengan harga default
+            $bpjsTransactions = $kasirTransactions->filter(function($transaksi) {
+                $serviceType = $transaksi->pasien->service_type ?? 'UMUM';
+                return in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III']);
+            });
+            
+            $omsetBpjs = $bpjsTransactions->sum(function($transaksi) {
+                $serviceType = $transaksi->pasien->service_type ?? 'UMUM';
+                
+                switch ($serviceType) {
+                    case 'BPJS I':
+                        return BpjsPricingService::BPJS_I_PRICE;
+                    case 'BPJS II':
+                        return BpjsPricingService::BPJS_II_PRICE;
+                    case 'BPJS III':
+                        return BpjsPricingService::BPJS_III_PRICE;
+                    default:
+                        return 0;
+                }
+            });
+            
+            // Hitung omset umum (non-BPJS) dengan harga asli
+            $umumTransactions = $kasirTransactions->filter(function($transaksi) {
+                $serviceType = $transaksi->pasien->service_type ?? 'UMUM';
+                return !in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III']);
+            });
+            
+            $omsetUmum = $umumTransactions->sum('total');
+            
+            // Debug logging untuk membantu troubleshooting
+            \Log::info('DashboardController - Omset Kasir Data:', [
+                'user_id' => $user->id,
+                'branch_id' => $selectedBranchId,
+                'omset_kasir' => $omsetKasir,
+                'omset_bpjs' => $omsetBpjs,
+                'omset_umum' => $omsetUmum,
+                'total_kasir_transactions' => $kasirTransactions->count(),
+                'bpjs_transactions_count' => $bpjsTransactions->count(),
+                'umum_transactions_count' => $umumTransactions->count(),
+            ]);
+            
+            $transaksiKasir = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
                 ->when($omsetStart, fn($q) => $q->where('created_at', '>=', $omsetStart))
                 ->when($omsetEnd, fn($q) => $q->where('created_at', '<=', $omsetEnd))
-                ->whereHas('pasien', function($q) {
-                    $q->where('service_type', 'like', 'BPJS%');
-                })->sum('total');
-            $omsetUmum = \App\Models\Transaksi::where('branch_id', $selectedBranchId)
-                ->where('user_id', $user->id)
-                ->when($omsetStart, fn($q) => $q->where('created_at', '>=', $omsetStart))
-                ->when($omsetEnd, fn($q) => $q->where('created_at', '<=', $omsetEnd))
-                ->whereHas('pasien', function($q) {
-                    $q->where('service_type', 'UMUM');
-                })->sum('total');
-            $transaksiKasir = \App\Models\Transaksi::where('branch_id', $selectedBranchId)
-                ->where('user_id', $user->id)
-                ->when($omsetStart, fn($q) => $q->where('created_at', '>=', $omsetStart))
-                ->when($omsetEnd, fn($q) => $q->where('created_at', '<=', $omsetEnd))
+                ->with('pasien')
                 ->orderBy('created_at', 'desc')
                 ->get();
+            
+                    // Debug: Log data transaksi untuk troubleshooting
+        \Log::info('DashboardController - Transaksi Kasir Data:', [
+            'user_id' => $user->id,
+            'branch_id' => $selectedBranchId,
+            'total_transactions' => $transaksiKasir->count(),
+            'sample_transaction' => $transaksiKasir->first() ? [
+                'id' => $transaksiKasir->first()->id,
+                'kode_penjualan' => $transaksiKasir->first()->kode_penjualan,
+                'pasien_id' => $transaksiKasir->first()->pasien_id,
+                'pasien_data' => $transaksiKasir->first()->pasien ? [
+                    'id' => $transaksiKasir->first()->pasien->id_pasien,
+                    'nama' => $transaksiKasir->first()->pasien->nama_pasien,
+                    'service_type' => $transaksiKasir->first()->pasien->service_type,
+                ] : null,
+            ] : null,
+        ]);
             $jumlahPasien = \App\Models\Pasien::count();
             $jumlahLensa = \App\Models\Lensa::where('branch_id', $selectedBranchId)->count();
             $jumlahFrame = \App\Models\Frame::where('branch_id', $selectedBranchId)->count();
             $jumlahAksesoris = \App\Models\Aksesoris::where('branch_id', $selectedBranchId)->count();
-            $jumlahTransaksiAktif = \App\Models\Transaksi::where('branch_id', $selectedBranchId)
+            $jumlahTransaksiAktif = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
                 ->where('status_pengerjaan', '!=', 'Sudah Diambil')
                 ->when($omsetStart, fn($q) => $q->where('created_at', '>=', $omsetStart))
@@ -100,7 +198,7 @@ class DashboardController extends Controller
         $jumlahLensa = \App\Models\Lensa::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)->count();
         $jumlahAksesoris = \App\Models\Aksesoris::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)->count();
         $jumlahPasien = \App\Models\Pasien::count();
-        $jumlahTransaksiAktif = \App\Models\Transaksi::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
+        $jumlahTransaksiAktif = \App\Models\Penjualan::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
             ->whereDate('created_at', now())
             ->count();
 
@@ -109,7 +207,7 @@ class DashboardController extends Controller
         $detailLensa = \App\Models\Lensa::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)->limit(100)->get();
         $detailAksesoris = \App\Models\Aksesoris::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)->limit(100)->get();
         $detailPasien = \App\Models\Pasien::limit(100)->get();
-        $detailTransaksiAktif = \App\Models\Transaksi::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
+        $detailTransaksiAktif = \App\Models\Penjualan::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
             ->whereDate('created_at', now())
             ->limit(100)->get();
 
@@ -203,7 +301,7 @@ class DashboardController extends Controller
         }
 
         // Data penjualan per hari
-        $dailySales = \App\Models\Transaksi::when($branchId, function($query) use ($branchId) {
+        $dailySales = \App\Models\Penjualan::when($branchId, function($query) use ($branchId) {
                 return $query->where('branch_id', $branchId);
             })
             ->whereBetween('created_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()])
@@ -213,7 +311,7 @@ class DashboardController extends Controller
             ->keyBy('date');
 
         // Data penjualan BPJS vs Umum
-        $bpjsVsUmum = \App\Models\Transaksi::when($branchId, function($query) use ($branchId) {
+        $bpjsVsUmum = \App\Models\Penjualan::when($branchId, function($query) use ($branchId) {
                 return $query->where('branch_id', $branchId);
             })
             ->whereBetween('created_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()])
@@ -231,7 +329,7 @@ class DashboardController extends Controller
         // Data penjualan per cabang (jika tidak ada filter cabang)
         $branchSales = null;
         if (!$branchId) {
-            $branchSales = \App\Models\Transaksi::whereBetween('created_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()])
+            $branchSales = \App\Models\Penjualan::whereBetween('created_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()])
                 ->join('branches', 'penjualan.branch_id', '=', 'branches.id')
                 ->selectRaw('branches.name as branch_name, SUM(penjualan.total) as total_sales, COUNT(*) as total_transactions')
                 ->groupBy('branches.id', 'branches.name')
@@ -241,7 +339,7 @@ class DashboardController extends Controller
         }
 
         // Data status transaksi BPJS
-        $bpjsStatus = \App\Models\Transaksi::when($branchId, function($query) use ($branchId) {
+        $bpjsStatus = \App\Models\Penjualan::when($branchId, function($query) use ($branchId) {
                 return $query->where('branch_id', $branchId);
             })
             ->whereNotNull('pasien_service_type')

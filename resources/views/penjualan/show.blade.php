@@ -103,6 +103,17 @@
                                 <td><a href="{{ asset('storage/' . $penjualan->photo_bpjs) }}" target="_blank">Lihat Foto</a></td>
                             </tr>
                             @endif
+                            @if($penjualan->signature_bpjs)
+                            <tr>
+                                <th>Tanda Tangan BPJS</th>
+                                <td>
+                                    <div class="signature-display">
+                                        <img src="{{ $penjualan->signature_bpjs }}" alt="Tanda Tangan Pasien" style="max-width: 300px; border: 1px solid #ddd; border-radius: 5px;">
+                                        <br><small class="text-muted">Ditandatangani pada: {{ $penjualan->signature_date ? tanggal_indonesia($penjualan->signature_date, false) : 'N/A' }}</small>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endif
                         </table>
                     </div>
                 </div>

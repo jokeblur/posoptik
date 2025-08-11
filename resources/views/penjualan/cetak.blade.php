@@ -27,6 +27,54 @@
         p {
             margin: 2px 0;
         }
+        .info-section {
+            margin: 8px 0;
+            padding: 5px 0;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 1px 0;
+        }
+        .info-label {
+            font-weight: bold;
+            min-width: 60px;
+        }
+        .info-value {
+            text-align: right;
+            flex: 1;
+        }
+        .pasien-info {
+            background: #f8f9fa;
+            padding: 5px;
+            margin: 5px 0;
+            border-left: 3px solid #007bff;
+        }
+        .resep-info {
+            background: #fff3cd;
+            padding: 5px;
+            margin: 5px 0;
+            border-left: 3px solid #ffc107;
+        }
+        .resep-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 5px 0;
+            font-size: 9pt;
+        }
+        .resep-table th, .resep-table td {
+            padding: 2px 3px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .resep-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        .resep-table .eye-label {
+            font-weight: bold;
+            background: #e9ecef;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -87,22 +135,97 @@
     <div class="container">
         <div class="header">
             <h2>{{ $penjualan->branch->name ?? 'Optik Melati' }}</h2>
-            <p>{{ $penjualan->branch->address ?? '' }}</p>
+            @php
+                $cleanAddress = preg_replace('/^[A-Z]{2}\d+\+[A-Z]{2}\d+,\s*/', '', $penjualan->branch->address ?? '');
+            @endphp
+            <p>{{ $cleanAddress }}</p>
             <p>Telp: {{ $penjualan->branch->phone ?? '' }}</p>
         </div>
 
         <hr class="dashed">
-        <p>No: {{ $penjualan->kode_penjualan }}</p>
-        <p>Tgl: {{ tanggal_indonesia($penjualan->tanggal, false) }}</p>
-        <p>Kasir: {{ $penjualan->user->name ?? 'N/A' }}</p>
-        <p>Pasien: {{ $penjualan->pasien->nama_pasien ?? 'N/A' }}</p>
-        @if($penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii']))
-        <p>Layanan: {{ strtoupper($penjualan->pasien->service_type) }}</p>
-        @if($penjualan->pasien->no_bpjs)
-        <p>BPJS: {{ $penjualan->pasien->no_bpjs }}</p>
+        
+        <!-- Informasi Transaksi -->
+        <div class="info-section">
+            <div class="info-row">
+                <span class="info-label">No:</span>
+                <span class="info-value">{{ $penjualan->kode_penjualan }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Tgl:</span>
+                <span class="info-value">{{ tanggal_indonesia($penjualan->tanggal, false) }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Kasir:</span>
+                <span class="info-value">{{ $penjualan->user->name ?? 'N/A' }}</span>
+            </div>
+        </div>
+
+        <!-- Informasi Pasien -->
+        <div class="pasien-info">
+            <div class="info-row">
+                <span class="info-label">Pasien:</span>
+                <span class="info-value">{{ $penjualan->pasien->nama_pasien ?? 'N/A' }}</span>
+            </div>
+            @if($penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii']))
+            <div class="info-row">
+                <span class="info-label">Layanan:</span>
+                <span class="info-value">{{ strtoupper($penjualan->pasien->service_type) }}</span>
+            </div>
+            @if($penjualan->pasien->no_bpjs)
+            <div class="info-row">
+                <span class="info-label">BPJS:</span>
+                <span class="info-value">{{ $penjualan->pasien->no_bpjs }}</span>
+            </div>
+            @endif
+            @endif
+            <div class="info-row">
+                <span class="info-label">Status:</span>
+                <span class="info-value">{{ $penjualan->status_pengerjaan ?? 'Menunggu Pengerjaan' }}</span>
+            </div>
+        </div>
+
+        <!-- Informasi Resep -->
+        @if($penjualan->pasien && ($penjualan->pasien->resep_od_sph || $penjualan->pasien->resep_os_sph))
+        <div class="resep-info">
+            <div style="text-align: center; font-weight: bold; margin-bottom: 3px;">RESEP LENSA</div>
+            <table class="resep-table">
+                <thead>
+                    <tr>
+                        <th class="eye-label">Mata</th>
+                        <th>SPH</th>
+                        <th>CYL</th>
+                        <th>AXIS</th>
+                        <th>ADD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="eye-label">OD</td>
+                        <td>{{ $penjualan->pasien->resep_od_sph ?? '-' }}</td>
+                        <td>{{ $penjualan->pasien->resep_od_cyl ?? '-' }}</td>
+                        <td>{{ $penjualan->pasien->resep_od_axis ?? '-' }}</td>
+                        <td rowspan="2">{{ $penjualan->pasien->resep_add ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="eye-label">OS</td>
+                        <td>{{ $penjualan->pasien->resep_os_sph ?? '-' }}</td>
+                        <td>{{ $penjualan->pasien->resep_os_cyl ?? '-' }}</td>
+                        <td>{{ $penjualan->pasien->resep_os_axis ?? '-' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            @if($penjualan->pasien->resep_pd)
+            <div style="text-align: center; margin-top: 3px;">
+                <strong>PD: {{ $penjualan->pasien->resep_pd }}mm</strong>
+            </div>
+            @endif
+            @if($penjualan->pasien->resep_dokter)
+            <div style="text-align: center; margin-top: 3px; font-size: 9pt;">
+                <em>Dokter: {{ $penjualan->pasien->resep_dokter }}</em>
+            </div>
+            @endif
+        </div>
         @endif
-        @endif
-        <p>Status: {{ $penjualan->status_pengerjaan ?? 'Menunggu Pengerjaan' }}</p>
         
         @if($penjualan->barcode)
         <div class="qrcode-section">
@@ -120,11 +243,12 @@
             $isBPJS = $penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii']);
         @endphp
         
+        @if($isBPJS)
+        <!-- Untuk BPJS hanya tampilkan daftar produk tanpa harga -->
         <table class="items">
             <thead>
                 <tr>
-                    <th>Produk</th>
-                    <th class="price">{{ $isBPJS ? 'Biaya BPJS' : 'Subtotal' }}</th>
+                    <th>Produk/Layanan</th>
                 </tr>
             </thead>
             <tbody>
@@ -132,66 +256,69 @@
                 <tr>
                     <td>
                         {{ $detail->itemable->merk_frame ?? $detail->itemable->merk_lensa ?? 'Produk' }}
-                        @if(!$isBPJS)
-                        <br>
-                        ({{ $detail->quantity }} x Rp {{ format_uang($detail->price) }})
-                        @endif
-                    </td>
-                    <td class="price">
-                        @if($isBPJS)
-                            Rp {{ format_uang($penjualan->bpjs_default_price) }}
-                        @else
-                            Rp {{ format_uang($detail->subtotal) }}
-                        @endif
                     </td>
                 </tr>
                 @endforeach
             </tbody>
         </table>
+        @else
+        <!-- Untuk non-BPJS tampilkan dengan harga -->
+        <table class="items">
+            <thead>
+                <tr>
+                    <th>Produk</th>
+                    <th class="price">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($penjualan->details as $detail)
+                <tr>
+                    <td>
+                        {{ $detail->itemable->merk_frame ?? $detail->itemable->merk_lensa ?? 'Produk' }}
+                        <br>
+                        ({{ $detail->quantity }} x Rp {{ format_uang($detail->price) }})
+                    </td>
+                    <td class="price">
+                        Rp {{ format_uang($detail->subtotal) }}
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        @endif
 
         <hr class="dashed">
 
+        @if(!$isBPJS)
+        <!-- Hanya tampilkan summary untuk non-BPJS -->
         <table class="summary">
-            @if($isBPJS)
-                                                <tr>
-                                    <td class="label">Biaya BPJS</td>
-                                    <td class="value">Rp {{ format_uang($penjualan->bpjs_default_price) }}</td>
-                                </tr>
-                <tr>
-                    <td class="label"><strong>Total</strong></td>
-                    <td class="value"><strong>Rp {{ format_uang($penjualan->total) }}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label">Bayar</td>
-                    <td class="value">Rp {{ format_uang($penjualan->bayar) }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Kekurangan</td>
-                    <td class="value">Rp {{ format_uang($penjualan->kekurangan) }}</td>
-                </tr>
-            @else
-                <tr>
-                    <td class="label">Subtotal</td>
-                    <td class="value">Rp {{ format_uang($penjualan->details->sum('subtotal')) }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Diskon</td>
-                    <td class="value">Rp {{ format_uang($penjualan->diskon) }}</td>
-                </tr>
-                <tr>
-                    <td class="label"><strong>Total</strong></td>
-                    <td class="value"><strong>Rp {{ format_uang($penjualan->total) }}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label">Bayar</td>
-                    <td class="value">Rp {{ format_uang($penjualan->bayar) }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Kekurangan</td>
-                    <td class="value">Rp {{ format_uang($penjualan->kekurangan) }}</td>
-                </tr>
-            @endif
+            <tr>
+                <td class="label">Subtotal</td>
+                <td class="value">Rp {{ format_uang($penjualan->details->sum('subtotal')) }}</td>
+            </tr>
+            <tr>
+                <td class="label">Diskon</td>
+                <td class="value">Rp {{ format_uang($penjualan->diskon) }}</td>
+            </tr>
+            <tr>
+                <td class="label"><strong>Total</strong></td>
+                <td class="value"><strong>Rp {{ format_uang($penjualan->total) }}</strong></td>
+            </tr>
+            <tr>
+                <td class="label">Bayar</td>
+                <td class="value">Rp {{ format_uang($penjualan->bayar) }}</td>
+            </tr>
+            <tr>
+                <td class="label">Kekurangan</td>
+                <td class="value">Rp {{ format_uang($penjualan->kekurangan) }}</td>
+            </tr>
         </table>
+        @else
+        <!-- Untuk BPJS, tambahkan pesan khusus -->
+        <div style="text-align: center; margin: 10px 0; font-style: italic;">
+            <p>Layanan ditanggung oleh {{ strtoupper($penjualan->pasien->service_type) }}</p>
+        </div>
+        @endif
 
         <hr class="dashed">
 

@@ -280,5 +280,137 @@
 </script>
 
 @stack('scripts')
+
+<!-- Mobile Sidebar Debug Script -->
+<script>
+// Debug mobile sidebar
+window.debugMobileSidebar = function() {
+    console.log('=== MOBILE SIDEBAR DEBUG ===');
+    console.log('Window width:', window.innerWidth);
+    console.log('Hamburger element exists:', !!document.querySelector('.mobile-hamburger-fixed'));
+    console.log('Hamburger visible:', window.getComputedStyle(document.querySelector('.mobile-hamburger-fixed') || {}).display);
+    console.log('Sidebar element exists:', !!document.querySelector('.main-sidebar'));
+    console.log('Sidebar position:', window.getComputedStyle(document.querySelector('.main-sidebar') || {}).left);
+    console.log('Sidebar has mobile-active:', document.querySelector('.main-sidebar')?.classList.contains('mobile-active'));
+    console.log('Overlay element exists:', !!document.querySelector('.sidebar-overlay'));
+    console.log('=== END DEBUG ===');
+};
+
+// Test hamburger button directly
+window.testHamburger = function() {
+    console.log('Testing hamburger button...');
+    const btn = document.querySelector('.mobile-hamburger-btn');
+    if (btn) {
+        console.log('Button found, triggering click...');
+        btn.click();
+    } else {
+        console.log('Button not found!');
+    }
+};
+
+$(document).ready(function() {
+    console.log('Debug script loaded');
+    
+    // Auto debug every 3 seconds
+    setInterval(window.debugMobileSidebar, 3000);
+    
+    // Initial debug
+    setTimeout(window.debugMobileSidebar, 1000);
+});
+</script>
+
+<!-- Logout confirmation script -->
+<script>
+function confirmLogout() {
+    if (confirm('Apakah Anda yakin ingin keluar dari sistem?')) {
+        document.getElementById('logout-form').submit();
+    }
+}
+</script>
+
+<!-- Real-time Stock Indicator Script -->
+<script src="{{ asset('js/realtime.js') }}"></script>
+<script src="{{ asset('js/stock-transfer-dashboard.js') }}"></script>
+<script>
+// Global real-time stock monitoring
+$(document).ready(function() {
+    // Initialize global variables
+    window.APP_BASE_URL = '{{ url('/') }}';
+    
+    // Setup global real-time stock monitoring if user is authenticated
+    @auth
+    if (typeof window.RealtimeManager !== 'undefined') {
+        // Connect to stock updates globally (except on dashboard where it's already connected)
+        if (window.location.pathname !== '/dashboard' && window.location.pathname !== '/') {
+            window.RealtimeManager.connectStockUpdates({
+                onData: function(data) {
+                    // Global stock update handler
+                    handleGlobalStockUpdate(data);
+                }
+            });
+        }
+    }
+    
+    function handleGlobalStockUpdate(data) {
+        // Show notification in navbar if there are critical stock updates
+        if (data.low_stock_alerts > 0) {
+            showNavbarStockAlert(data.low_stock_alerts);
+        }
+        
+        // Update any global stock counters
+        updateGlobalStockCounters(data);
+    }
+    
+    function showNavbarStockAlert(lowStockCount) {
+        // Add or update stock alert badge in navbar
+        let alertBadge = $('.navbar-nav .stock-alert-badge');
+        if (alertBadge.length === 0) {
+            $('.navbar-nav .user-menu').before(`
+                <li class="dropdown notifications-menu">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                        <i class="fa fa-warning"></i>
+                        <span class="label label-danger stock-alert-badge">${lowStockCount}</span>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li class="header">Stok Rendah Terdeteksi!</li>
+                        <li><a href="/frame">Lihat Stok Frame</a></li>
+                        <li><a href="/lensa">Lihat Stok Lensa</a></li>
+                        <li><a href="/aksesoris">Lihat Stok Aksesoris</a></li>
+                    </ul>
+                </li>
+            `);
+        } else {
+            alertBadge.text(lowStockCount);
+        }
+    }
+    
+    function updateGlobalStockCounters(data) {
+        // Update sidebar menu badges if they exist
+        if (data.summary) {
+            $('.menu-frame-count').text(data.summary.frames_updated || 0);
+            $('.menu-lensa-count').text(data.summary.lensas_updated || 0);
+            $('.menu-aksesoris-count').text(data.summary.aksesoris_updated || 0);
+        }
+    }
+    @endauth
+});
+</script>
+
+<style>
+/* Global stock alert styles */
+.stock-alert-badge {
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.navbar-nav .notifications-menu .dropdown-menu {
+    min-width: 200px;
+}
+</style>
 </body>
 </html>

@@ -35,16 +35,16 @@
                         <label>Pasien</label>
                         <div class="input-group">
                             <input type="hidden" name="pasien_id" id="pasien_id">
-                            <input type="text" class="form-control" id="pasien_name" name="pasien_name" required placeholder="Pilih Pasien atau Input Manual">
-                            <span class="input-group-btn">
-                                <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-pasien">Cari</button>
-                                <button type="button" class="btn btn-default" id="btn-input-manual-pasien">Input Manual</button>
+                            <input type="text" class="form-control" id="pasien_name" name="pasien_name" required placeholder="Pilih Pasien atau Input Manual" style="border-radius: 25px; border: 2px solid #ddd; padding: 8px 15px; font-size: 14px;">
+                            <span class="">
+                                <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-pasien" style="border-radius: 20px; padding: 8px 20px; font-weight: bold; border: 2px solid #3c8dbc; margin-right: 5px;">Cari</button>
+                                <button type="button" class="btn btn-sm btn-default" id="btn-input-manual-pasien" style="border-radius: 20px; padding: 8px 20px; font-weight: bold; border: 2px solid #95a5a6; background: linear-gradient(135deg, #ecf0f1, #bdc3c7);">Input Manual</button>
                             </span>
                         </div>
                     </div>
                     <div class="form-group col-md-4">
                         <label for="dokter_id">Dokter</label>
-                        <select name="dokter_id" id="dokter_id" class="form-control">
+                        <select name="dokter_id" id="dokter_id" class="form-control" style="border-radius: 25px; border: 2px solid #ddd; padding: 8px 15px; font-size: 14px;">
                             <option value="">Pilih Dokter</option>
                             @foreach($dokters as $dokter)
                                 <option value="{{ $dokter->id_dokter }}">{{ $dokter->nama_dokter }}</option>
@@ -53,71 +53,79 @@
                     </div>
                     <div class="form-group col-md-4">
                         <label for="dokter_manual">Dokter Manual</label>
-                        <input type="text" class="form-control" id="dokter_manual" name="dokter_manual" placeholder="Nama dokter manual (opsional)">
+                        <input type="text" class="form-control" id="dokter_manual" name="dokter_manual" placeholder="Nama dokter manual (opsional)" style="border-radius: 25px; border: 2px solid #ddd; padding: 8px 15px; font-size: 14px;">
                         <small class="text-muted">Isi jika dokter tidak ada di dropdown</small>
                     </div>
                     <div class="row" id="pasien-details-container" style="display: none; margin-bottom: 15px;">
-                        <div class="col-md-12">
-                            <div id="bpjs-pricing-info" class="alert alert-info" style="display: none;">
-                                <h4><i class="fa fa-info-circle"></i> Informasi Pricing BPJS</h4>
-                                <div id="bpjs-pricing-details"></div>
-                            </div>
-                        </div>
                         <div class="col-md-6">
-                            <div class="box box-info" style="margin-bottom:0;">
-                                <div class="box-body" style="padding-bottom:10px;">
-                                    <h4 style="margin-top:0;"><i class="fa fa-user"></i> <span id="detail-nama"></span></h4>
-                                    <p style="margin-bottom:4px;"><strong>Alamat:</strong> <span id="detail-alamat"></span></p>
-                                    <p style="margin-bottom:4px;"><strong>No. HP:</strong> <span id="detail-nohp"></span></p>
-                                    <p style="margin-bottom:4px;"><strong>Jenis Layanan:</strong> <span class="label label-info" id="detail-jenis_layanan"></span></p>
-                                    <p style="margin-bottom:4px;"><strong>No. BPJS:</strong> <span id="detail-no-bpjs"></span></p>
-                                    <p style="margin-bottom:4px;"><strong>Dokter:</strong> <span id="detail-dokter"></span></p>
+                            <div class="box box-info" style="margin-bottom:0; height: 100%;">
+                                <div class="box-header with-border">
+                                    <h4 style="margin:0;"><i class="fa fa-user"></i> Informasi Pasien</h4>
+                                </div>
+                                <div class="box-body" style="padding:15px;">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <h5 style="margin-top:0; margin-bottom:15px; color: #3c8dbc;"><strong><span id="detail-nama"></span></strong></h5>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <p style="margin-bottom:8px;"><strong>Alamat:</strong> <span id="detail-alamat"></span></p>
+                                            <p style="margin-bottom:8px;"><strong>No. HP:</strong> <span id="detail-nohp"></span></p>
+                                            <p style="margin-bottom:8px;"><strong>Jenis Layanan:</strong> <span class="label label-info" id="detail-jenis_layanan"></span></p>
+                                            <p style="margin-bottom:8px;"><strong>No. BPJS:</strong> <span id="detail-no-bpjs"></span></p>
+                                            <p style="margin-bottom:8px;"><strong>Dokter:</strong> <span id="detail-dokter"></span></p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="panel panel-default" style="margin-bottom:0;">
-                                <div class="panel-heading" style="padding:6px 10px; font-size:14px; background:#f5f5f5;">
-                                    <b><i class="fa fa-stethoscope"></i> Resep Terakhir</b> <span class="text-muted">(<span id="resep-tanggal"></span>)</span>
+                            <div class="box box-success" style="margin-bottom:0; height: 100%;">
+                                <div class="box-header with-border">
+                                    <h4 style="margin:0;"><i class="fa fa-stethoscope"></i> Resep Terakhir</h4>
+                                    <small class="text-muted">(<span id="resep-tanggal"></span>)</small>
                                 </div>
-                                <div class="panel-body" style="padding:8px 10px;">
-                                    <table class="table table-bordered table-condensed text-center" style="margin-bottom:6px;">
-                                <thead>
-                                            <tr class="bg-gray">
-                                                <th class="text-center" style="width: 20%;">Mata</th>
-                                                <th class="text-center" style="width: 20%;">SPH</th>
-                                                <th class="text-center" style="width: 20%;">CYL</th>
-                                                <th class="text-center" style="width: 20%;">AXIS</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td><strong>OD (Kanan)</strong></td>
-                                        <td id="resep-od-sph"></td>
-                                        <td id="resep-od-cyl"></td>
-                                        <td id="resep-od-axis"></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>OS (Kiri)</strong></td>
-                                        <td id="resep-os-sph"></td>
-                                        <td id="resep-os-cyl"></td>
-                                        <td id="resep-os-axis"></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <div class="row">
-                                        <div class="col-xs-6 text-left">
+                                <div class="box-body" style="padding:15px;">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-condensed text-center" style="margin-bottom:10px;">
+                                            <thead>
+                                                <tr class="bg-gray">
+                                                    <th class="text-center" style="width: 20%;">Mata</th>
+                                                    <th class="text-center" style="width: 20%;">SPH</th>
+                                                    <th class="text-center" style="width: 20%;">CYL</th>
+                                                    <th class="text-center" style="width: 20%;">AXIS</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><strong>OD (Kanan)</strong></td>
+                                                    <td id="resep-od-sph"></td>
+                                                    <td id="resep-od-cyl"></td>
+                                                    <td id="resep-od-axis"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>OS (Kiri)</strong></td>
+                                                    <td id="resep-os-sph"></td>
+                                                    <td id="resep-os-cyl"></td>
+                                                    <td id="resep-os-axis"></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 text-left">
                                             <strong>ADD:</strong> <span id="resep-add"></span>
                                         </div>
-                                        <div class="col-xs-6 text-right">
+                                        <div class="col-md-6 text-right">
                                             <strong>PD:</strong> <span id="resep-pd"></span>
                                         </div>
                                     </div>
-                                    <div class="row" style="margin-top:8px;">
-                                        <div class="col-xs-12">
+                                    <div class="row" style="margin-top:10px;">
+                                        <div class="col-md-12">
                                             <strong>Dokter:</strong> <span id="resep-dokter"></span>
                                         </div>
-                                </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -221,6 +229,35 @@
                         </div>
                         <p class="help-block">Wajib diisi untuk pasien BPJS. Ambil foto langsung atau dari webcam.</p>
                     </div>
+                    
+                    <div class="form-group" id="signature-bpjs-container" style="display: none;">
+                        <label for="signature_bpjs">Tanda Tangan Pasien BPJS</label>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <canvas id="signature-canvas" width="400" height="200" style="border: 2px solid #ddd; border-radius: 8px; cursor: crosshair; background: #fff;"></canvas>
+                                <input type="hidden" name="signature_bpjs" id="signature_bpjs">
+                            </div>
+                            <div class="col-md-4">
+                                <div class="btn-group-vertical" style="width: 100%;">
+                                    <button type="button" class="btn btn-warning btn-sm" id="btn-clear-signature" style="margin-bottom: 5px;">
+                                        <i class="fa fa-eraser"></i> Hapus
+                                    </button>
+                                    <button type="button" class="btn btn-info btn-sm" id="btn-save-signature" style="margin-bottom: 5px;">
+                                        <i class="fa fa-save"></i> Simpan
+                                    </button>
+                                    <button type="button" class="btn btn-success btn-sm" id="btn-load-signature">
+                                        <i class="fa fa-upload"></i> Upload
+                                    </button>
+                                </div>
+                                <div style="margin-top: 10px;">
+                                    <small class="text-muted">
+                                        <i class="fa fa-info-circle"></i> Tanda tangan wajib untuk pasien BPJS
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="help-block">Gambar tanda tangan pasien di atas canvas atau upload file tanda tangan.</p>
+                    </div>
                     <input type="hidden" name="total" id="total-input">
                     <input type="hidden" name="kekurangan" id="kekurangan-input">
                     <input type="hidden" name="items" id="items-input">
@@ -247,7 +284,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label for="manual-pasien-name">Nama Pasien</label>
-                    <input type="text" class="form-control" id="manual-pasien-name" placeholder="Masukkan nama pasien">
+                                            <input type="text" class="form-control" id="manual-pasien-name" placeholder="Masukkan nama pasien" style="border-radius: 25px; border: 2px solid #ddd; padding: 8px 15px; font-size: 14px;">
                 </div>
             </div>
             <div class="modal-footer">
@@ -270,6 +307,19 @@ $(function() {
 
     let cart = [];
     let currentBPJSLevel = null; // Variabel global untuk menyimpan level BPJS
+    
+    // Signature functionality
+    let isDrawing = false;
+    let signatureCanvas = document.getElementById('signature-canvas');
+    let signatureCtx = signatureCanvas.getContext('2d');
+    
+    // Initialize signature canvas
+    if (signatureCanvas) {
+        signatureCtx.strokeStyle = '#000';
+        signatureCtx.lineWidth = 2;
+        signatureCtx.lineCap = 'round';
+        signatureCtx.lineJoin = 'round';
+    }
 
     // Auto-fill pasien data jika ada selected_pasien dari form pasien
     @if(isset($selected_pasien) && $selected_pasien)
@@ -323,10 +373,12 @@ $(function() {
         // Tampilkan kontainer detail
         $('#pasien-details-container').slideDown();
         
-        // Tampilkan input foto BPJS jika layanan BPJS
+        // Tampilkan input foto BPJS dan tanda tangan jika layanan BPJS
         @if(str_contains(strtolower($selected_pasien->service_type), 'bpjs'))
             $('#photo-bpjs-container').slideDown();
             $('#photo_bpjs').prop('required', true);
+            $('#signature-bpjs-container').slideDown();
+            $('#signature_bpjs').prop('required', true);
         @endif
         
         // Tampilkan pesan sukses
@@ -376,13 +428,17 @@ $(function() {
                     $('#dokter_manual').val('');
                 }
 
-                // Logika untuk menampilkan input foto BPJS
+                // Logika untuk menampilkan input foto BPJS dan tanda tangan
                 if (response.service_type && response.service_type.toLowerCase().includes('bpjs')) {
                     $('#photo-bpjs-container').slideDown();
                     $('#photo_bpjs').prop('required', true);
+                    $('#signature-bpjs-container').slideDown();
+                    $('#signature_bpjs').prop('required', true);
                 } else {
                     $('#photo-bpjs-container').slideUp();
                     $('#photo_bpjs').prop('required', false);
+                    $('#signature-bpjs-container').slideUp();
+                    $('#signature_bpjs').prop('required', false);
                 }
                 
                 // Tampilkan resep dengan format baru
@@ -409,14 +465,10 @@ $(function() {
                 // Tampilkan kontainer detail
                 $('#pasien-details-container').slideDown();
                 
-                // Tampilkan informasi pricing BPJS jika ada
+                // Simpan level BPJS ke variabel global jika ada
                 if (response.service_type && response.service_type.toLowerCase().includes('bpjs')) {
                     let serviceTypeLower = response.service_type.toLowerCase();
                     let bpjsLevel = '';
-                    
-                    // Debug: log service type untuk memastikan data yang diterima
-                    console.log('Service Type:', response.service_type);
-                    console.log('Service Type Lower:', serviceTypeLower);
                     
                     // Deteksi level BPJS dengan lebih spesifik
                     if (serviceTypeLower.includes('bpjs iii') || serviceTypeLower.includes('bpjs 3')) {
@@ -427,37 +479,10 @@ $(function() {
                         bpjsLevel = 'I';
                     }
                     
-                    console.log('Detected BPJS Level:', bpjsLevel);
-                    
                     // Simpan level BPJS ke variabel global
                     currentBPJSLevel = bpjsLevel;
-                    
-                    let defaultPrice = 0;
-                    switch(bpjsLevel) {
-                        case 'I': defaultPrice = 330000; break;
-                        case 'II': defaultPrice = 220000; break;
-                        case 'III': defaultPrice = 165000; break;
-                    }
-                    
-                    console.log('Default Price:', defaultPrice);
-                    
-                    let pricingDetails = `
-                        <p><strong>Jenis Layanan:</strong> BPJS ${bpjsLevel}</p>
-                        <p><strong>Harga Default:</strong> Rp ${defaultPrice.toLocaleString('id-ID')}</p>
-                        <p><strong>Ketentuan:</strong></p>
-                        <ul>
-                            <li>Frame BPJS sesuai level: Harga default</li>
-                            <li>Frame BPJS level lebih tinggi: Harga default + penambahan</li>
-                            <li>Frame umum: Harga frame + total lensa</li>
-                            <li>Maksimal 2 lensa untuk setiap transaksi</li>
-                        </ul>
-                    `;
-                    
-                    $('#bpjs-pricing-details').html(pricingDetails);
-                    $('#bpjs-pricing-info').slideDown();
                 } else {
-                    $('#bpjs-pricing-info').slideUp();
-                    $('#bpjs-summary').hide();
+                    currentBPJSLevel = '';
                 }
                 
                 // Recalculate totals after patient selection
@@ -1035,7 +1060,7 @@ $(function() {
         $('#pasien_name').val(nama);
         $('#modal-input-manual-pasien').modal('hide');
         $('#pasien-details-container').slideUp();
-        $('#bpjs-pricing-info').slideUp();
+        
         $('#bpjs-summary').hide();
         
         // Reset dokter untuk input manual
@@ -1062,6 +1087,276 @@ $(function() {
             $('#dokter_id').val('');
         }
     });
+    
+    // Setup real-time stock updates untuk halaman penjualan
+    if (typeof window.RealtimeManager !== 'undefined') {
+        window.RealtimeManager.connectStockUpdates({
+            onData: function(data) {
+                updateProductStockInModal(data);
+                showStockUpdateNotification(data);
+            }
+        });
+    }
+    
+    function updateProductStockInModal(data) {
+        if (!data.updates) return;
+        
+        data.updates.forEach(update => {
+            // Update stock in frame modal
+            if (update.type === 'frame_stock_update') {
+                const stockCell = document.querySelector(`#modal-frame tr[data-id="${update.product_id}"] .stock-display`);
+                if (stockCell) {
+                    stockCell.textContent = update.new_stock;
+                    
+                    // Add visual feedback
+                    const row = stockCell.closest('tr');
+                    if (row) {
+                        row.classList.add('stock-updated');
+                        setTimeout(() => row.classList.remove('stock-updated'), 2000);
+                        
+                        // Add stock level classes
+                        row.classList.remove('stock-low', 'stock-medium', 'stock-normal');
+                        row.classList.add(`stock-${update.alert_level}`);
+                    }
+                }
+            }
+            
+            // Update stock in lensa modal
+            if (update.type === 'lensa_stock_update') {
+                const stockCell = document.querySelector(`#modal-lensa tr[data-id="${update.product_id}"] .stock-display`);
+                if (stockCell) {
+                    stockCell.textContent = update.new_stock;
+                    
+                    const row = stockCell.closest('tr');
+                    if (row) {
+                        row.classList.add('stock-updated');
+                        setTimeout(() => row.classList.remove('stock-updated'), 2000);
+                        row.classList.remove('stock-low', 'stock-medium', 'stock-normal');
+                        row.classList.add(`stock-${update.alert_level}`);
+                    }
+                }
+            }
+            
+            // Update stock in aksesoris modal
+            if (update.type === 'aksesoris_stock_update') {
+                const stockCell = document.querySelector(`#modal-aksesoris tr[data-id="${update.product_id}"] .stock-display`);
+                if (stockCell) {
+                    stockCell.textContent = update.new_stock;
+                    
+                    const row = stockCell.closest('tr');
+                    if (row) {
+                        row.classList.add('stock-updated');
+                        setTimeout(() => row.classList.remove('stock-updated'), 2000);
+                        row.classList.remove('stock-low', 'stock-medium', 'stock-normal');
+                        row.classList.add(`stock-${update.alert_level}`);
+                    }
+                }
+            }
+        });
+    }
+    
+    function showStockUpdateNotification(data) {
+        if (data.total_updates > 0 && typeof Swal !== 'undefined') {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+            
+            let message = `Stok ${data.total_updates} produk diupdate`;
+            if (data.low_stock_alerts > 0) {
+                message += ` (${data.low_stock_alerts} stok rendah!)`;
+            }
+            
+            Toast.fire({
+                icon: data.low_stock_alerts > 0 ? 'warning' : 'info',
+                title: 'Update Stok Real-time',
+                text: message
+            });
+        }
+    }
+    
+    // Signature event handlers
+    if (signatureCanvas) {
+        // Mouse events
+        signatureCanvas.addEventListener('mousedown', startDrawing);
+        signatureCanvas.addEventListener('mousemove', draw);
+        signatureCanvas.addEventListener('mouseup', stopDrawing);
+        signatureCanvas.addEventListener('mouseout', stopDrawing);
+        
+        // Touch events for mobile
+        signatureCanvas.addEventListener('touchstart', startDrawing);
+        signatureCanvas.addEventListener('touchmove', draw);
+        signatureCanvas.addEventListener('touchend', stopDrawing);
+    }
+    
+    // Signature functions
+    function startDrawing(e) {
+        isDrawing = true;
+        draw(e);
+    }
+    
+    function draw(e) {
+        if (!isDrawing) return;
+        
+        e.preventDefault();
+        let rect = signatureCanvas.getBoundingClientRect();
+        let x, y;
+        
+        if (e.type.includes('touch')) {
+            x = e.touches[0].clientX - rect.left;
+            y = e.touches[0].clientY - rect.top;
+        } else {
+            x = e.clientX - rect.left;
+            y = e.clientY - rect.top;
+        }
+        
+        signatureCtx.lineTo(x, y);
+        signatureCtx.stroke();
+        signatureCtx.beginPath();
+        signatureCtx.moveTo(x, y);
+    }
+    
+    function stopDrawing() {
+        isDrawing = false;
+        signatureCtx.beginPath();
+    }
+    
+    // Clear signature button
+    $(document).on('click', '#btn-clear-signature', function() {
+        signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+        $('#signature_bpjs').val('');
+    });
+    
+    // Save signature button
+    $(document).on('click', '#btn-save-signature', function() {
+        let signatureData = signatureCanvas.toDataURL('image/png');
+        $('#signature_bpjs').val(signatureData);
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Tanda Tangan Tersimpan!',
+            text: 'Tanda tangan telah disimpan dan siap dikirim.',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    });
+    
+    // Load signature button
+    $(document).on('click', '#btn-load-signature', function() {
+        // Create file input for signature upload
+        let fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.onchange = function(e) {
+            let file = e.target.files[0];
+            if (file) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    let img = new Image();
+                    img.onload = function() {
+                        // Clear canvas and draw uploaded image
+                        signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+                        signatureCtx.drawImage(img, 0, 0, signatureCanvas.width, signatureCanvas.height);
+                        
+                        // Convert to base64 and save
+                        let signatureData = signatureCanvas.toDataURL('image/png');
+                        $('#signature_bpjs').val(signatureData);
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Tanda Tangan Diupload!',
+                            text: 'Tanda tangan telah berhasil diupload dan disimpan.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        fileInput.click();
+    });
 });
 </script>
+
+<style>
+/* Stock update styles for penjualan modals */
+.stock-updated {
+    background-color: rgba(255, 255, 0, 0.3) !important;
+    transition: background-color 2s ease-out;
+}
+
+.stock-low {
+    background-color: rgba(255, 0, 0, 0.1) !important;
+}
+
+.stock-medium {
+    background-color: rgba(255, 165, 0, 0.1) !important;
+}
+
+.stock-normal {
+    background-color: rgba(0, 255, 0, 0.1) !important;
+}
+
+.realtime-stock-indicator {
+    position: relative;
+}
+
+.realtime-stock-indicator:after {
+    content: "●";
+    color: #00ff00;
+    animation: blink 2s infinite;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 10px;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.3; }
+}
+
+/* Patient details alignment styles */
+#pasien-details-container .col-md-6 {
+    display: flex;
+    flex-direction: column;
+}
+
+#pasien-details-container .box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#pasien-details-container .box-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#pasien-details-container .box-header {
+    flex-shrink: 0;
+}
+
+#pasien-details-container .table-responsive {
+    flex: 1;
+}
+
+/* Ensure equal heights for both columns */
+#pasien-details-container .row {
+    align-items: stretch;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #pasien-details-container .col-md-6 {
+        margin-bottom: 15px;
+    }
+}
+</style>
 @endpush 

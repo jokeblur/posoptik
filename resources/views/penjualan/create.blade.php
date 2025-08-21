@@ -2,6 +2,72 @@
 
 @section('title', 'Transaksi Penjualan')
 
+<style>
+    .equal-height-boxes {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    .equal-height-boxes .col-md-6 {
+        display: flex;
+        margin-bottom: 15px;
+    }
+    
+    .equal-height-boxes .box {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .equal-height-boxes .box-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        padding: 15px;
+    }
+    
+    .info-card {
+        background: rgba(60, 141, 188, 0.1);
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #3c8dbc;
+        margin-bottom: 0;
+        text-align: left;
+    }
+    
+    .resep-card {
+        background: rgba(40, 167, 69, 0.1);
+        padding: 8px;
+        border-radius: 5px;
+        border: 1px solid rgba(40, 167, 69, 0.3);
+        margin-bottom: 5px;
+    }
+    
+    .pd-card {
+        background: rgba(255, 193, 7, 0.1);
+        padding: 8px;
+        border-radius: 5px;
+        border: 1px solid rgba(255, 193, 7, 0.3);
+        margin-bottom: 5px;
+    }
+    
+    .dokter-card {
+        background: rgba(108, 117, 125, 0.1);
+        padding: 8px;
+        border-radius: 5px;
+        border: 1px solid rgba(108, 117, 125, 0.3);
+        margin-bottom: 5px;
+    }
+    
+    @media (max-width: 768px) {
+        .equal-height-boxes .col-md-6 {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+    }
+</style>
+
 @section('content')
 @if(isset($error_message))
 <div class="alert alert-danger alert-dismissible">
@@ -56,45 +122,48 @@
                         <input type="text" class="form-control" id="dokter_manual" name="dokter_manual" placeholder="Nama dokter manual (opsional)" style="border-radius: 25px; border: 2px solid #ddd; padding: 8px 15px; font-size: 14px;">
                         <small class="text-muted">Isi jika dokter tidak ada di dropdown</small>
                     </div>
-                    <div class="row" id="pasien-details-container" style="display: none; margin-bottom: 15px;">
+                    <div class="form-group col-md-12">
+                    <div class="row equal-height-boxes" id="pasien-details-container" style="display: none; margin-bottom: 15px;">
                         <div class="col-md-6">
-                            <div class="box box-info" style="margin-bottom:0; height: 100%;">
+                            <div class="box box-info" style="margin-bottom:0;">
                                 <div class="box-header with-border">
                                     <h4 style="margin:0;"><i class="fa fa-user"></i> Informasi Pasien</h4>
                                 </div>
-                                <div class="box-body" style="padding:15px;">
+                                <div class="box-body">
                                     <div class="row">
                                         <div class="col-md-12">
-                                            <h5 style="margin-top:0; margin-bottom:15px; color: #3c8dbc;"><strong><span id="detail-nama"></span></strong></h5>
+                                            <h5 style="margin-top:0; margin-bottom:15px; color: #3c8dbc; text-align: left;"><strong><span id="detail-nama"></span></strong></h5>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-md-12">
-                                            <p style="margin-bottom:8px;"><strong>Alamat:</strong> <span id="detail-alamat"></span></p>
-                                            <p style="margin-bottom:8px;"><strong>No. HP:</strong> <span id="detail-nohp"></span></p>
-                                            <p style="margin-bottom:8px;"><strong>Jenis Layanan:</strong> <span class="label label-info" id="detail-jenis_layanan"></span></p>
-                                            <p style="margin-bottom:8px;"><strong>No. BPJS:</strong> <span id="detail-no-bpjs"></span></p>
-                                            <p style="margin-bottom:8px;"><strong>Dokter:</strong> <span id="detail-dokter"></span></p>
+                                            <div class="info-card">
+                                                <p style="margin-bottom:8px;"><strong>📍 Alamat:</strong> <span id="detail-alamat"></span></p>
+                                                <p style="margin-bottom:8px;"><strong>📱 No. HP:</strong> <span id="detail-nohp"></span></p>
+                                                <p style="margin-bottom:8px;"><strong>🏥 Jenis Layanan:</strong> <span class="label label-info" id="detail-jenis_layanan"></span></p>
+                                                <p style="margin-bottom:8px;"><strong>🆔 No. BPJS:</strong> <span id="detail-no-bpjs"></span></p>
+                                                <p style="margin-bottom:8px;"><strong>👨‍⚕️ Dokter:</strong> <span id="detail-dokter"></span></p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="box box-success" style="margin-bottom:0; height: 100%;">
+                            <div class="box box-success" style="margin-bottom:0;">
                                 <div class="box-header with-border">
                                     <h4 style="margin:0;"><i class="fa fa-stethoscope"></i> Resep Terakhir</h4>
                                     <small class="text-muted">(<span id="resep-tanggal"></span>)</small>
                                 </div>
-                                <div class="box-body" style="padding:15px;">
+                                <div class="box-body">
                                     <div class="table-responsive">
-                                        <table class="table table-bordered table-condensed text-center" style="margin-bottom:10px;">
+                                        <table class="table table-bordered table-condensed text-center" style="margin-bottom:15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                             <thead>
-                                                <tr class="bg-gray">
-                                                    <th class="text-center" style="width: 20%;">Mata</th>
-                                                    <th class="text-center" style="width: 20%;">SPH</th>
-                                                    <th class="text-center" style="width: 20%;">CYL</th>
-                                                    <th class="text-center" style="width: 20%;">AXIS</th>
+                                                <tr class="bg-success" style="color: white;">
+                                                    <th class="text-center" style="width: 20%;">👁️ Mata</th>
+                                                    <th class="text-center" style="width: 20%;">🔍 SPH</th>
+                                                    <th class="text-center" style="width: 20%;">🔬 CYL</th>
+                                                    <th class="text-center" style="width: 20%;">📐 AXIS</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -113,23 +182,30 @@
                                             </tbody>
                                         </table>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-md-6 text-left">
-                                            <strong>ADD:</strong> <span id="resep-add"></span>
+                                    <div class="row" style="margin-bottom: 10px;">
+                                        <div class="col-md-6 text-center">
+                                            <div class="resep-card">
+                                                <strong style="color: #28a745;">➕ ADD:</strong> <span id="resep-add" style="color: #28a745;"></span>
+                                            </div>
                                         </div>
-                                        <div class="col-md-6 text-right">
-                                            <strong>PD:</strong> <span id="resep-pd"></span>
+                                        <div class="col-md-6 text-center">
+                                            <div class="pd-card">
+                                                <strong style="color: #856404;">📏 PD:</strong> <span id="resep-pd" style="color: #856404;"></span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="row" style="margin-top:10px;">
-                                        <div class="col-md-12">
-                                            <strong>Dokter:</strong> <span id="resep-dokter"></span>
+                                    <div class="row">
+                                        <div class="col-md-12 text-center">
+                                            <div class="dokter-card">
+                                                <strong style="color: #6c757d;">👨‍⚕️ Dokter:</strong> <span id="resep-dokter" style="color: #6c757d;"></span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+</div>
                 </div>
             </div>            
         </div>

@@ -5,19 +5,20 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Cetak Transaksi - {{ $penjualan->kode_penjualan }}</title>
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         @page {
             size: 100mm 150mm; /* 10cm x 15cm */
-            margin: 5mm;
+            margin: 3mm;
         }
         
         body {
-            font-family: 'Courier New', monospace;
+            font-family: 'Poppins', sans-serif;
             margin: 0;
             padding: 0;
             background: white;
-            font-size: 9px;
-            line-height: 1.1;
+            font-size: 10px;
+            line-height: 1.2;
             position: relative;
             min-height: 150mm;
             width: 100mm;
@@ -35,7 +36,7 @@
             background-size: 80mm 80mm; /* Logo size */
             background-position: center;
             background-repeat: no-repeat;
-            opacity: 0.1;
+            opacity: 0.05;
             z-index: -1;
             pointer-events: none;
         }
@@ -44,16 +45,16 @@
             display: flex;
             align-items: flex-start;
             border-bottom: 1px solid #000;
-            padding-bottom: 8px;
-            margin-bottom: 12px;
-            gap: 10px;
+            padding-bottom: 5px;
+            margin-bottom: 8px;
+            gap: 8px;
         }
         
         .logo {
-            width: 60px;
-            height: 60px;
+            width: 45px;
+            height: 45px;
             flex-shrink: 0;
-            margin-top: 5px;
+            margin-top: 3px;
         }
         
         .header-info {
@@ -63,23 +64,23 @@
         
         .company-name {
             font-size: 12px;
-            font-weight: bold;
-            margin: 3px 0;
+            font-weight: 600;
+            margin: 2px 0;
         }
         
         .branch-name {
             font-size: 10px;
-            font-weight: bold;
-            margin: 3px 0;
+            font-weight: 500;
+            margin: 2px 0;
         }
         
         .address {
             font-size: 8px;
-            margin: 3px 0;
+            margin: 2px 0;
         }
         
         .transaction-info {
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
         
         .info-row {
@@ -89,7 +90,7 @@
         }
         
         .info-label {
-            font-weight: bold;
+            font-weight: 600;
             min-width: 70px;
         }
         
@@ -100,57 +101,88 @@
         .pasien-info {
             background: #f8f9fa;
             padding: 5px;
-            margin: 8px 0;
+            margin: 6px 0;
             border-left: 3px solid #007bff;
-            border-radius: 3px;
+            border-radius: 4px;
         }
         
         .resep-info {
             background: #fff3cd;
             padding: 5px;
-            margin: 8px 0;
+            margin: 6px 0;
             border-left: 3px solid #ffc107;
-            border-radius: 3px;
+            border-radius: 4px;
+        }
+        
+        .pengerjaan-info {
+            background: rgba(220, 53, 69, 0.1);
+            padding: 5px;
+            margin: 6px 0;
+            border-left: 3px solid rgba(220, 53, 69, 0.6);
+            border-radius: 4px;
         }
         
         .resep-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 5px 0;
-            font-size: 8px;
+            margin: 6px 0;
+            font-size: 9px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            border-radius: 4px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.9);
         }
         
         .resep-table th, .resep-table td {
-            padding: 1px 2px;
-            border: 1px solid #ddd;
+            padding: 3px 4px;
+            border: 1px solid #6c757d;
             text-align: center;
+            font-weight: 500;
         }
         
         .resep-table th {
-            background: #e9ecef;
-            font-weight: bold;
+            background: rgba(108, 117, 125, 0.8);
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
         }
         
         .resep-table .eye-label {
-            font-weight: bold;
-            background: #dee2e6;
+            font-weight: 700;
+            background: rgba(73, 80, 87, 0.85);
+            color: #fff;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+        }
+        
+        .resep-table tbody tr:nth-child(even) {
+            background-color: rgba(248, 249, 250, 0.6);
+        }
+        
+        .resep-table tbody tr:nth-child(odd) {
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .resep-table tbody tr:hover {
+            background-color: rgba(255, 193, 7, 0.2);
         }
         
         .section-title {
-            font-weight: bold;
+            font-weight: 600;
             text-align: center;
             margin: 5px 0;
             font-size: 9px;
-            background: #e9ecef;
-            padding: 2px;
-            border-radius: 2px;
+            background: rgba(108, 117, 125, 0.7);
+            padding: 3px;
+            border-radius: 3px;
+            color: #fff;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
         }
 
         
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 12px 0;
+            margin: 8px 0;
         }
         
         .items-table th,
@@ -158,19 +190,19 @@
             border: 1px solid #000;
             padding: 2px;
             text-align: left;
-            font-size: 7px;
+            font-size: 8px;
         }
         
         .items-table th {
             background-color: #f0f0f0;
-            font-weight: bold;
+            font-weight: 600;
             text-align: center;
         }
         
         .total-section {
-            margin-top: 12px;
+            margin-top: 8px;
             border-top: 1px solid #000;
-            padding-top: 8px;
+            padding-top: 5px;
         }
         
         .total-row {
@@ -180,7 +212,7 @@
         }
         
         .total-label {
-            font-weight: bold;
+            font-weight: 600;
         }
         
         .total-value {
@@ -188,19 +220,19 @@
         }
         
         .footer {
-            margin-top: 15px;
+            margin-top: 10px;
             text-align: center;
-            font-size: 7px;
+            font-size: 8px;
             border-top: 1px solid #000;
-            padding-top: 8px;
+            padding-top: 5px;
         }
         
         .status-badge {
             display: inline-block;
             padding: 1px 4px;
-            border-radius: 2px;
+            border-radius: 3px;
             font-size: 7px;
-            font-weight: bold;
+            font-weight: 600;
             color: white;
         }
         
@@ -229,11 +261,11 @@
         /* Responsive untuk layar kecil */
         @media screen and (max-width: 600px) {
             body { 
-                font-size: 10px; 
+                font-size: 11px; 
                 width: 100%;
                 min-height: auto;
             }
-            .barcode { font-size: 16px; }
+            .barcode { font-size: 14px; }
         }
         
         /* Container untuk memastikan ukuran tetap */
@@ -262,22 +294,23 @@
 
         .qrcode-small {
             text-align: center;
-            margin-top: 8px;
+            margin-top: 5px;
         }
 
         .qrcode-label-small {
             font-size: 7px;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
+            font-weight: 600;
         }
 
         .qrcode-image {
-            margin: 0 auto 3px;
+            margin: 0 auto 2px;
             display: block;
         }
 
         .qrcode-barcode {
             font-size: 7px;
-            margin-top: 3px;
+            margin-top: 2px;
         }
     </style>
 </head>
@@ -311,21 +344,25 @@
                 <span class="info-value">{{ $penjualan->kode_penjualan }}</span>
             </div>
             <div class="info-row">
-                <span class="info-label">Tanggal:</span>
+                <span class="info-label">📅 Tanggal Transaksi:</span>
                 <span class="info-value">{{ \Carbon\Carbon::parse($penjualan->tanggal)->format('d/m/Y H:i') }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">📅 Tanggal Hari Ini:</span>
+                <span class="info-value" style="font-weight: 600; color: #17a2b8;">{{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Kasir:</span>
                 <span class="info-value">{{ $penjualan->user->name ?? 'N/A' }}</span>
             </div>
-            <div class="info-row">
+            <!-- <div class="info-row">
                 <span class="info-label">Pasien:</span>
                 <span class="info-value">{{ $penjualan->nama_pasien ?? 'N/A' }}</span>
-            </div>
-            <div class="info-row">
+            </div> -->
+            <!-- <div class="info-row">
                 <span class="info-label">Dokter:</span>
                 <span class="info-value">{{ $penjualan->dokter->nama_dokter ?? $penjualan->dokter_manual ?? 'N/A' }}</span>
-            </div>
+            </div> -->
             @if($penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii']))
             <div class="info-row">
                 <span class="info-label">Jenis Layanan:</span>
@@ -348,7 +385,7 @@
                     </span>
                 </span>
             </div>
-            <div class="info-row">
+            <!-- <div class="info-row">
                 <span class="info-label">Status Kerja:</span>
                 <span class="info-value">
                     @php
@@ -363,11 +400,13 @@
                         {{ $penjualan->status_pengerjaan }}
                     </span>
                 </span>
-            </div>
+            </div> -->
             @if($penjualan->tanggal_siap)
             <div class="info-row">
-                <span class="info-label">Siap:</span>
-                <span class="info-value">{{ \Carbon\Carbon::parse($penjualan->tanggal_siap)->format('d/m/Y') }}</span>
+                <span class="info-label">📅 Siap:</span>
+                <span class="info-value" style="font-weight: 600; color: #28a745;">
+                    {{ \Carbon\Carbon::parse($penjualan->tanggal_siap)->format('d/m/Y H:i') }}
+                </span>
             </div>
             @endif
         </div>
@@ -395,46 +434,146 @@
         </div>
         @endif
 
+        <!-- Informasi Pengerjaan -->
+        <!-- <div class="pengerjaan-info">
+            <div class="section-title">⚙️ INFORMASI PENGERJAAN</div>
+            <div class="info-row">
+                <span class="info-label">Status Kerja:</span>
+                <span class="info-value">
+                    @php
+                        $statusClass = [
+                            'Menunggu Pengerjaan' => 'status-waiting',
+                            'Sedang Dikerjakan' => 'status-processing',
+                            'Selesai Dikerjakan' => 'status-completed',
+                            'Sudah Diambil' => 'status-taken'
+                        ];
+                    @endphp
+                    <span class="status-badge {{ $statusClass[$penjualan->status_pengerjaan] ?? 'status-waiting' }}">
+                        {{ $penjualan->status_pengerjaan }}
+                    </span>
+                </span>
+            </div>
+            @if($penjualan->tanggal_siap)
+            <div class="info-row" style="background: rgba(40, 167, 69, 0.1); padding: 3px; border-radius: 3px; border: 1px solid rgba(40, 167, 69, 0.3);">
+                <span class="info-label">📅 Tanggal Siap:</span>
+                <span class="info-value" style="font-weight: 700; color: #28a745; font-size: 11px;">
+                    {{ \Carbon\Carbon::parse($penjualan->tanggal_siap)->format('d/m/Y H:i') }}
+                </span>
+            </div>
+            @php
+                $tanggal_transaksi = \Carbon\Carbon::parse($penjualan->tanggal);
+                $tanggal_siap = \Carbon\Carbon::parse($penjualan->tanggal_siap);
+                $durasi_pengerjaan = $tanggal_transaksi->diffInHours($tanggal_siap);
+                $durasi_hari = $tanggal_transaksi->diffInDays($tanggal_siap);
+            @endphp
+            <div class="info-row" style="background: rgba(255, 193, 7, 0.1); padding: 3px; border-radius: 3px; border: 1px solid rgba(255, 193, 7, 0.3); margin-top: 3px;">
+                <span class="info-label">⏱️ Durasi Pengerjaan:</span>
+                <span class="info-value" style="font-weight: 600; color: #856404; font-size: 10px;">
+                    @if($durasi_hari > 0)
+                        {{ $durasi_hari }} hari {{ $durasi_pengerjaan % 24 }} jam
+                    @else
+                        {{ $durasi_pengerjaan }} jam
+                    @endif
+                </span>
+            </div>
+            @endif
+            @if($penjualan->tanggal_siap)
+            @php
+                $sekarang = \Carbon\Carbon::now();
+                $status_waktu = $sekarang->gt($tanggal_siap) ? 'Terlambat' : 'Tepat Waktu';
+                $warna_status = $sekarang->gt($tanggal_siap) ? '#dc3545' : '#28a745';
+            @endphp
+            <div class="info-row" style="background: rgba(108, 117, 125, 0.1); padding: 3px; border-radius: 3px; border: 1px solid rgba(108, 117, 125, 0.3); margin-top: 3px;">
+                <span class="info-label">🕐 Status Waktu:</span>
+                <span class="info-value" style="font-weight: 600; color: {{ $warna_status }}; font-size: 10px;">
+                    {{ $status_waktu }}
+                </span>
+            </div>
+            @endif
+            @if($penjualan->tanggal_siap)
+            <div class="info-row" style="background: rgba(108, 117, 125, 0.1); padding: 3px; border-radius: 3px; border: 1px solid rgba(108, 117, 125, 0.3); margin-top: 3px;">
+                <span class="info-label">🕐 Status Waktu:</span>
+                <span class="info-value" style="font-weight: 600; color: {{ \Carbon\Carbon::now()->gt(\Carbon\Carbon::parse($penjualan->tanggal_siap)) ? '#dc3545' : '#28a745' }}; font-size: 10px;">
+                    {{ \Carbon\Carbon::now()->gt(\Carbon\Carbon::parse($penjualan->tanggal_siap)) ? 'Terlambat' : 'Tepat Waktu' }}
+                </span>
+            </div>
+            @endif
+            @if($penjualan->waktu_sudah_diambil)
+            <div class="info-row">
+                <span class="info-label">📤 Diambil:</span>
+                <span class="info-value" style="font-weight: 600; color: #6f42c1;">
+                    {{ \Carbon\Carbon::parse($penjualan->waktu_sudah_diambil)->format('d/m/Y H:i') }}
+                </span>
+            </div>
+            @endif
+        </div> -->
+
         <!-- Informasi Resep -->
-        @if($penjualan->pasien && ($penjualan->pasien->resep_od_sph || $penjualan->pasien->resep_os_sph))
+        @if($penjualan->pasien)
         <div class="resep-info">
-            <div class="section-title">RESEP LENSA</div>
+            <div class="section-title">📋 RESEP LENSA PASIEN</div>
+            
+            @php
+                // Coba ambil data resep dari prescriptions jika ada
+                $latestPrescription = $penjualan->pasien->prescriptions()->latest('tanggal')->first();
+                
+                // Jika tidak ada prescription, gunakan data manual dari penjualan
+                $od_sph = $latestPrescription->od_sph ?? $penjualan->resep_od_sph ?? '-';
+                $od_cyl = $latestPrescription->od_cyl ?? $penjualan->resep_od_cyl ?? '-';
+                $od_axis = $latestPrescription->od_axis ?? $penjualan->resep_od_axis ?? '-';
+                $os_sph = $latestPrescription->os_sph ?? $penjualan->resep_os_sph ?? '-';
+                $os_cyl = $latestPrescription->os_cyl ?? $penjualan->resep_os_cyl ?? '-';
+                $os_axis = $latestPrescription->os_axis ?? $penjualan->resep_os_axis ?? '-';
+                $add = $latestPrescription->add ?? $penjualan->resep_add ?? '-';
+                $pd = $latestPrescription->pd ?? $penjualan->resep_pd ?? '-';
+                $dokter = $latestPrescription->dokter->nama_dokter ?? $latestPrescription->dokter_manual ?? $penjualan->dokter->nama_dokter ?? $penjualan->dokter_manual ?? '-';
+                $tanggal = $latestPrescription->tanggal ?? $penjualan->tanggal ?? '-';
+            @endphp
+            
             <table class="resep-table">
                 <thead>
                     <tr>
-                        <th class="eye-label">Mata</th>
-                        <th>SPH</th>
-                        <th>CYL</th>
-                        <th>AXIS</th>
-                        <th>ADD</th>
+                        <th class="eye-label">👁️ Mata</th>
+                        <th>🔍 SPH</th>
+                        <th>🔬 CYL</th>
+                        <th>📐 AXIS</th>
+                        <th>➕ ADD</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td class="eye-label">OD</td>
-                        <td>{{ $penjualan->pasien->resep_od_sph ?? '-' }}</td>
-                        <td>{{ $penjualan->pasien->resep_od_cyl ?? '-' }}</td>
-                        <td>{{ $penjualan->pasien->resep_od_axis ?? '-' }}</td>
-                        <td rowspan="2">{{ $penjualan->pasien->resep_add ?? '-' }}</td>
+                        <td class="eye-label">OD (Kanan)</td>
+                        <td>{{ $od_sph }}</td>
+                        <td>{{ $od_cyl }}</td>
+                        <td>{{ $od_axis }}</td>
+                        <td rowspan="2" style="background: #e8f5e8; font-weight: 600;">{{ $add }}</td>
                     </tr>
                     <tr>
-                        <td class="eye-label">OS</td>
-                        <td>{{ $penjualan->pasien->resep_os_sph ?? '-' }}</td>
-                        <td>{{ $penjualan->pasien->resep_os_cyl ?? '-' }}</td>
-                        <td>{{ $penjualan->pasien->resep_os_axis ?? '-' }}</td>
+                        <td class="eye-label">OS (Kiri)</td>
+                        <td>{{ $os_sph }}</td>
+                        <td>{{ $os_cyl }}</td>
+                        <td>{{ $os_axis }}</td>
                     </tr>
                 </tbody>
             </table>
-            @if($penjualan->pasien->resep_pd)
-            <div style="text-align: center; margin-top: 3px; font-size: 8px;">
-                <strong>PD: {{ $penjualan->pasien->resep_pd }}mm</strong>
+            
+            <div style="margin-top: 5px; padding: 4px; background: rgba(255, 193, 7, 0.1); border-radius: 3px; border: 1px solid rgba(255, 193, 7, 0.3);">
+                @if($pd && $pd != '-')
+                <div style="text-align: center; margin-bottom: 3px; font-size: 8px; font-weight: 600; color: #495057;">
+                    📏 <strong>PD (Pupillary Distance): {{ $pd }}mm</strong>
+                </div>
+                @endif
+                @if($dokter && $dokter != '-')
+                <div style="text-align: center; margin-bottom: 3px; font-size: 8px; font-weight: 500; color: #6c757d;">
+                    👨‍⚕️ <em>Dokter: {{ $dokter }}</em>
+                </div>
+                @endif
+                @if($tanggal && $tanggal != '-')
+                <div style="text-align: center; font-size: 7px; color: #6c757d;">
+                    📅 <em>Tanggal Resep: {{ \Carbon\Carbon::parse($tanggal)->format('d/m/Y') }}</em>
+                </div>
+                @endif
             </div>
-            @endif
-            @if($penjualan->pasien->resep_dokter)
-            <div style="text-align: center; margin-top: 3px; font-size: 8px;">
-                <em>Dokter: {{ $penjualan->pasien->resep_dokter }}</em>
-            </div>
-            @endif
         </div>
         @endif
 
@@ -500,7 +639,7 @@
                 <span class="total-label">Diskon:</span>
                 <span class="total-value">Rp {{ number_format($penjualan->diskon, 0, ',', '.') }}</span>
             </div>
-            <div class="total-row" style="font-size: 10px; font-weight: bold; border-top: 1px solid #000; padding-top: 3px;">
+            <div class="total-row" style="font-size: 9px; font-weight: bold; border-top: 1px solid #000; padding-top: 2px;">
                 <span class="total-label">TOTAL:</span>
                 <span class="total-value">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</span>
             </div>
@@ -517,7 +656,7 @@
         </div>
         @else
         <!-- Pesan khusus untuk BPJS -->
-        <div style="text-align: center; margin: 12px 0; font-style: italic; padding: 8px; border: 1px dashed #000;">
+        <div style="text-align: center; margin: 8px 0; font-style: italic; padding: 5px; border: 1px dashed #000; font-size: 8px;">
             <strong>Layanan ditanggung oleh {{ strtoupper($penjualan->pasien->service_type) }}</strong>
         </div>
         @endif
@@ -526,14 +665,14 @@
         <div class="footer">
             <div class="footer-content">
                 <div class="footer-left">
-                    <div style="margin-bottom: 8px;">
+                    <div style="margin-bottom: 5px;">
                         <strong>Terima Kasih Telah Mempercayai Optik Melati</strong>
                     </div>
                     <div>
                         Barang yang sudah dibeli tidak dapat dikembalikan<br>
                         Garansi sesuai ketentuan yang berlaku
                     </div>
-                    <div style="margin-top: 8px;">
+                    <div style="margin-top: 5px;">
                         Cetak: {{ \Carbon\Carbon::now()->format('d/m/Y H:i:s') }}
                     </div>
                 </div>
@@ -542,7 +681,7 @@
                     <div class="qrcode-small">
                         <div class="qrcode-label-small">SCAN QR CODE</div>
                         <div class="qrcode-image">
-                            {!! QrCode::size(60)->generate(url('/barcode/scan/' . $penjualan->barcode)) !!}
+                            {!! QrCode::size(45)->generate(url('/barcode/scan/' . $penjualan->barcode)) !!}
                         </div>
                         <div class="qrcode-barcode">{{ $penjualan->barcode }}</div>
                     </div>

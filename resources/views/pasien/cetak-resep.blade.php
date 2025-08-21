@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cetak Resep - {{ $pasien->nama_pasien }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         @media print {
             @page {
-                size: 90mm 55mm;
-                margin: 5mm;
+                size: 130mm 90mm;
+                margin: 3mm;
             }
             body {
                 margin: 0;
@@ -20,113 +21,156 @@
         }
         
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Poppins', sans-serif;
             margin: 0;
-            padding: 10px;
+            padding: 5px;
             background: white;
-            font-size: 10px;
+            font-size: 9px;
             line-height: 1.2;
         }
         
         .prescription-card {
-            width: 80mm;
-            height: 45mm;
-            border: 2px solid #000;
+            width: 124mm;
+            height: 84mm;
+            border: 1px solid #ddd;
             padding: 8px;
             box-sizing: border-box;
             background: white;
             position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         .header {
             text-align: center;
-            border-bottom: 1px solid #000;
-            padding-bottom: 5px;
+            border-bottom: 2px solid #e74c3c;
+            padding-bottom: 6px;
             margin-bottom: 8px;
         }
         
         .logo {
-            width: 25px;
-            height: 25px;
+            width: 18px;
+            height: 18px;
             margin: 0 auto 3px;
             display: block;
         }
         
         .company-name {
-            font-size: 12px;
-            font-weight: bold;
+            font-size: 11px;
+            font-weight: 700;
             margin: 0;
+            color: #2c3e50;
+            letter-spacing: 0.5px;
         }
         
-        .branch-name {
-            font-size: 10px;
-            margin: 2px 0;
-        }
-        
-        .patient-info {
+        .form-fields {
             margin-bottom: 8px;
         }
         
-        .info-row {
+        .form-row {
             display: flex;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
+            align-items: center;
         }
         
-        .info-label {
-            font-weight: bold;
-            width: 25px;
+        .form-label {
+            font-weight: 600;
+            width: 35px;
             flex-shrink: 0;
+            color: #2c3e50;
+            font-size: 8px;
         }
         
-        .info-value {
+        .form-line {
             flex: 1;
-        }
-        
-        .prescription-data {
-            border: 1px solid #000;
-            padding: 5px;
-            margin-bottom: 8px;
+            height: 1px;
+            background: #bdc3c7;
+            margin-left: 8px;
         }
         
         .prescription-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 8px;
+            font-size: 7px;
+            margin-bottom: 8px;
         }
         
         .prescription-table th,
         .prescription-table td {
-            border: 1px solid #000;
-            padding: 2px;
+            border: 1px solid #bdc3c7;
+            padding: 3px;
             text-align: center;
         }
         
         .prescription-table th {
-            background: #f0f0f0;
-            font-weight: bold;
+            background: #f8f9fa;
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 6px;
+            text-transform: uppercase;
         }
         
-        .doctor-info {
-            text-align: center;
-            font-size: 9px;
-            margin-top: 5px;
+        .prescription-table td {
+            background: white;
+            font-weight: 500;
+        }
+        
+        .prescription-table td:first-child {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+            text-align: left;
+            padding-left: 6px;
+        }
+        
+        .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #e74c3c, #f39c12);
+            border-radius: 0 0 4px 4px;
+        }
+        
+        .footer-logo {
+            position: absolute;
+            bottom: 2px;
+            left: 4px;
+            width: 12px;
+            height: 12px;
+        }
+        
+        .footer-text {
+            position: absolute;
+            bottom: 1px;
+            left: 20px;
+            font-size: 6px;
+            font-weight: 600;
+            color: white;
+            letter-spacing: 0.3px;
         }
         
         .print-button {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #007bff;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            padding: 8px 16px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 11px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+            transition: all 0.3s ease;
         }
         
         .print-button:hover {
-            background: #0056b3;
+            background: linear-gradient(135deg, #2980b9, #1f5f8b);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
         }
     </style>
 </head>
@@ -141,78 +185,65 @@
             <!-- <div class="branch-name">{{ auth()->user()->branch->name ?? 'Cabang Utama' }}</div> -->
         </div>
         
-        <!-- Patient Information -->
-        <div class="patient-info">
-            <div class="info-row">
-                <span class="info-label">Nama:</span>
-                <span class="info-value">{{ $pasien->nama_pasien }}</span>
+        <!-- Form Fields -->
+        <div class="form-fields">
+            <div class="form-row">
+                <span class="form-label">Nama</span>
+                <div class="form-line"></div>
             </div>
-            <div class="info-row">
-                <span class="info-label">Alamat:</span>
-                <span class="info-value">{{ $pasien->alamat }}</span>
+            <div class="form-row">
+                <span class="form-label">Tgl</span>
+                <div class="form-line"></div>
             </div>
-            <!-- <div class="info-row">
-                <span class="info-label">T:</span>
-                <span class="info-value">{{ $pasien->nohp }}</span>
+            <div class="form-row">
+                <span class="form-label">Resep</span>
+                <div class="form-line"></div>
             </div>
-            <div class="info-row">
-                <span class="info-label">L:</span>
-                <span class="info-value">{{ $pasien->service_type }}</span>
+            <div class="form-row">
+                <span class="form-label">Frame</span>
+                <div class="form-line"></div>
             </div>
-            @if($pasien->no_bpjs)
-            <div class="info-row">
-                <span class="info-label">B:</span>
-                <span class="info-value">{{ $pasien->no_bpjs }}</span>
+            <div class="form-row">
+                <span class="form-label">Glass/CR-39</span>
+                <div class="form-line"></div>
             </div>
-            @endif -->
         </div>
+            
+        <!-- Prescription Table -->
+        <table class="prescription-table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Sph</th>
+                    <th>Cyl</th>
+                    <th>Axis</th>
+                    <th>Add</th>
+                    <th>PD</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>R</strong></td>
+                    <td>{{ $latestPrescription->od_sph ?? '' }}</td>
+                    <td>{{ $latestPrescription->od_cyl ?? '' }}</td>
+                    <td>{{ $latestPrescription->od_axis ?? '' }}</td>
+                    <td rowspan="2">{{ $latestPrescription->add ?? '' }}</td>
+                    <td rowspan="2">{{ $latestPrescription->pd ?? '' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>L</strong></td>
+                    <td>{{ $latestPrescription->os_sph ?? '' }}</td>
+                    <td>{{ $latestPrescription->os_cyl ?? '' }}</td>
+                    <td>{{ $latestPrescription->os_axis ?? '' }}</td>
+                </tr>
+            </tbody>
+        </table>
         
-        <!-- Prescription Data -->
-        <div class="prescription-data">
-            <table class="prescription-table">
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>SPH</th>
-                        <th>CYL</th>
-                        <th>AXIS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><strong>OD</strong></td>
-                        <td>{{ $latestPrescription->od_sph ?? '-' }}</td>
-                        <td>{{ $latestPrescription->od_cyl ?? '-' }}</td>
-                        <td>{{ $latestPrescription->od_axis ?? '-' }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>OS</strong></td>
-                        <td>{{ $latestPrescription->os_sph ?? '-' }}</td>
-                        <td>{{ $latestPrescription->os_cyl ?? '-' }}</td>
-                        <td>{{ $latestPrescription->os_axis ?? '-' }}</td>
-                    </tr>
-                </tbody>
-            </table>
-            
-            <div style="margin-top: 5px; font-size: 8px;">
-                <strong>ADD:</strong> {{ $latestPrescription->add ?? '-' }} | 
-                <strong>PD:</strong> {{ $latestPrescription->pd ?? '-' }}
-            </div>
-            
-            @if($latestPrescription->catatan)
-            <div style="margin-top: 3px; font-size: 8px;">
-                <strong>Catatan:</strong> {{ $latestPrescription->catatan }}
-            </div>
-            @endif
+        <!-- Footer -->
+        <div class="footer">
+            <img src="{{ asset('image/optik-melati.png') }}" alt="Logo" class="footer-logo">
+            <span class="footer-text">OPTIK MELATI</span>
         </div>
-        
-        <!-- Doctor Information -->
-        <!-- <div class="doctor-info">
-            <strong>Dokter:</strong> 
-            {{ $latestPrescription->dokter ? $latestPrescription->dokter->nama_dokter : ($latestPrescription->dokter_manual ?? '-') }}
-            <br>
-            <strong>Tanggal:</strong> {{ date('d/m/Y', strtotime($latestPrescription->tanggal)) }}
-        </div> -->
     </div>
     
     <script>

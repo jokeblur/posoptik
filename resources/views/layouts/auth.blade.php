@@ -4,6 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <!-- Prevent caching -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
 
     <title>{{ config('app.name', 'Optik Melati') }} - Login</title>
 
@@ -17,10 +22,10 @@
     <meta name="msapplication-config" content="/browserconfig.xml">
 
     <!-- PWA Icons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/image/optik-melati.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/image/optik-melati.png">
-    <link rel="apple-touch-icon" href="/image/optik-melati.png">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="32x32" href="/image/optik-melati.png?v={{ time() }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="/image/optik-melati.png?v={{ time() }}">
+    <link rel="apple-touch-icon" href="/image/optik-melati.png?v={{ time() }}">
+    <link rel="manifest" href="/manifest.json?v={{ time() }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -48,7 +53,7 @@
     </script>
 
     <!-- PWA Styles -->
-    <link rel="stylesheet" href="{{ asset('css/pwa.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/pwa.css') }}?v={{ time() }}">
 
     <!-- Custom Styles -->
     <style>
@@ -105,25 +110,33 @@
     </div>
 
     <!-- PWA Scripts -->
-    <script src="{{ asset('js/pwa.js') }}" defer></script>
+    <script src="{{ asset('js/pwa.js') }}?v={{ time() }}" defer></script>
     
     <!-- Custom Scripts -->
     <script>
+        // Force refresh to prevent caching
+        if (window.performance && window.performance.navigation.type === window.performance.navigation.TYPE_BACK_FORWARD) {
+            window.location.reload(true);
+        }
+        
         // Add loading state to form
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.querySelector('form');
-            const submitBtn = form.querySelector('button[type="submit"]');
-            
-            form.addEventListener('submit', function() {
-                submitBtn.innerHTML = `
-                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Memproses...
-                `;
-                submitBtn.disabled = true;
-            });
+            if (form) {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    form.addEventListener('submit', function() {
+                        submitBtn.innerHTML = `
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Memproses...
+                        `;
+                        submitBtn.disabled = true;
+                    });
+                }
+            }
         });
         
         // Add smooth animations

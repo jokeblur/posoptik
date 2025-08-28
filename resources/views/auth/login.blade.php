@@ -37,7 +37,7 @@
                 @error('email')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
-                                </div>
+            </div>
 
             <!-- Password Field -->
             <div>
@@ -49,7 +49,7 @@
                         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                         </svg>
-                                </div>
+                    </div>
                     <input id="password" name="password" type="password" required 
                            class="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm @error('password') border-red-500 @enderror"
                            placeholder="Masukkan password Anda">
@@ -59,8 +59,8 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                             </svg>
-                                    </button>
-                                </div>
+                        </button>
+                    </div>
                 </div>
                 @error('password')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -74,15 +74,15 @@
                            class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
                     <label for="remember_me" class="ml-2 block text-sm text-gray-900">
                         Ingat saya
-                                        </label>
-                                    </div>
+                    </label>
+                </div>
 
                 <div class="text-sm">
                     <a href="{{ route('password.request') }}" class="font-medium text-red-600 hover:text-red-500">
                         Lupa password?
                     </a>
-                                    </div>
-                                </div>
+                </div>
+            </div>
 
             <!-- Login Button -->
             <div>
@@ -96,19 +96,39 @@
                     Masuk ke Aplikasi
                 </button>
             </div>
-                            </form>
+        </form>
                            
         <!-- Footer -->
         <div class="text-center">
             <p class="text-sm text-gray-600">
                 © {{ date('Y') }} Optik Melati. All rights reserved.
             </p>
-                        </div>
-                    </div>
-                </div>
+        </div>
+    </div>
+</div>
 
-<!-- JavaScript untuk toggle password -->
+<!-- JavaScript untuk toggle password dan force refresh -->
 <script>
+// Force refresh to prevent caching
+(function() {
+    // Force reload if coming from back/forward
+    if (window.performance && window.performance.navigation.type === window.performance.navigation.TYPE_BACK_FORWARD) {
+        window.location.reload(true);
+    }
+    
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const currentUrl = window.location.href;
+    if (currentUrl.indexOf('?') === -1) {
+        window.history.replaceState(null, null, currentUrl + '?t=' + timestamp);
+    }
+})();
+
+// Prevent form resubmission on refresh
+if (window.history.replaceState) {
+    window.history.replaceState(null, null, window.location.href);
+}
+
 document.getElementById('togglePassword').addEventListener('click', function() {
     const password = document.getElementById('password');
     const eyeIcon = document.getElementById('eyeIcon');

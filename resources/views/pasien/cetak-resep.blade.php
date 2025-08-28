@@ -208,37 +208,37 @@
                 <div class="form-line"></div>
             </div>
         </div>
-            
+        
         <!-- Prescription Table -->
-        <table class="prescription-table">
-            <thead>
-                <tr>
-                    <th></th>
+            <table class="prescription-table">
+                <thead>
+                    <tr>
+                        <th></th>
                     <th>Sph</th>
                     <th>Cyl</th>
                     <th>Axis</th>
                     <th>Add</th>
                     <th>PD</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
                     <td><strong>R</strong></td>
                     <td>{{ $latestPrescription->od_sph ?? '' }}</td>
                     <td>{{ $latestPrescription->od_cyl ?? '' }}</td>
                     <td>{{ $latestPrescription->od_axis ?? '' }}</td>
                     <td rowspan="2">{{ $latestPrescription->add ?? '' }}</td>
                     <td rowspan="2">{{ $latestPrescription->pd ?? '' }}</td>
-                </tr>
-                <tr>
+                    </tr>
+                    <tr>
                     <td><strong>L</strong></td>
                     <td>{{ $latestPrescription->os_sph ?? '' }}</td>
                     <td>{{ $latestPrescription->os_cyl ?? '' }}</td>
                     <td>{{ $latestPrescription->os_axis ?? '' }}</td>
-                </tr>
-            </tbody>
-        </table>
-        
+                    </tr>
+                </tbody>
+            </table>
+            
         <!-- Footer -->
         <div class="footer">
             <img src="{{ asset('image/optik-melati.png') }}" alt="Logo" class="footer-logo">

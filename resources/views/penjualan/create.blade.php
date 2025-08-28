@@ -186,12 +186,12 @@
                                         <div class="col-md-6 text-center">
                                             <div class="resep-card">
                                                 <strong style="color: #28a745;">➕ ADD:</strong> <span id="resep-add" style="color: #28a745;"></span>
-                                            </div>
+                                        </div>
                                         </div>
                                         <div class="col-md-6 text-center">
                                             <div class="pd-card">
                                                 <strong style="color: #856404;">📏 PD:</strong> <span id="resep-pd" style="color: #856404;"></span>
-                                            </div>
+                                    </div>
                                         </div>
                                     </div>
                                     <div class="row">
@@ -200,12 +200,12 @@
                                                 <strong style="color: #6c757d;">👨‍⚕️ Dokter:</strong> <span id="resep-dokter" style="color: #6c757d;"></span>
                                             </div>
                                         </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-</div>
                 </div>
             </div>            
         </div>

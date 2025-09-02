@@ -128,40 +128,52 @@
         <div class="box box-primary">
             <div class="box-header with-border">
                 <h3 class="box-title">
-                    Ringkasan Omset
+                    <i class="fa fa-bar-chart"></i> Ringkasan Omset
                     @if($selectedBranch) - {{ $selectedBranch->name }} @endif
                 </h3>
             </div>
             <div class="box-body">
                 <div class="row">
                     <div class="col-md-4">
-                        <div class="alert alert-info">
-                            <b>Omset Hari Ini:</b><br>
-                            <span style="font-size: 1.5em;">Rp {{ number_format($omsetHarian,0,',','.') }}</span>
-                            <br>
-                            <button class="btn btn-xs btn-default" data-toggle="modal" data-target="#modal-harian">
-                                <i class="fa fa-list"></i> Detail Transaksi Harian
-                            </button>
+                        <div class="small-box bg-info">
+                            <div class="inner">
+                                <h3>Rp {{ number_format($omsetHarian,0,',','.') }}</h3>
+                                <p>Omset Hari Ini</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-calendar-day"></i>
+                            </div>
+                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#modal-harian">
+                                Detail Transaksi <i class="fa fa-arrow-circle-right"></i>
+                            </a>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="alert alert-success">
-                            <b>Omset Bulan {{ $bulan }}/{{ $tahun }}:</b><br>
-                            <span style="font-size: 1.5em;">Rp {{ number_format($omsetBulanan,0,',','.') }}</span>
-                            <br>
-                            <button class="btn btn-xs btn-default" data-toggle="modal" data-target="#modal-bulanan">
-                                <i class="fa fa-list"></i> Detail Transaksi Bulanan
-                            </button>
+                        <div class="small-box bg-success">
+                            <div class="inner">
+                                <h3>Rp {{ number_format($omsetBulanan,0,',','.') }}</h3>
+                                <p>Omset Bulan {{ $bulan }}/{{ $tahun }}</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-calendar-alt"></i>
+                            </div>
+                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#modal-bulanan">
+                                Detail Transaksi <i class="fa fa-arrow-circle-right"></i>
+                            </a>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="alert alert-danger">
-                            <b>Total Piutang (Belum Lunas):</b><br>
-                            <span style="font-size: 1.5em;">Rp {{ number_format($totalPiutang,0,',','.') }}</span>
-                            <br>
-                            <button class="btn btn-xs btn-default" data-toggle="modal" data-target="#modal-piutang">
-                                <i class="fa fa-list"></i> Lihat Daftar Piutang
-                            </button>
+                        <div class="small-box bg-danger">
+                            <div class="inner">
+                                <h3>Rp {{ number_format($totalPiutang,0,',','.') }}</h3>
+                                <p>Total Piutang (Belum Lunas)</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-exclamation-triangle"></i>
+                            </div>
+                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#modal-piutang">
+                                Lihat Daftar Piutang <i class="fa fa-arrow-circle-right"></i>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -203,7 +215,7 @@
                 <h3 class="box-title">Rekap DP (Belum Lunas)</h3>
             </div>
             <div class="box-body table-responsive">
-                <table class="table table-bordered table-striped">
+                <table id="table-rekap-dp" class="table table-bordered table-striped">
                     <thead>
                         <tr>
                             <th>Kode</th>
@@ -244,7 +256,7 @@
                 <h3 class="box-title">Rekap Lunas</h3>
             </div>
             <div class="box-body table-responsive">
-                <table class="table table-bordered table-striped">
+                <table id="table-rekap-lunas" class="table table-bordered table-striped">
                     <thead>
                         <tr>
                             <th>Kode</th>
@@ -278,96 +290,7 @@
         </div>
     </div>
 </div>
-<div class="row">
-    <div class="col-md-12">
-        <div class="box box-danger">
-            <div class="box-header with-border">
-                <h3 class="box-title">Stok Menipis (Stok &lt; {{ $batasStok }})</h3>
-            </div>
-            <div class="box-body table-responsive">
-                <h4>Lensa</h4>
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>Kode</th>
-                            <th>Merk</th>
-                            @if($isSuperAdmin && !$selectedBranchId)
-                            <th>Cabang</th>
-                            @endif
-                            <th>Stok</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($stokLensa as $item)
-                        <tr class="bg-danger">
-                            <td>{{ $item->kode_lensa }}</td>
-                            <td>{{ $item->merk_lensa }}</td>
-                            @if($isSuperAdmin && !$selectedBranchId)
-                            <td><span class="label label-warning">{{ $item->branch->name ?? '-' }}</span></td>
-                            @endif
-                            <td>{{ $item->stok }}</td>
-                        </tr>
-                        @empty
-                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '4' : '3' }}" class="text-center">Aman</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-                <h4>Frame</h4>
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>Kode</th>
-                            <th>Merk</th>
-                            @if($isSuperAdmin && !$selectedBranchId)
-                            <th>Cabang</th>
-                            @endif
-                            <th>Stok</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($stokFrame as $item)
-                        <tr class="bg-danger">
-                            <td>{{ $item->kode_frame }}</td>
-                            <td>{{ $item->merk_frame }}</td>
-                            @if($isSuperAdmin && !$selectedBranchId)
-                            <td><span class="label label-warning">{{ $item->branch->name ?? '-' }}</span></td>
-                            @endif
-                            <td>{{ $item->stok }}</td>
-                        </tr>
-                        @empty
-                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '4' : '3' }}" class="text-center">Aman</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-                <h4>Aksesoris</h4>
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>Nama Produk</th>
-                            @if($isSuperAdmin && !$selectedBranchId)
-                            <th>Cabang</th>
-                            @endif
-                            <th>Stok</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($stokAksesoris as $item)
-                        <tr class="bg-danger">
-                            <td>{{ $item->nama_produk }}</td>
-                            @if($isSuperAdmin && !$selectedBranchId)
-                            <td><span class="label label-warning">{{ $item->branch->name ?? '-' }}</span></td>
-                            @endif
-                            <td>{{ $item->stok }}</td>
-                        </tr>
-                        @empty
-                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '3' : '2' }}" class="text-center">Aman</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
+
 <!-- Modal Daftar Piutang -->
 <div class="modal fade" id="modal-piutang" tabindex="-1" role="dialog" aria-labelledby="modalPiutangLabel">
     <div class="modal-dialog modal-lg" role="document">
@@ -506,10 +429,43 @@
 @push('scripts')
 <script>
 $(function() {
+    // DataTables untuk tabel yang ada di modal
     $('.datatable').DataTable({
         responsive: true,
         pageLength: 10,
         order: []
+    });
+    
+    // DataTables untuk tabel Rekap DP
+    $('#table-rekap-dp').DataTable({
+        responsive: true,
+        pageLength: 10,
+        order: [[1, 'desc']], // Sort by tanggal descending
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json'
+        },
+        columnDefs: [
+            {
+                targets: [4, 5, 6], // Kolom Total, Bayar, Kekurangan
+                className: 'text-right'
+            }
+        ]
+    });
+    
+    // DataTables untuk tabel Rekap Lunas
+    $('#table-rekap-lunas').DataTable({
+        responsive: true,
+        pageLength: 10,
+        order: [[1, 'desc']], // Sort by tanggal descending
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json'
+        },
+        columnDefs: [
+            {
+                targets: [4, 5], // Kolom Total, Bayar
+                className: 'text-right'
+            }
+        ]
     });
 });
 </script>

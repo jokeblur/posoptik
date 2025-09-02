@@ -18,9 +18,18 @@ class LensaController extends Controller
      */
     public function index()
     {
+        $user = auth()->user();
         $branches = \App\Models\Branch::all()->pluck('name', 'id');
         $sales = \App\Models\Sales::where('keterangan', 'like', '%lensa%')->pluck('nama_sales', 'id_sales');
-        return view('lensa.index', compact('branches', 'sales'));
+        
+        // Get low stock lensa (stok < 5)
+        $batasStok = 5;
+        $lowStockLensa = Lensa::accessibleByUser($user)
+            ->where('stok', '<', $batasStok)
+            ->with('branch')
+            ->get();
+            
+        return view('lensa.index', compact('branches', 'sales', 'lowStockLensa', 'batasStok'));
     }
 
     public function data(Request $request)

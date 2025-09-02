@@ -15,13 +15,20 @@ class PassetController extends Controller
     public function data()
     {
         // Semua user yang bisa akses halaman ini (passet, admin, super admin) bisa melihat semua pekerjaan
-        $transaksi = Transaksi::with('pasien', 'branch')
-            ->whereIn('status_pengerjaan', ['Menunggu Pengerjaan', 'Selesai Dikerjakan'])
-            ->latest()
-            ->get();
+        $query = Transaksi::with('pasien', 'branch')
+            ->whereIn('status_pengerjaan', ['Menunggu Pengerjaan', 'Selesai Dikerjakan']);
+
+        // Optional filter by status (e.g., ?status=Menunggu Pengerjaan)
+        if (request()->filled('status')) {
+            $query->where('status_pengerjaan', request('status'));
+        }
+
+        // Prioritaskan yang menunggu, lalu terbaru
+        $query->orderByRaw("CASE WHEN status_pengerjaan = 'Menunggu Pengerjaan' THEN 0 ELSE 1 END")
+              ->orderBy('created_at', 'desc');
 
         return datatables()
-            ->of($transaksi)
+            ->of($query)
             ->addIndexColumn()
             ->addColumn('tanggal', function ($transaksi) {
                 return tanggal_indonesia($transaksi->created_at, false);
@@ -40,11 +47,14 @@ class PassetController extends Controller
                 if ($transaksi->status_pengerjaan == 'Menunggu Pengerjaan') {
                     return '
                     <div class="btn-group">
-                        <button onclick="markAsSelesai(`'. route('passet.selesai', $transaksi->id) .'`)" class="btn btn-xs btn-primary btn-flat"><i class="fa fa-check"></i> Tandai Selesai</button>
+                        <button onclick="markAsSelesai(`'. route('passet.selesai', $transaksi->id) .'`)" class="btn btn-xs btn-primary btn-flat"><i class="fa fa-check"></i></button>
                     </div>
                     ';
                 }
                 return '';
+            })
+            ->orderColumn('tanggal', function ($q, $order) {
+                $q->orderBy('created_at', $order);
             })
             ->rawColumns(['aksi', 'status_pengerjaan'])
             ->make(true);

@@ -43,7 +43,7 @@
                         </div>
 
                         <!-- Manual Input Section -->
-                        <div class="col-md-6">
+                        <!-- <div class="col-md-6">
                                                     <div class="box box-success">
                             <div class="box-header with-border">
                                 <h4 class="box-title">Input Manual</h4>
@@ -58,7 +58,7 @@
                                 </form>
                             </div>
                         </div>
-                        </div>
+                        </div> -->
                     </div>
 
                     <!-- Result Section -->
@@ -426,7 +426,8 @@ function startScanning() {
     console.log('Starting scanner with camera ID:', cameraId);
     
     html5QrcodeScanner.start(
-        cameraId,
+        // Pass explicit videoConstraints here instead of just cameraId
+        { deviceId: { exact: cameraId }, facingMode: { ideal: "environment" } },
         config,
         onScanSuccess,
         onScanFailure

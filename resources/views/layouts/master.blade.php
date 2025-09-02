@@ -242,17 +242,17 @@
             const activeBranchId = '{{ session('active_branch_id') }}';
 
             // Populate dropdown
-            $.get('{{ route('branches.list') }}', function(branches) {
-                branchSelector.empty(); // Hapus semua option sebelum append baru
-                branchSelector.append('<option value="">Pilih Cabang</option>'); // Optional: option default
-                branches.forEach(function(branch) {
-                    branchSelector.append(`<option value="${branch.id}">${branch.name}</option>`);
-                });
-                // Set selected
-                if (activeBranchId) {
-                    branchSelector.val(activeBranchId);
-                }
-            });
+            // $.get('{{ route('branches.list') }}', function(branches) {
+            //     branchSelector.empty(); // Hapus semua option sebelum append baru
+            //     branchSelector.append('<option value="">Pilih Cabang</option>'); // Optional: option default
+            //     branches.forEach(function(branch) {
+            //         branchSelector.append(`<option value="${branch.id}">${branch.name}</option>`);
+            //     });
+            //     // Set selected
+            //     if (activeBranchId) {
+            //         branchSelector.val(activeBranchId);
+            //     }
+            // });
 
             // Handle change
             branchSelector.on('change', function() {

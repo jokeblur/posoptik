@@ -20,20 +20,6 @@
         </div>
     </div>
     
-    <div class="col-lg-3 col-xs-6">
-        <div class="small-box bg-blue">
-            <div class="inner">
-                <h3 id="sedang-count">0</h3>
-                <p>Sedang Dikerjakan</p>
-            </div>
-            <div class="icon">
-                <i class="fa fa-cogs"></i>
-            </div>
-            <a href="#" class="small-box-footer" onclick="filterByStatus('Sedang Dikerjakan')">
-                Lihat Detail <i class="fa fa-arrow-circle-right"></i>
-            </a>
-        </div>
-    </div>
     
     <div class="col-lg-3 col-xs-6">
         <div class="small-box bg-green">
@@ -80,6 +66,18 @@
                 <button class="btn btn-sm btn-default" onclick="clearFilter()">
                     <i class="fa fa-refresh"></i> Reset Filter
                 </button>
+                @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                <div class="form-group pull-right" style="margin-bottom: 0;">
+                    <select id="branch_id_filter" class="form-control input-sm">
+                        <option value="">Tampilkan Semua Cabang</option>
+                        @foreach($branches as $branch)
+                            <option value="{{ $branch->id }}" {{ $branch->id == $selectedBranchId ? 'selected' : '' }}>
+                                {{ $branch->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                @endif
             </div>
             <div class="box-body table-responsive">
                 <table class="table table-striped table-bordered" id="penjualan-table">
@@ -222,6 +220,7 @@
 <script>
     let table; // Deklarasikan di sini agar bisa diakses secara global di dalam script
     let currentFilter = '';
+    let currentBranchId = $('#branch_id_filter').val(); // Ambil nilai awal dari dropdown
 
     $(function () {
         table = $('#penjualan-table').DataTable({
@@ -232,6 +231,10 @@
                 data: function(d) {
                     if (currentFilter) {
                         d.status_filter = currentFilter;
+                    }
+                    // Tambahkan filter cabang
+                    if (currentBranchId) {
+                        d.branch_id = currentBranchId;
                     }
                 }
             },
@@ -257,12 +260,22 @@
         
         // Load statistik saat halaman pertama kali dimuat
         updateStatistics();
+
+        // Event listener untuk perubahan dropdown cabang
+        $('#branch_id_filter').on('change', function() {
+            currentBranchId = $(this).val();
+            table.ajax.reload();
+            updateStatistics(); // Juga update statistik saat cabang berubah
+        });
     });
     
     function updateStatistics() {
         $.ajax({
             url: '{{ route("penjualan.statistics") }}',
             method: 'GET',
+            data: {
+                branch_id: currentBranchId // Kirim branch_id ke endpoint statistik
+            },
             success: function(response) {
                 $('#menunggu-count').text(response.menunggu || 0);
                 $('#sedang-count').text(response.sedang || 0);

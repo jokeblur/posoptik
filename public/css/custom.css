@@ -1684,13 +1684,13 @@ span.fab {
     margin-top: 50px !important; /* Optimized for navbar clearance */
     min-height: calc(100vh - 50px) !important;
     background: #f4f6f9 !important;
-    padding: 25px !important; /* Increased padding for better content spacing */
+    padding: 25px 30px !important; /* Increased padding for better content spacing */
     transition: margin-left 0.3s ease !important;
 }
 
 /* Content area spacing */
 .content-header {
-    padding: 20px 0 25px 0 !important;
+    padding: 20px 30px 25px 30px !important;
     margin-bottom: 25px !important;
     border-bottom: 2px solid rgba(164, 25, 61, 0.1) !important;
     background: linear-gradient(
@@ -1704,6 +1704,7 @@ span.fab {
 
 .content-header h1 {
     margin: 0 !important;
+    margin-left: 20px !important; /* Add left margin to move h1 text to the right */
     font-size: 28px !important;
     font-weight: 700 !important;
     color: #a4193d !important;

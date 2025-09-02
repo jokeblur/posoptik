@@ -45,13 +45,13 @@
                         <form class="form-close-day" data-branch="{{ $branch->id }}" style="display:inline;">
                             @csrf
                             <input type="hidden" name="branch_id" value="{{ $branch->id }}">
-                            <button type="submit" class="btn btn-danger btn-xs"><i class="fa fa-lock"></i> Close Day</button>
+                            <button type="submit" class="btn btn-danger btn-xs"><i class="fa fa-unlock"></i></button>
                         </form>
                         @else
                         <form class="form-open-day" data-branch="{{ $branch->id }}" style="display:inline;">
                             @csrf
                             <input type="hidden" name="branch_id" value="{{ $branch->id }}">
-                            <button type="submit" class="btn btn-success btn-xs"><i class="fa fa-unlock"></i> Open Day</button>
+                            <button type="submit" class="btn btn-success btn-xs"><i class="fa fa-lock"></i></button>
                         </form>
                         @endif
                     </td>
@@ -99,7 +99,7 @@ $(function() {
                 if (res.success) {
                     Swal.fire('Berhasil', res.message, 'success');
                     updateRow(branchId, '<span class="label label-success">Buka</span>', formatDateTime(res.openDay.created_at), '-');
-                    form.closest('td').html('<form class="form-close-day" data-branch="'+branchId+'" style="display:inline;">@csrf<input type="hidden" name="branch_id" value="'+branchId+'"><button type="submit" class="btn btn-danger btn-xs"><i class="fa fa-lock"></i> Close Day</button></form>');
+                    form.closest('td').html('<form class="form-close-day" data-branch="'+branchId+'" style="display:inline;">@csrf<input type="hidden" name="branch_id" value="'+branchId+'"><button type="submit" class="btn btn-danger btn-xs"><i class="fa fa-lock"></i></button></form>');
                 } else {
                     Swal.fire('Gagal', res.message || 'Terjadi kesalahan', 'error');
                 }
@@ -122,7 +122,7 @@ $(function() {
                 if (res.success) {
                     Swal.fire('Berhasil', res.message, 'success');
                     updateRow(branchId, '<span class="label label-danger">Tutup</span>', formatDateTime(res.openDay.created_at), formatDateTime(res.openDay.updated_at));
-                    form.closest('td').html('<form class="form-open-day" data-branch="'+branchId+'" style="display:inline;">@csrf<input type="hidden" name="branch_id" value="'+branchId+'"><button type="submit" class="btn btn-success btn-xs"><i class="fa fa-unlock"></i> Open Day</button></form>');
+                    form.closest('td').html('<form class="form-open-day" data-branch="'+branchId+'" style="display:inline;">@csrf<input type="hidden" name="branch_id" value="'+branchId+'"><button type="submit" class="btn btn-success btn-xs"><i class="fa fa-unlock"></i></button></form>');
                 } else {
                     Swal.fire('Gagal', res.message || 'Terjadi kesalahan', 'error');
                 }

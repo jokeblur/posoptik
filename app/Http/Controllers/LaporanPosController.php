@@ -4,9 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Penjualan;
-use App\Models\Lensa;
-use App\Models\Frame;
-use App\Models\Aksesoris;
 use App\Models\Branch;
 use Carbon\Carbon;
 
@@ -67,20 +64,7 @@ class LaporanPosController extends Controller
             ->with(['pasien', 'branch'])
             ->get();
 
-        // Stok menipis (default < 5)
-        $batasStok = 5;
-        $stokLensa = Lensa::when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->where('stok', '<', $batasStok)
-            ->with('branch')
-            ->get();
-        $stokFrame = Frame::when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->where('stok', '<', $batasStok)
-            ->with('branch')
-            ->get();
-        $stokAksesoris = Aksesoris::when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->where('stok', '<', $batasStok)
-            ->with('branch')
-            ->get();
+
 
         // Piutang (total dan list transaksi belum lunas)
         $piutangList = Penjualan::when($branchId, fn($q) => $q->where('branch_id', $branchId))
@@ -131,8 +115,7 @@ class LaporanPosController extends Controller
 
         return view('laporan.pos', compact(
             'omsetHarian', 'omsetBulanan', 'rekapDP', 'rekapLunas',
-            'stokLensa', 'stokFrame', 'stokAksesoris', 'batasStok', 'bulan', 'tahun',
-            'piutangList', 'totalPiutang', 'omsetLayanan',
+            'bulan', 'tahun', 'piutangList', 'totalPiutang', 'omsetLayanan',
             'detailHarian', 'detailBulanan', 'branches', 'selectedBranchId', 
             'selectedBranch', 'isSuperAdmin', 'summaryCabang'
         ));

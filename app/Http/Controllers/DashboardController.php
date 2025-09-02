@@ -202,6 +202,38 @@ class DashboardController extends Controller
             ->whereDate('created_at', now())
             ->count();
 
+        // Low stock data (stok < 5)
+        $batasStok = 5;
+        $lowStockLensa = \App\Models\Lensa::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
+            ->where('stok', '<', $batasStok)
+            ->with('branch')
+            ->get();
+        $lowStockFrame = \App\Models\Frame::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
+            ->where('stok', '<', $batasStok)
+            ->with('branch')
+            ->get();
+        $lowStockAksesoris = \App\Models\Aksesoris::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
+            ->where('stok', '<', $batasStok)
+            ->with('branch')
+            ->get();
+
+        // Data untuk passet bantu - transaksi yang menunggu pengerjaan
+        $transaksiMenungguPengerjaan = null;
+        if ($user->isPassetBantu()) {
+            $transaksiMenungguPengerjaan = \App\Models\Penjualan::whereIn('status_pengerjaan', ['Menunggu Pengerjaan', 'Sedang Dikerjakan'])
+                ->count();
+        }
+
+        // Data untuk passet bantu - transaksi yang sudah dikerjakan user ini di bulan ini
+        $transaksiSelesaiBulanIni = null;
+        if ($user->isPassetBantu()) {
+            $transaksiSelesaiBulanIni = \App\Models\Penjualan::where('passet_by_user_id', $user->id)
+                ->where('status_pengerjaan', 'Selesai Dikerjakan')
+                ->whereMonth('waktu_selesai_dikerjakan', now()->month)
+                ->whereYear('waktu_selesai_dikerjakan', now()->year)
+                ->count();
+        }
+
         // Data detail untuk modal
         $detailFrame = \App\Models\Frame::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)->limit(100)->get();
         $detailLensa = \App\Models\Lensa::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)->limit(100)->get();
@@ -221,7 +253,9 @@ class DashboardController extends Controller
             'branches', 'selectedBranchId', 'openDay',
             'jumlahFrame', 'jumlahLensa', 'jumlahAksesoris', 'jumlahPasien', 'jumlahTransaksiAktif',
             'detailFrame', 'detailLensa', 'detailAksesoris', 'detailPasien', 'detailTransaksiAktif',
-            'rekapOmset', 'omsetKasir', 'omsetBpjs', 'omsetUmum', 'transaksiKasir', 'chartData'
+            'rekapOmset', 'omsetKasir', 'omsetBpjs', 'omsetUmum', 'transaksiKasir', 'chartData',
+            'lowStockLensa', 'lowStockFrame', 'lowStockAksesoris', 'batasStok',
+            'transaksiMenungguPengerjaan', 'transaksiSelesaiBulanIni'
         ));
     }
 
@@ -352,12 +386,60 @@ class DashboardController extends Controller
             ->groupBy('transaction_status')
             ->get();
 
+        // Data penjualan bulanan untuk Cabang 1 dan Cabang 2 (12 bulan terakhir)
+        $monthlySalesBranch1 = [];
+        $monthlySalesBranch2 = [];
+        $months = [];
+
+        // Get branch IDs for "Cabang 1" and "Cabang 2"
+        $branch1 = \App\Models\Branch::where('name', 'Cabang 1')->first();
+        $branch2 = \App\Models\Branch::where('name', 'Cabang 2')->first();
+
+        if ($branch1 && $branch2) {
+            for ($i = 11; $i >= 0; $i--) {
+                $date = now()->subMonths($i);
+                $monthYear = $date->format('Y-m');
+                $months[] = $date->format('M Y'); // e.g., Jan 2023
+
+                $sales1 = \App\Models\Penjualan::where('branch_id', $branch1->id)
+                    ->whereYear('created_at', $date->year)
+                    ->whereMonth('created_at', $date->month)
+                    ->sum('total');
+                $monthlySalesBranch1[] = $sales1;
+
+                $sales2 = \App\Models\Penjualan::where('branch_id', $branch2->id)
+                    ->whereYear('created_at', $date->year)
+                    ->whereMonth('created_at', $date->month)
+                    ->sum('total');
+                $monthlySalesBranch2[] = $sales2;
+            }
+        }
+
         return [
             'daily_sales' => $dailySales,
             'last_7_days' => $last7Days,
             'bpjs_vs_umum' => $bpjsVsUmum,
             'branch_sales' => $branchSales,
-            'bpjs_status' => $bpjsStatus
+            'bpjs_status' => $bpjsStatus,
+            'monthly_sales_branches' => [
+                'labels' => $months,
+                'datasets' => [
+                    [
+                        'label' => 'Cabang 1',
+                        'data' => $monthlySalesBranch1,
+                        'backgroundColor' => 'rgba(60, 141, 188, 0.7)',
+                        'borderColor' => 'rgba(60, 141, 188, 1)',
+                        'borderWidth' => 1
+                    ],
+                    [
+                        'label' => 'Cabang 2',
+                        'data' => $monthlySalesBranch2,
+                        'backgroundColor' => 'rgba(0, 166, 90, 0.7)',
+                        'borderColor' => 'rgba(0, 166, 90, 1)',
+                        'borderWidth' => 1
+                    ]
+                ]
+            ]
         ];
     }
 } 

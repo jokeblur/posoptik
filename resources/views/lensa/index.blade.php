@@ -27,7 +27,65 @@
             </div>
         </div>
     </div>
-    
+</div>
+
+<!-- Stok Menipis Card -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="box box-danger">
+            <div class="box-header with-border">
+                <h3 class="box-title">
+                    <i class="fa fa-exclamation-triangle"></i> 
+                    Stok Menipis (Stok < {{ $batasStok }})
+                </h3>
+            </div>
+            <div class="box-body">
+                @if($lowStockLensa->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Kode</th>
+                                    <th>Merk</th>
+                                    @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                                    <th>Cabang</th>
+                                    @endif
+                                    <th>Type</th>
+                                    <th>Index</th>
+                                    <th>Stok</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($lowStockLensa as $item)
+                                <tr class="bg-danger">
+                                    <td>{{ $item->kode_lensa }}</td>
+                                    <td>{{ $item->merk_lensa }}</td>
+                                    @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                                    <td><span class="label label-warning">{{ $item->branch->name ?? '-' }}</span></td>
+                                    @endif
+                                    <td>{{ $item->type ?? '-' }}</td>
+                                    <td>{{ $item->index ?? '-' }}</td>
+                                    <td><span class="badge bg-red">{{ $item->stok }}</span></td>
+                                    <td>
+                                        <button onclick="editform('{{ route('lensa.update', $item->id) }}')" class="btn btn-xs btn-info btn-flat">
+                                            <i class="fa fa-pencil"></i> Edit
+                                        </button>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-center">
+                        <h4><i class="fa fa-check-circle text-success"></i> Stok Aman</h4>
+                        <p>Tidak ada lensa dengan stok di bawah {{ $batasStok }}</p>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="row mb-3">

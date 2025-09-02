@@ -28,7 +28,17 @@ class PenjualanController extends Controller
      */
     public function index()
     {
-        return view('penjualan.index');
+        $user = auth()->user();
+        $branches = collect(); // Default to empty collection
+        $selectedBranchId = $user->branch_id;
+
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
+            $branches = \App\Models\Branch::all();
+            // If an active branch is set in session, use it, otherwise use user's default
+            $selectedBranchId = session('active_branch_id', $user->branch_id);
+        }
+
+        return view('penjualan.index', compact('branches', 'selectedBranchId'));
     }
 
     public function statistics()
@@ -36,8 +46,20 @@ class PenjualanController extends Controller
         $user = auth()->user();
         $query = Penjualan::query();
 
-        // Jika user bukan super admin, filter berdasarkan cabang mereka
-        if ($user->role !== 'super admin') {
+        // Jika user super admin atau admin, gunakan branch_id dari request jika ada
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
+            if (request()->has('branch_id') && request()->branch_id !== '') {
+                $query->where('branch_id', request()->branch_id);
+            } else {
+                // Jika tidak ada branch_id di request, default ke branch user atau semua jika super admin
+                // Note: Jika memilih 'Tampilkan Semua Cabang', request()->branch_id akan menjadi empty string
+                // Jadi hanya terapkan filter jika ada branch_id yang valid
+                if (!$user->isSuperAdmin()) { // Hanya terapkan default jika bukan super admin
+                    $query->where('branch_id', $user->branch_id);
+                }
+            }
+        } else {
+            // User biasa hanya bisa melihat cabang mereka sendiri
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -61,8 +83,20 @@ class PenjualanController extends Controller
         $user = auth()->user();
         $query = Penjualan::with('user', 'branch', 'passetByUser', 'dokter', 'pasien')->latest();
 
-        // Jika user bukan super admin, filter berdasarkan cabang mereka
-        if ($user->role !== 'super admin') {
+        // Jika user super admin atau admin, gunakan branch_id dari request jika ada
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
+            if ($request->has('branch_id') && $request->branch_id !== '') {
+                $query->where('branch_id', $request->branch_id);
+            } else {
+                // Jika tidak ada branch_id di request, default ke branch user atau semua jika super admin
+                // Note: Jika memilih 'Tampilkan Semua Cabang', request()->branch_id akan menjadi empty string
+                // Jadi hanya terapkan filter jika ada branch_id yang valid
+                if (!$user->isSuperAdmin()) { // Hanya terapkan default jika bukan super admin
+                    $query->where('branch_id', $user->branch_id);
+                }
+            }
+        } else {
+            // User biasa hanya bisa melihat cabang mereka sendiri
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -98,7 +132,13 @@ class PenjualanController extends Controller
                 return $penjualan->pasien->nama_pasien ?? '-';
             })
             ->addColumn('nama_dokter', function ($penjualan) {
-                return $penjualan->dokter->nama_dokter ?? '-';
+                if ($penjualan->dokter && !empty($penjualan->dokter->nama_dokter)) {
+                    return $penjualan->dokter->nama_dokter;
+                }
+                if (!empty($penjualan->dokter_manual)) {
+                    return $penjualan->dokter_manual;
+                }
+                return '-';
             })
             ->addColumn('status_transaksi', function ($penjualan) {
                 if ($penjualan->transaction_status == 'Naik Kelas') {
@@ -130,19 +170,19 @@ class PenjualanController extends Controller
             })
             ->addColumn('aksi', function ($penjualan) {
                 $user = auth()->user();
-                $detailButton = '<a href="'. route('penjualan.show', $penjualan->id) .'" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i> Detail</a>';
-                $editButton = '<a href="'. route('penjualan.edit', $penjualan->id) .'" class="btn btn-xs btn-warning btn-flat"><i class="fa fa-edit"></i> Edit</a>';
+                $detailButton = '<a href="'. route('penjualan.show', $penjualan->id) .'" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i></a>';
+                $editButton = '<a href="'. route('penjualan.edit', $penjualan->id) .'" class="btn btn-xs btn-warning btn-flat"><i class="fa fa-edit"></i></a>';
                 $ambilButton = '';
                 $deleteButton = '';
                 
                 if ($penjualan->status_pengerjaan == 'Selesai Dikerjakan') {
-                    $ambilButton = '<button onclick="tandaiDiambil(`'. route('penjualan.diambil', $penjualan->id) .'`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-check-square"></i> Tandai Diambil</button>';
+                    $ambilButton = '<button onclick="tandaiDiambil(`'. route('penjualan.diambil', $penjualan->id) .'`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-check-square"></i></button>';
                 }
                 
                 // Hanya super admin dan admin yang bisa menghapus transaksi
                 if (($user->isSuperAdmin() || $user->isAdmin()) && 
                     ($user->role === 'super admin' || $penjualan->branch_id === $user->branch_id)) {
-                    $deleteButton = '<button onclick="hapusTransaksi(`'. route('penjualan.destroy', $penjualan->id) .'`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i> Hapus</button>';
+                    $deleteButton = '<button onclick="hapusTransaksi(`'. route('penjualan.destroy', $penjualan->id) .'`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>';
                 }
 
                 return '

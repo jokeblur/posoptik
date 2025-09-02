@@ -105,7 +105,7 @@ class User extends Authenticatable
      */
     public function canAccessAllBranches(): bool
     {
-        return trim($this->role) === self::ROLE_SUPER_ADMIN;
+        return trim($this->role) === self::ROLE_SUPER_ADMIN || trim($this->role) === self::ROLE_ADMIN;
     }
 
     /**

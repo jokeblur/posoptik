@@ -160,24 +160,29 @@
         table = $('#bpjs-table').DataTable({
             processing: true,
             serverSide: true,
+            order: [[1, 'desc']], // Order by tanggal column descending
             ajax: {
                 url: '{{ route("laporan.bpjs.data") }}',
                 data: function(d) {
                     d.start_date = $('#start_date').val();
                     d.end_date = $('#end_date').val();
                     d.transaction_type = $('#transaction_type').val();
+                },
+                error: function(xhr, error, thrown) {
+                    console.log('DataTables Error:', error);
+                    console.log('Response:', xhr.responseText);
                 }
             },
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                { data: 'tanggal', name: 'tanggal' },
+                { data: 'tanggal', name: 'created_at' },
                 { data: 'kode_penjualan', name: 'kode_penjualan' },
                 { data: 'nama_pasien', name: 'nama_pasien' },
-                { data: 'jenis_layanan', name: 'jenis_layanan' },
-                { data: 'status_transaksi', name: 'status_transaksi' },
-                { data: 'total_harga', name: 'total_harga' },
-                { data: 'harga_default_bpjs', name: 'harga_default_bpjs' },
-                { data: 'biaya_tambahan', name: 'biaya_tambahan' },
+                { data: 'jenis_layanan', name: 'pasien_service_type' },
+                { data: 'status_transaksi', name: 'transaction_status' },
+                { data: 'total_harga', name: 'total' },
+                { data: 'harga_default_bpjs', name: 'bpjs_default_price' },
+                { data: 'biaya_tambahan', name: 'total_additional_cost' },
                 { data: 'kasir', name: 'kasir' },
                 { data: 'cabang', name: 'cabang' },
                 { data: 'aksi', name: 'aksi', orderable: false, searchable: false }
@@ -221,6 +226,10 @@
 
             $('#total_default_bpjs').text('Rp ' + formatNumber(data.bpjs_normal_default_total + data.bpjs_naik_kelas_default_total));
             $('#total_additional_cost').text('Rp ' + formatNumber(data.bpjs_naik_kelas_additional_total));
+        })
+        .fail(function(xhr, status, error) {
+            console.log('Summary Error:', error);
+            console.log('Response:', xhr.responseText);
         });
     }
 

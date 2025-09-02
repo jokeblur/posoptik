@@ -128,10 +128,13 @@
             body {
                 margin: 0.5cm;
             }
+            .print-button-container {
+                display: none; /* Hide button when printing */
+            }
         }
     </style>
 </head>
-<body onload="window.print()">
+<body {{-- onload="window.print()" --}}>
     <div class="container">
         <div class="header">
             <h2>{{ $penjualan->branch->name ?? 'Optik Melati' }}</h2>
@@ -322,6 +325,10 @@
 
         <hr class="dashed">
 
+        <div class="print-button-container" style="text-align: center; margin-top: 20px;">
+            <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Cetak Sekarang</button>
+        </div>
+
         <div class="footer">
             <p>Terima kasih atas kunjungan Anda!</p>
             <p>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.</p>
@@ -330,10 +337,12 @@
 
     <script>
         // Sedikit delay untuk memastikan semua konten termuat sebelum print
+        /*
         setTimeout(function () { 
             window.print();
             // window.close(); // Uncomment baris ini jika ingin tab otomatis tertutup setelah print
         }, 500);
+        */
     </script>
 </body>
 </html> 

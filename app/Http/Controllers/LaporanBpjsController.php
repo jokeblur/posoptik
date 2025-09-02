@@ -17,7 +17,7 @@ class LaporanBpjsController extends Controller
     public function data(Request $request)
     {
         $user = auth()->user();
-        $query = Transaksi::with('user', 'branch', 'pasien')->latest();
+        $query = Transaksi::with('user', 'branch', 'pasien');
 
         // Filter berdasarkan cabang jika bukan super admin
         if ($user->role !== 'super admin') {
@@ -52,11 +52,12 @@ class LaporanBpjsController extends Controller
             }
         }
 
-        $transactions = $query->get();
-
         return datatables()
-            ->of($transactions)
+            ->of($query)
             ->addIndexColumn()
+            ->orderColumn('tanggal', function ($query, $order) {
+                return $query->orderBy('created_at', $order);
+            })
             ->addColumn('tanggal', function ($transaction) {
                 return tanggal_indonesia($transaction->created_at, false);
             })
@@ -104,6 +105,12 @@ class LaporanBpjsController extends Controller
             })
             ->addColumn('aksi', function ($transaction) {
                 return '<a href="'. route('penjualan.show', $transaction->id) .'" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i> Detail</a>';
+            })
+            ->filterColumn('nama_pasien', function($query, $keyword) {
+                $query->where('nama_pasien_manual', 'like', "%{$keyword}%")
+                      ->orWhereHas('pasien', function($q) use ($keyword) {
+                          $q->where('nama_pasien', 'like', "%{$keyword}%");
+                      });
             })
             ->rawColumns(['kode_penjualan', 'jenis_layanan', 'status_transaksi', 'biaya_tambahan', 'aksi'])
             ->make(true);

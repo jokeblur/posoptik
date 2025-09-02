@@ -54,7 +54,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-        <button type="button" class="btn btn-primary" id="btn-submit-user-passet">Tandai Selesai</button>
+        <button type="button" class="btn btn-primary fa fa-cog" id="btn-submit-user-passet"></button>
       </div>
     </div>
   </div>
@@ -89,16 +89,25 @@
             $('#modal-url-passet').val(url);
             $('#modal-user-passet').modal('show');
         } else {
-            if (confirm('Anda yakin pengerjaan untuk item ini sudah selesai?')) {
-                $.post(url, { '_token': '{{ csrf_token() }}' })
-                    .done(response => {
-                        table.ajax.reload();
-                        Swal.fire('Berhasil!', response.message, 'success');
-                    })
-                    .fail(errors => {
-                        Swal.fire('Gagal!', 'Tidak dapat mengubah status.', 'error');
-                    });
-            }
+            Swal.fire({
+                title: 'Konfirmasi',
+                text: 'Anda yakin pengerjaan untuk item ini sudah selesai?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Selesai',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post(url, { '_token': '{{ csrf_token() }}' })
+                        .done(response => {
+                            table.ajax.reload();
+                            Swal.fire('Berhasil!', response.message, 'success');
+                        })
+                        .fail(errors => {
+                            Swal.fire('Gagal!', 'Tidak dapat mengubah status.', 'error');
+                        });
+                }
+            });
         }
     }
 
@@ -107,7 +116,7 @@
         var url = $('#modal-url-passet').val();
         var user_id = $('#user_id').val();
         if (!user_id) {
-            alert('Pilih user passet terlebih dahulu!');
+            Swal.fire('Perhatian', 'Pilih user passet terlebih dahulu!', 'warning');
             return;
         }
         $.post(url, { '_token': '{{ csrf_token() }}', 'user_id': user_id })

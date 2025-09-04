@@ -2,7 +2,7 @@
   "name": "Optik Melati",
   "short_name": "Optik Melati",
   "description": "Aplikasi manajemen optik dan resep kacamata",
-  "start_url": "/",
+  "start_url": "/login",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#e74c3c",

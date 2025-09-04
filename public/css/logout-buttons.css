@@ -1,0 +1,166 @@
+/* Custom Logout Buttons CSS for POS Optik Melati */
+
+/* Primary Logout Button */
+.quick-logout-btn {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+}
+
+.logout-btn-primary {
+    display: flex !important;
+    align-items: center !important;
+    background: linear-gradient(135deg, #dc3545, #c82333) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    margin: 8px 5px !important;
+    text-decoration: none !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3) !important;
+}
+
+.logout-btn-primary:hover {
+    background: linear-gradient(135deg, #c82333, #bd2130) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4) !important;
+    color: white !important;
+    text-decoration: none !important;
+}
+
+.logout-btn-primary:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3) !important;
+}
+
+.logout-btn-primary i {
+    margin-right: 5px !important;
+    font-size: 12px !important;
+}
+
+/* Secondary Logout Button (Circular) */
+.quick-logout-btn-alt {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+}
+
+.logout-btn-secondary {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: linear-gradient(135deg, #6c757d, #5a6268) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 50% !important;
+    width: 35px !important;
+    height: 35px !important;
+    text-decoration: none !important;
+    font-size: 14px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3) !important;
+    margin: 8px 5px !important;
+}
+
+.logout-btn-secondary:hover {
+    background: linear-gradient(135deg, #5a6268, #495057) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(108, 117, 125, 0.4) !important;
+    color: white !important;
+    text-decoration: none !important;
+}
+
+.logout-btn-secondary:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3) !important;
+}
+
+/* Success Logout Button (Alternative Style) */
+.logout-btn-success {
+    display: flex !important;
+    align-items: center !important;
+    background: linear-gradient(135deg, #28a745, #1e7e34) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    margin: 8px 5px !important;
+    text-decoration: none !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3) !important;
+}
+
+.logout-btn-success:hover {
+    background: linear-gradient(135deg, #1e7e34, #155724) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4) !important;
+    color: white !important;
+    text-decoration: none !important;
+}
+
+/* Warning Logout Button (Alternative Style) */
+.logout-btn-warning {
+    display: flex !important;
+    align-items: center !important;
+    background: linear-gradient(135deg, #ffc107, #e0a800) !important;
+    color: #212529 !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    margin: 8px 5px !important;
+    text-decoration: none !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3) !important;
+}
+
+.logout-btn-warning:hover {
+    background: linear-gradient(135deg, #e0a800, #d39e00) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.4) !important;
+    color: #212529 !important;
+    text-decoration: none !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .logout-btn-primary {
+        padding: 6px 8px !important;
+        font-size: 12px !important;
+    }
+    
+    .logout-btn-primary i {
+        margin-right: 3px !important;
+    }
+    
+    .logout-btn-secondary {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 12px !important;
+    }
+    
+    .logout-btn-success,
+    .logout-btn-warning {
+        padding: 6px 8px !important;
+        font-size: 12px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .logout-btn-primary {
+        padding: 4px 6px !important;
+        font-size: 11px !important;
+    }
+    
+    .logout-btn-secondary {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 11px !important;
+    }
+}

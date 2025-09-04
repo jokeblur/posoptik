@@ -31,6 +31,20 @@
                 <!-- Stock Transfer Notifications -->
                 @include('partials.stock-transfer-notifications')
                 
+                <!-- Quick Logout Buttons -->
+                <li class="quick-logout-btn">
+                    <a href="#" onclick="confirmLogout(); return false;" class="logout-btn-primary">
+                        <i class="fa fa-sign-out"></i> Logout
+                    </a>
+                </li>
+                
+                <!-- Alternative Logout Button (Smaller) -->
+                <li class="quick-logout-btn-alt">
+                    <a href="{{ route('logout.direct') }}" onclick="return confirm('Yakin ingin logout?')" class="logout-btn-secondary" title="Logout Cepat">
+                        <i class="fa fa-power-off"></i>
+                    </a>
+                </li>
+                
                 <!-- User Account: style can be found in dropdown.less -->
                 <li class="dropdown user user-menu">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown" onclick="event.preventDefault(); $(this).next('.dropdown-menu').toggleClass('show'); $(this).parent().toggleClass('open');">
@@ -99,6 +113,104 @@ $(document).ready(function() {
 });
 </script>
 @endif
+
+<!-- CSS untuk tombol logout baru -->
+<style>
+.quick-logout-btn {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+}
+
+.quick-logout-btn a {
+    display: flex !important;
+    align-items: center !important;
+    background: linear-gradient(135deg, #dc3545, #c82333) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    margin: 8px 5px !important;
+    text-decoration: none !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3) !important;
+}
+
+.quick-logout-btn a:hover {
+    background: linear-gradient(135deg, #c82333, #bd2130) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4) !important;
+    color: white !important;
+    text-decoration: none !important;
+}
+
+.quick-logout-btn a:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3) !important;
+}
+
+.quick-logout-btn a i {
+    margin-right: 5px !important;
+    font-size: 12px !important;
+}
+
+/* Alternative Logout Button (Smaller) */
+.quick-logout-btn-alt {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+}
+
+.logout-btn-secondary {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: linear-gradient(135deg, #6c757d, #5a6268) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 50% !important;
+    width: 35px !important;
+    height: 35px !important;
+    text-decoration: none !important;
+    font-size: 14px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3) !important;
+    margin: 8px 5px !important;
+}
+
+.logout-btn-secondary:hover {
+    background: linear-gradient(135deg, #5a6268, #495057) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(108, 117, 125, 0.4) !important;
+    color: white !important;
+    text-decoration: none !important;
+}
+
+.logout-btn-secondary:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3) !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .quick-logout-btn a {
+        padding: 6px 8px !important;
+        font-size: 12px !important;
+    }
+    
+    .quick-logout-btn a i {
+        margin-right: 3px !important;
+    }
+    
+    .logout-btn-secondary {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 12px !important;
+    }
+}
+</style>
 
 <!-- Fix untuk navbar dropdown di VPS -->
 <script>

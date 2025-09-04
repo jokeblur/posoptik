@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Camera - POS Optik Melati</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .camera-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 20px auto;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+        }
+        video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .camera-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .instructions {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Test Camera - POS Optik Melati</h1>
+        
+        <div class="instructions">
+            <h3>🔧 Cara Test Kamera:</h3>
+            <ol>
+                <li>Pastikan Anda menggunakan <strong>HTTPS</strong> (bukan HTTP)</li>
+                <li>Klik tombol "Test Kamera"</li>
+                <li>Izinkan akses kamera jika diminta browser</li>
+                <li>Kamera belakang akan otomatis dipilih</li>
+                <li>Jika tidak berfungsi, coba ganti kamera</li>
+            </ol>
+        </div>
+        
+        <div class="controls">
+            <button id="testCamera" class="btn btn-primary">📷 Test Kamera</button>
+            <button id="stopCamera" class="btn btn-danger" style="display: none;">⏹️ Stop Kamera</button>
+            <button id="switchCamera" class="btn btn-success" style="display: none;">🔄 Ganti Kamera</button>
+        </div>
+        
+        <div id="status" class="status info">
+            Status: Siap untuk test kamera
+        </div>
+        
+        <div class="camera-container" id="cameraContainer" style="display: none;">
+            <video id="video" autoplay playsinline></video>
+        </div>
+        
+        <div id="cameraInfo" class="camera-info" style="display: none;">
+            <h4>📋 Informasi Kamera:</h4>
+            <div id="cameraDetails"></div>
+        </div>
+        
+        <div class="instructions">
+            <h3>🚨 Troubleshooting:</h3>
+            <ul>
+                <li><strong>Kamera tidak muncul:</strong> Pastikan menggunakan HTTPS</li>
+                <li><strong>Permission denied:</strong> Izinkan akses kamera di pengaturan browser</li>
+                <li><strong>Kamera depan muncul:</strong> Klik "Ganti Kamera" untuk kamera belakang</li>
+                <li><strong>Error di mobile:</strong> Pastikan browser mendukung getUserMedia</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let currentStream = null;
+        let currentDeviceIndex = 0;
+        let availableDevices = [];
+
+        const testCameraBtn = document.getElementById('testCamera');
+        const stopCameraBtn = document.getElementById('stopCamera');
+        const switchCameraBtn = document.getElementById('switchCamera');
+        const statusDiv = document.getElementById('status');
+        const cameraContainer = document.getElementById('cameraContainer');
+        const video = document.getElementById('video');
+        const cameraInfo = document.getElementById('cameraInfo');
+        const cameraDetails = document.getElementById('cameraDetails');
+
+        testCameraBtn.addEventListener('click', testCamera);
+        stopCameraBtn.addEventListener('click', stopCamera);
+        switchCameraBtn.addEventListener('click', switchCamera);
+
+        async function testCamera() {
+            try {
+                updateStatus('Mencari kamera yang tersedia...', 'info');
+                
+                // Get available devices
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                if (videoDevices.length === 0) {
+                    updateStatus('Tidak ada kamera yang ditemukan', 'error');
+                    return;
+                }
+                
+                availableDevices = videoDevices;
+                updateStatus(`Ditemukan ${videoDevices.length} kamera`, 'success');
+                
+                // Try to find back camera
+                let backCameraIndex = videoDevices.findIndex(device => 
+                    device.label && (
+                        device.label.toLowerCase().includes('back') ||
+                        device.label.toLowerCase().includes('rear') ||
+                        device.label.toLowerCase().includes('environment') ||
+                        device.label.toLowerCase().includes('0')
+                    )
+                );
+                
+                if (backCameraIndex === -1) {
+                    // Use last camera (usually back camera on mobile)
+                    backCameraIndex = videoDevices.length - 1;
+                }
+                
+                currentDeviceIndex = backCameraIndex;
+                
+                // Start camera
+                await startCamera(videoDevices[currentDeviceIndex].deviceId);
+                
+            } catch (error) {
+                console.error('Camera test error:', error);
+                handleCameraError(error);
+            }
+        }
+
+        async function startCamera(deviceId) {
+            try {
+                // Stop current stream if any
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+                
+                updateStatus('Memulai kamera...', 'info');
+                
+                const constraints = {
+                    video: {
+                        deviceId: { exact: deviceId },
+                        facingMode: { ideal: "environment" },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+                
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = currentStream;
+                
+                cameraContainer.style.display = 'block';
+                cameraInfo.style.display = 'block';
+                testCameraBtn.style.display = 'none';
+                stopCameraBtn.style.display = 'inline-block';
+                
+                if (availableDevices.length > 1) {
+                    switchCameraBtn.style.display = 'inline-block';
+                }
+                
+                updateStatus('Kamera berhasil dimulai!', 'success');
+                updateCameraInfo();
+                
+            } catch (error) {
+                console.error('Start camera error:', error);
+                handleCameraError(error);
+            }
+        }
+
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            
+            video.srcObject = null;
+            cameraContainer.style.display = 'none';
+            cameraInfo.style.display = 'none';
+            testCameraBtn.style.display = 'inline-block';
+            stopCameraBtn.style.display = 'none';
+            switchCameraBtn.style.display = 'none';
+            
+            updateStatus('Kamera dihentikan', 'info');
+        }
+
+        function switchCamera() {
+            if (availableDevices.length <= 1) return;
+            
+            currentDeviceIndex = (currentDeviceIndex + 1) % availableDevices.length;
+            startCamera(availableDevices[currentDeviceIndex].deviceId);
+        }
+
+        function updateCameraInfo() {
+            if (availableDevices.length > 0) {
+                const device = availableDevices[currentDeviceIndex];
+                const deviceInfo = `
+                    <p><strong>Nama:</strong> ${device.label || 'Kamera tidak dikenal'}</p>
+                    <p><strong>ID:</strong> ${device.deviceId}</p>
+                    <p><strong>Jenis:</strong> ${device.kind}</p>
+                    <p><strong>Index:</strong> ${currentDeviceIndex + 1} dari ${availableDevices.length}</p>
+                `;
+                cameraDetails.innerHTML = deviceInfo;
+            }
+        }
+
+        function updateStatus(message, type) {
+            statusDiv.textContent = `Status: ${message}`;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function handleCameraError(error) {
+            let message = 'Error: Gagal mengakses kamera';
+            
+            if (error.name === 'NotAllowedError') {
+                message = 'Error: Akses kamera ditolak. Silakan izinkan akses kamera.';
+            } else if (error.name === 'NotFoundError') {
+                message = 'Error: Kamera tidak ditemukan.';
+            } else if (error.name === 'NotSupportedError') {
+                message = 'Error: Browser tidak mendukung akses kamera.';
+            } else if (error.name === 'NotReadableError') {
+                message = 'Error: Kamera sedang digunakan oleh aplikasi lain.';
+            } else if (error.name === 'OverconstrainedError') {
+                message = 'Error: Konfigurasi kamera tidak didukung.';
+            } else if (error.name === 'SecurityError') {
+                message = 'Error: Akses kamera diblokir. Pastikan menggunakan HTTPS.';
+            }
+            
+            updateStatus(message, 'error');
+        }
+
+        // Check if running on HTTPS
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            updateStatus('PERINGATAN: Kamera memerlukan HTTPS untuk berfungsi!', 'error');
+        }
+
+        // Check browser support
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            updateStatus('Error: Browser tidak mendukung akses kamera', 'error');
+        }
+    </script>
+</body>
+</html>

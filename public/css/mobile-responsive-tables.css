@@ -1,0 +1,304 @@
+/* Mobile Responsive Tables CSS for POS Optik Melati */
+
+/* ===== MOBILE RESPONSIVE TABLE CONTAINER ===== */
+.table-responsive-mobile {
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    background: #fff !important;
+    margin-bottom: 20px !important;
+}
+
+/* ===== SCROLL INDICATORS ===== */
+.table-responsive-mobile::before,
+.table-responsive-mobile::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 20px !important;
+    pointer-events: none !important;
+    z-index: 10 !important;
+}
+
+.table-responsive-mobile::before {
+    left: 0 !important;
+    background: linear-gradient(to right, rgba(255,255,255,1), rgba(255,255,255,0)) !important;
+}
+
+.table-responsive-mobile::after {
+    right: 0 !important;
+    background: linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0)) !important;
+}
+
+/* ===== TABLE STYLING ===== */
+.table-responsive-mobile .table,
+.table-responsive-mobile .dataTable {
+    width: 100% !important;
+    min-width: 600px !important; /* Minimum width untuk scroll horizontal */
+    margin-bottom: 0 !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    background: #fff !important;
+}
+
+/* ===== TABLE HEADER ===== */
+.table-responsive-mobile .table thead th,
+.table-responsive-mobile .dataTable thead th {
+    background: linear-gradient(135deg, #a4193d, #8b1532) !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    padding: 12px 8px !important;
+    text-align: center !important;
+    border: none !important;
+    white-space: nowrap !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 5 !important;
+}
+
+/* ===== TABLE BODY ===== */
+.table-responsive-mobile .table tbody td,
+.table-responsive-mobile .dataTable tbody td {
+    padding: 10px 8px !important;
+    font-size: 12px !important;
+    border-bottom: 1px solid #eee !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+}
+
+/* ===== ALTERNATING ROWS ===== */
+.table-responsive-mobile .table tbody tr:nth-child(even),
+.table-responsive-mobile .dataTable tbody tr:nth-child(even) {
+    background-color: #f8f9fa !important;
+}
+
+.table-responsive-mobile .table tbody tr:hover,
+.table-responsive-mobile .dataTable tbody tr:hover {
+    background-color: #e3f2fd !important;
+}
+
+/* ===== MOBILE SPECIFIC STYLES ===== */
+@media (max-width: 768px) {
+    .table-responsive-mobile {
+        margin: 0 -15px !important;
+        border-radius: 0 !important;
+    }
+    
+    .table-responsive-mobile .table,
+    .table-responsive-mobile .dataTable {
+        min-width: 500px !important;
+    }
+    
+    .table-responsive-mobile .table thead th,
+    .table-responsive-mobile .dataTable thead th {
+        font-size: 11px !important;
+        padding: 10px 6px !important;
+    }
+    
+    .table-responsive-mobile .table tbody td,
+    .table-responsive-mobile .dataTable tbody td {
+        font-size: 11px !important;
+        padding: 8px 6px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .table-responsive-mobile .table,
+    .table-responsive-mobile .dataTable {
+        min-width: 400px !important;
+    }
+    
+    .table-responsive-mobile .table thead th,
+    .table-responsive-mobile .dataTable thead th {
+        font-size: 10px !important;
+        padding: 8px 4px !important;
+    }
+    
+    .table-responsive-mobile .table tbody td,
+    .table-responsive-mobile .dataTable tbody td {
+        font-size: 10px !important;
+        padding: 6px 4px !important;
+    }
+}
+
+/* ===== DATATABLES MOBILE OPTIMIZATION ===== */
+@media (max-width: 768px) {
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter {
+        float: none !important;
+        text-align: center !important;
+        margin: 10px 0 !important;
+    }
+    
+    .dataTables_wrapper .dataTables_length select,
+    .dataTables_wrapper .dataTables_filter input {
+        width: 100% !important;
+        max-width: 200px !important;
+        margin: 5px auto !important;
+    }
+    
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        float: none !important;
+        text-align: center !important;
+        margin: 10px 0 !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 4px 6px !important;
+        margin: 2px !important;
+        font-size: 12px !important;
+    }
+}
+
+/* ===== CARD VIEW FOR MOBILE (ALTERNATIVE) ===== */
+@media (max-width: 768px) {
+    .table-card-view {
+        display: none !important;
+    }
+    
+    .table-card-view-mobile {
+        display: block !important;
+    }
+    
+    .table-card-view-mobile .card {
+        margin-bottom: 10px !important;
+        border: 1px solid #ddd !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    }
+    
+    .table-card-view-mobile .card-header {
+        background: linear-gradient(135deg, #a4193d, #8b1532) !important;
+        color: #fff !important;
+        padding: 10px 15px !important;
+        font-weight: 600 !important;
+        border-radius: 8px 8px 0 0 !important;
+    }
+    
+    .table-card-view-mobile .card-body {
+        padding: 15px !important;
+    }
+    
+    .table-card-view-mobile .card-body .row {
+        margin-bottom: 8px !important;
+    }
+    
+    .table-card-view-mobile .card-body .col-sm-3 {
+        font-weight: 600 !important;
+        color: #666 !important;
+    }
+    
+    .table-card-view-mobile .card-body .col-sm-9 {
+        color: #333 !important;
+    }
+}
+
+/* ===== BUTTONS IN MOBILE ===== */
+@media (max-width: 768px) {
+    .table-responsive-mobile .btn {
+        padding: 4px 8px !important;
+        font-size: 10px !important;
+        margin: 2px !important;
+    }
+    
+    .table-responsive-mobile .btn-group .btn {
+        padding: 4px 6px !important;
+    }
+}
+
+/* ===== SCROLLBAR STYLING ===== */
+.table-responsive-mobile::-webkit-scrollbar {
+    height: 8px !important;
+}
+
+.table-responsive-mobile::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 4px !important;
+}
+
+.table-responsive-mobile::-webkit-scrollbar-thumb {
+    background: #a4193d !important;
+    border-radius: 4px !important;
+}
+
+.table-responsive-mobile::-webkit-scrollbar-thumb:hover {
+    background: #8b1532 !important;
+}
+
+/* ===== LOADING STATE ===== */
+.table-loading {
+    position: relative !important;
+}
+
+.table-loading::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(255, 255, 255, 0.8) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 1000 !important;
+}
+
+.table-loading::before {
+    content: 'Loading...' !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 1001 !important;
+    color: #a4193d !important;
+    font-weight: 600 !important;
+}
+
+/* ===== UTILITY CLASSES ===== */
+.mobile-hide {
+    display: block !important;
+}
+
+.mobile-show {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .mobile-hide {
+        display: none !important;
+    }
+    
+    .mobile-show {
+        display: block !important;
+    }
+}
+
+/* ===== FIX FOR EXISTING TABLES ===== */
+.table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+.table-responsive .table {
+    min-width: 600px !important;
+}
+
+@media (max-width: 768px) {
+    .table-responsive .table {
+        min-width: 500px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .table-responsive .table {
+        min-width: 400px !important;
+    }
+}

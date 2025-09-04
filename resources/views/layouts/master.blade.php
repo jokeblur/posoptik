@@ -18,6 +18,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Poppins" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/mobile-responsive-tables.css') }}">
     <link rel="stylesheet" href="{{ asset('AdminLTE2/dist/css/skins/_all-skins.min.css') }}">
     <!-- Morris chart -->
     <link rel="stylesheet" href="{{ asset('AdminLTE2/bower_components/morris.js/morris.css') }}">
@@ -412,5 +413,9 @@ $(document).ready(function() {
     min-width: 200px;
 }
 </style>
+
+<!-- Mobile DataTables Optimization -->
+<script src="{{ asset('js/mobile-datatables.js') }}"></script>
+
 </body>
 </html>

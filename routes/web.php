@@ -139,6 +139,9 @@ Route::middleware([
     
     // Barcode routes yang memerlukan auth
     Route::get('/barcode/scan', [App\Http\Controllers\BarcodeController::class, 'scan'])->name('barcode.scan');
+    Route::get('/barcode/scan-mobile', function() {
+        return view('barcode.scan_mobile');
+    })->name('barcode.scan.mobile');
     Route::post('/barcode/search', [App\Http\Controllers\BarcodeController::class, 'search'])->name('barcode.search');
     Route::post('/barcode/update-status', [App\Http\Controllers\BarcodeController::class, 'updateStatus'])->name('barcode.update-status');
     Route::post('/barcode/generate', [App\Http\Controllers\BarcodeController::class, 'generateBarcode'])->name('barcode.generate');

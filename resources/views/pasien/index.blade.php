@@ -26,8 +26,9 @@
                     <button type="submit" class="btn btn-primary">Import</button>
                 </form>
             </div>
-            <div class="box-body table-responsive">
-                <table class="table table-stipet table-bordered" id="table">
+            <div class="box-body">
+                @include('partials.mobile-table-wrapper')
+                <table class="table table-striped table-bordered datatable" id="table">
                     <thead>
                         <th width='3%'>
                             <input type="checkbox" name="select_all" id="select_all">

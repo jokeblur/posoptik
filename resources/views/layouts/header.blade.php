@@ -39,11 +39,11 @@
                 </li>
                 
                 <!-- Alternative Logout Button (Smaller) -->
-                <li class="quick-logout-btn-alt">
+                <!-- <li class="quick-logout-btn-alt">
                     <a href="{{ route('logout.direct') }}" onclick="return confirm('Yakin ingin logout?')" class="logout-btn-secondary" title="Logout Cepat">
                         <i class="fa fa-power-off"></i>
                     </a>
-                </li>
+                </li> -->
                 
                 <!-- User Account: style can be found in dropdown.less -->
                 <li class="dropdown user user-menu">

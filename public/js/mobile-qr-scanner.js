@@ -120,8 +120,19 @@ class MobileQRScanner {
                 return;
             }
             
-            // Initialize scanner with mobile-optimized config
-            const config = {
+            // Try multiple camera configurations
+            await this.tryStartWithCamera(cameras);
+            
+        } catch (error) {
+            console.error('Error starting scanner:', error);
+            this.handleScanError(error);
+        }
+    }
+    
+    async tryStartWithCamera(cameras) {
+        const cameraConfigs = [
+            // Config 1: Specific camera with high quality
+            {
                 fps: 10,
                 qrbox: { 
                     width: Math.min(250, window.innerWidth * 0.6), 
@@ -131,31 +142,95 @@ class MobileQRScanner {
                 videoConstraints: {
                     deviceId: { exact: cameras[this.currentCameraIndex].id },
                     facingMode: { ideal: "environment" },
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
+                    width: { ideal: 1280, max: 1920 },
+                    height: { ideal: 720, max: 1080 }
                 }
-            };
-            
-            // Create scanner instance
-            this.scanner = new Html5Qrcode("reader");
-            
-            // Start scanning
-            await this.scanner.start(
-                cameras[this.currentCameraIndex].id,
-                config,
-                this.onScanSuccess.bind(this),
-                this.onScanFailure.bind(this)
-            );
-            
-            this.isScanning = true;
-            this.updateUI();
-            this.updateStatus('Scanner aktif - Arahkan kamera ke QR Code');
-            
-            console.log('Scanner started successfully');
-            
-        } catch (error) {
-            console.error('Error starting scanner:', error);
-            this.handleScanError(error);
+            },
+            // Config 2: Specific camera with medium quality
+            {
+                fps: 10,
+                qrbox: { 
+                    width: Math.min(200, window.innerWidth * 0.5), 
+                    height: Math.min(200, window.innerWidth * 0.5) 
+                },
+                aspectRatio: 1.0,
+                videoConstraints: {
+                    deviceId: { exact: cameras[this.currentCameraIndex].id },
+                    facingMode: { ideal: "environment" },
+                    width: { ideal: 640, max: 1280 },
+                    height: { ideal: 480, max: 720 }
+                }
+            },
+            // Config 3: Specific camera with low quality
+            {
+                fps: 10,
+                qrbox: { 
+                    width: Math.min(150, window.innerWidth * 0.4), 
+                    height: Math.min(150, window.innerWidth * 0.4) 
+                },
+                aspectRatio: 1.0,
+                videoConstraints: {
+                    deviceId: { exact: cameras[this.currentCameraIndex].id },
+                    facingMode: { ideal: "environment" },
+                    width: { ideal: 320, max: 640 },
+                    height: { ideal: 240, max: 480 }
+                }
+            },
+            // Config 4: Fallback to facingMode only
+            {
+                fps: 10,
+                qrbox: { 
+                    width: Math.min(200, window.innerWidth * 0.5), 
+                    height: Math.min(200, window.innerWidth * 0.5) 
+                },
+                aspectRatio: 1.0,
+                videoConstraints: {
+                    facingMode: { ideal: "environment" }
+                }
+            }
+        ];
+        
+        for (let i = 0; i < cameraConfigs.length; i++) {
+            try {
+                console.log(`Trying camera config ${i + 1}...`);
+                this.updateStatus(`Mencoba konfigurasi kamera ${i + 1}...`);
+                
+                // Create scanner instance
+                this.scanner = new Html5Qrcode("reader");
+                
+                // Start scanning with current config
+                await this.scanner.start(
+                    cameras[this.currentCameraIndex].id,
+                    cameraConfigs[i],
+                    this.onScanSuccess.bind(this),
+                    this.onScanFailure.bind(this)
+                );
+                
+                this.isScanning = true;
+                this.updateUI();
+                this.updateStatus('Scanner aktif - Arahkan kamera ke QR Code');
+                
+                console.log(`Scanner started successfully with config ${i + 1}`);
+                return;
+                
+            } catch (error) {
+                console.error(`Config ${i + 1} failed:`, error);
+                
+                // Clean up failed scanner
+                if (this.scanner) {
+                    try {
+                        await this.scanner.stop();
+                    } catch (e) {
+                        console.log('Error stopping failed scanner:', e);
+                    }
+                    this.scanner = null;
+                }
+                
+                // If this is the last config, throw the error
+                if (i === cameraConfigs.length - 1) {
+                    throw error;
+                }
+            }
         }
     }
     

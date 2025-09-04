@@ -177,10 +177,51 @@
 }
 
 /* Camera viewport optimization */
+#reader {
+    background: #000 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    position: relative !important;
+}
+
 #reader video {
     width: 100% !important;
     height: auto !important;
     border-radius: 8px !important;
+    background: #000 !important;
+    object-fit: cover !important;
+    display: block !important;
+}
+
+#reader canvas {
+    width: 100% !important;
+    height: auto !important;
+    border-radius: 8px !important;
+    background: #000 !important;
+    display: block !important;
+}
+
+/* Fix for white screen issue */
+#reader > div {
+    background: #000 !important;
+    border-radius: 8px !important;
+}
+
+#reader > div > div {
+    background: #000 !important;
+}
+
+/* Loading state for camera */
+#reader:empty::before {
+    content: 'Memuat Kamera...';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    background: #000;
+    color: #fff;
+    font-size: 18px;
+    border-radius: 8px;
 }
 
 /* Loading state */

@@ -27,11 +27,34 @@
             border-radius: 10px;
             overflow: hidden;
             background: #000;
+            min-height: 300px;
+            position: relative;
         }
         video {
             width: 100%;
             height: auto;
             display: block;
+            background: #000;
+            object-fit: cover;
+        }
+        .camera-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            text-align: center;
+        }
+        .camera-error {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff6b6b;
+            font-size: 16px;
+            text-align: center;
+            padding: 20px;
         }
         .controls {
             text-align: center;
@@ -129,7 +152,9 @@
         </div>
         
         <div class="camera-container" id="cameraContainer" style="display: none;">
-            <video id="video" autoplay playsinline></video>
+            <div class="camera-loading" id="cameraLoading">Memuat Kamera...</div>
+            <div class="camera-error" id="cameraError" style="display: none;"></div>
+            <video id="video" autoplay playsinline style="display: none;"></video>
         </div>
         
         <div id="cameraInfo" class="camera-info" style="display: none;">
@@ -216,19 +241,73 @@
                 }
                 
                 updateStatus('Memulai kamera...', 'info');
+                showCameraLoading();
                 
-                const constraints = {
-                    video: {
+                // Try multiple camera configurations
+                const configs = [
+                    // High quality
+                    {
                         deviceId: { exact: deviceId },
                         facingMode: { ideal: "environment" },
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
+                        width: { ideal: 1280, max: 1920 },
+                        height: { ideal: 720, max: 1080 }
+                    },
+                    // Medium quality
+                    {
+                        deviceId: { exact: deviceId },
+                        facingMode: { ideal: "environment" },
+                        width: { ideal: 640, max: 1280 },
+                        height: { ideal: 480, max: 720 }
+                    },
+                    // Low quality
+                    {
+                        deviceId: { exact: deviceId },
+                        facingMode: { ideal: "environment" },
+                        width: { ideal: 320, max: 640 },
+                        height: { ideal: 240, max: 480 }
+                    },
+                    // Fallback - facingMode only
+                    {
+                        facingMode: { ideal: "environment" }
                     }
-                };
+                ];
                 
-                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = currentStream;
+                let success = false;
+                for (let i = 0; i < configs.length; i++) {
+                    try {
+                        updateStatus(`Mencoba konfigurasi ${i + 1}...`, 'info');
+                        
+                        const constraints = { video: configs[i] };
+                        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                        
+                        // Wait for video to load
+                        video.srcObject = currentStream;
+                        video.style.display = 'block';
+                        
+                        // Wait for video metadata to load
+                        await new Promise((resolve, reject) => {
+                            video.onloadedmetadata = resolve;
+                            video.onerror = reject;
+                            setTimeout(reject, 5000); // 5 second timeout
+                        });
+                        
+                        success = true;
+                        break;
+                        
+                    } catch (error) {
+                        console.error(`Config ${i + 1} failed:`, error);
+                        if (currentStream) {
+                            currentStream.getTracks().forEach(track => track.stop());
+                            currentStream = null;
+                        }
+                    }
+                }
                 
+                if (!success) {
+                    throw new Error('Semua konfigurasi kamera gagal');
+                }
+                
+                hideCameraLoading();
                 cameraContainer.style.display = 'block';
                 cameraInfo.style.display = 'block';
                 testCameraBtn.style.display = 'none';
@@ -243,6 +322,8 @@
                 
             } catch (error) {
                 console.error('Start camera error:', error);
+                hideCameraLoading();
+                showCameraError('Gagal memulai kamera: ' + error.message);
                 handleCameraError(error);
             }
         }
@@ -286,6 +367,23 @@
         function updateStatus(message, type) {
             statusDiv.textContent = `Status: ${message}`;
             statusDiv.className = `status ${type}`;
+        }
+        
+        function showCameraLoading() {
+            document.getElementById('cameraLoading').style.display = 'block';
+            document.getElementById('cameraError').style.display = 'none';
+            document.getElementById('video').style.display = 'none';
+        }
+        
+        function hideCameraLoading() {
+            document.getElementById('cameraLoading').style.display = 'none';
+        }
+        
+        function showCameraError(message) {
+            document.getElementById('cameraError').textContent = message;
+            document.getElementById('cameraError').style.display = 'block';
+            document.getElementById('cameraLoading').style.display = 'none';
+            document.getElementById('video').style.display = 'none';
         }
 
         function handleCameraError(error) {

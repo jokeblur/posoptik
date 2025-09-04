@@ -1090,7 +1090,7 @@ $(function() {
         });
     });
 
-    // Logika Webcam
+    // Logika Webcam dengan optimasi mobile
     let video = document.getElementById('webcam-video');
     let canvas = document.getElementById('webcam-canvas');
     let photoPreview = document.getElementById('photo-preview');
@@ -1098,26 +1098,204 @@ $(function() {
     let useButton = document.getElementById('btn-use-photo');
     let closeButton = document.getElementById('btn-close-webcam');
     let stream;
+    let availableCameras = [];
+    let currentCameraIndex = 0;
 
     $('#btn-open-webcam').on('click', function() {
         // Reset tampilan
-        video.style.display = 'block';
+        resetCameraUI();
+        
+        // Start camera with mobile optimization
+        startMobileCamera();
+    });
+
+    // Switch camera button
+    $('#btn-switch-camera').on('click', function() {
+        switchCamera();
+    });
+
+    function resetCameraUI() {
+        video.style.display = 'none';
         photoPreview.style.display = 'none';
         snapButton.style.display = 'inline-block';
         useButton.style.display = 'none';
+        $('#camera-loading').show();
+        $('#camera-info').hide();
+        $('#btn-switch-camera').hide();
+    }
 
-        // Akses kamera
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(function(s) {
-                stream = s;
-                video.srcObject = stream;
-            })
-            .catch(function(err) {
-                console.error("Error accessing webcam: ", err);
-                alert('Tidak dapat mengakses webcam. Pastikan Anda memberikan izin.');
-                $('#modal-webcam').modal('hide');
+    function updateCameraUI() {
+        $('#camera-loading').hide();
+        video.style.display = 'block';
+        $('#camera-info').show();
+        
+        if (availableCameras.length > 1) {
+            $('#btn-switch-camera').show();
+        }
+        
+        updateCameraInfo();
+    }
+
+    function updateCameraInfo() {
+        if (availableCameras.length > 0 && currentCameraIndex < availableCameras.length) {
+            const camera = availableCameras[currentCameraIndex];
+            let cameraName = camera.label || `Kamera ${currentCameraIndex + 1}`;
+            
+            // Detect camera type
+            if (cameraName.toLowerCase().includes('back') || 
+                cameraName.toLowerCase().includes('rear') || 
+                cameraName.toLowerCase().includes('environment')) {
+                cameraName += ' (Belakang)';
+            } else if (cameraName.toLowerCase().includes('front') || 
+                       cameraName.toLowerCase().includes('user')) {
+                cameraName += ' (Depan)';
+            }
+            
+            $('#camera-label').text(`Kamera: ${cameraName}`);
+        }
+    }
+
+    async function switchCamera() {
+        if (availableCameras.length <= 1) {
+            return;
+        }
+        
+        try {
+            // Stop current stream
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            // Switch to next camera
+            currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+            
+            // Reset UI
+            resetCameraUI();
+            
+            // Start with new camera
+            await tryStartCamera(availableCameras[currentCameraIndex].deviceId);
+            updateCameraUI();
+            
+        } catch (error) {
+            console.error('Error switching camera:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Gagal mengganti kamera',
+                confirmButtonText: 'OK'
             });
-    });
+        }
+    }
+
+    async function startMobileCamera() {
+        try {
+            // Get available cameras
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            
+            if (videoDevices.length === 0) {
+                throw new Error('Tidak ada kamera yang tersedia');
+            }
+            
+            availableCameras = videoDevices;
+            
+            // Try to find back camera
+            let backCameraIndex = videoDevices.findIndex(device => 
+                device.label && (
+                    device.label.toLowerCase().includes('back') ||
+                    device.label.toLowerCase().includes('rear') ||
+                    device.label.toLowerCase().includes('environment') ||
+                    device.label.toLowerCase().includes('0')
+                )
+            );
+            
+            if (backCameraIndex === -1) {
+                // Use last camera (usually back camera on mobile)
+                backCameraIndex = videoDevices.length - 1;
+            }
+            
+            currentCameraIndex = backCameraIndex;
+            
+            // Try multiple camera configurations
+            await tryStartCamera(videoDevices[currentCameraIndex].deviceId);
+            updateCameraUI();
+            
+        } catch (error) {
+            console.error('Error starting camera:', error);
+            $('#camera-loading').hide();
+            Swal.fire({
+                icon: 'error',
+                title: 'Error Kamera',
+                text: 'Tidak dapat mengakses kamera. Pastikan Anda memberikan izin akses kamera.',
+                confirmButtonText: 'OK'
+            });
+            $('#modal-webcam').modal('hide');
+        }
+    }
+
+    async function tryStartCamera(deviceId) {
+        const configs = [
+            // High quality
+            {
+                deviceId: { exact: deviceId },
+                facingMode: { ideal: "environment" },
+                width: { ideal: 1280, max: 1920 },
+                height: { ideal: 720, max: 1080 }
+            },
+            // Medium quality
+            {
+                deviceId: { exact: deviceId },
+                facingMode: { ideal: "environment" },
+                width: { ideal: 640, max: 1280 },
+                height: { ideal: 480, max: 720 }
+            },
+            // Low quality
+            {
+                deviceId: { exact: deviceId },
+                facingMode: { ideal: "environment" },
+                width: { ideal: 320, max: 640 },
+                height: { ideal: 240, max: 480 }
+            },
+            // Fallback - facingMode only
+            {
+                facingMode: { ideal: "environment" }
+            }
+        ];
+        
+        let success = false;
+        for (let i = 0; i < configs.length; i++) {
+            try {
+                console.log(`Trying camera config ${i + 1}...`);
+                
+                const constraints = { video: configs[i] };
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                
+                // Wait for video to load
+                await new Promise((resolve, reject) => {
+                    video.onloadedmetadata = resolve;
+                    video.onerror = reject;
+                    setTimeout(reject, 5000); // 5 second timeout
+                });
+                
+                success = true;
+                console.log(`Camera started successfully with config ${i + 1}`);
+                break;
+                
+            } catch (error) {
+                console.error(`Config ${i + 1} failed:`, error);
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                }
+            }
+        }
+        
+        if (!success) {
+            throw new Error('Semua konfigurasi kamera gagal');
+        }
+    }
 
     snapButton.addEventListener('click', function() {
         // Atur ukuran canvas sesuai video
@@ -1479,6 +1657,122 @@ $(function() {
     #pasien-details-container .col-md-6 {
         margin-bottom: 15px;
     }
+}
+
+/* Mobile Camera Optimization */
+@media (max-width: 768px) {
+    #modal-webcam .modal-dialog {
+        margin: 10px !important;
+        width: calc(100% - 20px) !important;
+    }
+    
+    #modal-webcam .modal-content {
+        border-radius: 10px !important;
+    }
+    
+    #video-container {
+        min-height: 250px !important;
+    }
+    
+    #webcam-video {
+        border-radius: 8px !important;
+        object-fit: cover !important;
+    }
+    
+    .modal-footer .btn {
+        margin: 2px !important;
+        padding: 8px 12px !important;
+        font-size: 14px !important;
+    }
+    
+    .modal-footer .btn-lg {
+        padding: 10px 16px !important;
+        font-size: 16px !important;
+    }
+}
+
+/* Camera container styling */
+#video-container {
+    background: #000 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    position: relative !important;
+    border: 2px solid #ddd !important;
+}
+
+#webcam-video {
+    width: 100% !important;
+    height: auto !important;
+    background: #000 !important;
+    object-fit: cover !important;
+    display: block !important;
+}
+
+#camera-loading {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    color: white !important;
+    font-size: 18px !important;
+    text-align: center !important;
+    z-index: 10 !important;
+}
+
+#camera-info {
+    margin-bottom: 10px !important;
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+}
+
+/* Photo preview styling */
+#photo-preview {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 8px !important;
+    border: 2px solid #ddd !important;
+}
+
+/* Button styling for mobile */
+@media (max-width: 768px) {
+    .modal-footer {
+        text-align: center !important;
+        padding: 10px !important;
+    }
+    
+    .modal-footer .btn {
+        display: inline-block !important;
+        margin: 2px !important;
+        min-width: 80px !important;
+    }
+    
+    #btn-switch-camera {
+        background: #17a2b8 !important;
+        border-color: #17a2b8 !important;
+        color: white !important;
+    }
+    
+    #btn-switch-camera:hover {
+        background: #138496 !important;
+        border-color: #117a8b !important;
+    }
+}
+
+/* Loading animation */
+#camera-loading::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s ease-in-out infinite;
+    margin-left: 10px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 </style>
 @endpush 

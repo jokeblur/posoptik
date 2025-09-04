@@ -37,11 +37,38 @@ Route::get('/', fn () =>redirect()->route ('login') );
 
 // Route khusus untuk logout dengan redirect yang aman
 Route::post('/logout', function () {
-    auth()->logout();
-    request()->session()->invalidate();
-    request()->session()->regenerateToken();
-    return redirect()->route('login');
+    try {
+        // Logout user
+        auth()->logout();
+        
+        // Invalidate session
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+        
+        // Clear all cookies
+        if (request()->hasCookie('laravel_session')) {
+            cookie()->forget('laravel_session');
+        }
+        
+        return redirect()->route('login')->with('success', 'Anda telah berhasil logout');
+    } catch (\Exception $e) {
+        \Log::error('Logout error: ' . $e->getMessage());
+        return redirect()->route('login');
+    }
 })->name('logout');
+
+// Alternative logout route (GET method for testing)
+Route::get('/logout-direct', function () {
+    try {
+        auth()->logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+        return redirect()->route('login')->with('success', 'Logout berhasil');
+    } catch (\Exception $e) {
+        \Log::error('Direct logout error: ' . $e->getMessage());
+        return redirect()->route('login');
+    }
+})->name('logout.direct');
 
 // Fallback route untuk menangani masalah akses setelah logout
 Route::fallback(function () {
@@ -288,6 +315,11 @@ Route::get('/test-export-lensa-real', function() {
         return response('Export error: ' . $e->getMessage(), 500);
     }
 });
+
+// Test logout functionality
+Route::get('/test-logout', function() {
+    return view('test_logout');
+})->name('test.logout');
 
 Route::post('/test-import-simple', function(\Illuminate\Http\Request $request) {
     try {

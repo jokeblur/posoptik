@@ -33,7 +33,7 @@
                 
                 <!-- User Account: style can be found in dropdown.less -->
                 <li class="dropdown user user-menu">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" onclick="event.preventDefault(); $(this).next('.dropdown-menu').toggleClass('show'); $(this).parent().toggleClass('open');">
                         <div class="user-image-initials" data-role="{{ auth()->user()->role }}">
                             {{ \App\Helpers\UserHelper::getInitials(auth()->user()->name) }}
                         </div>
@@ -70,7 +70,14 @@
                                 <a href="#" class="btn btn-default btn-flat">Profile</a>
                             </div>
                             <div class="pull-right">
-                                <a href="#" class="btn btn-default btn-flat" onclick="confirmLogout()">Keluar</a>
+                                <a href="#" class="btn btn-default btn-flat" onclick="confirmLogout(); return false;">Keluar</a>
+                                <!-- Alternative logout button -->
+                                <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+                                    @csrf
+                                    <button type="submit" class="btn btn-default btn-flat" style="background: none; border: none; color: inherit; padding: 6px 12px;">
+                                        Logout Direct
+                                    </button>
+                                </form>
                             </div>
                         </li>
                     </ul>
@@ -92,3 +99,80 @@ $(document).ready(function() {
 });
 </script>
 @endif
+
+<!-- Fix untuk navbar dropdown di VPS -->
+<script>
+$(document).ready(function() {
+    console.log('Navbar fix script loaded');
+    
+    // Fix dropdown toggle jika Bootstrap tidak ter-load
+    $('.dropdown-toggle').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var $dropdown = $(this).next('.dropdown-menu');
+        var $parent = $(this).parent();
+        
+        // Close other dropdowns
+        $('.dropdown-menu').not($dropdown).removeClass('show');
+        $('.dropdown').not($parent).removeClass('open');
+        
+        // Toggle current dropdown
+        $dropdown.toggleClass('show');
+        $parent.toggleClass('open');
+        
+        console.log('Dropdown toggled:', $dropdown.hasClass('show'));
+    });
+    
+    // Close dropdown when clicking outside
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.dropdown').length) {
+            $('.dropdown-menu').removeClass('show');
+            $('.dropdown').removeClass('open');
+        }
+    });
+    
+    // Fix logout function jika SweetAlert tidak ter-load
+    window.confirmLogout = function() {
+        console.log('confirmLogout called');
+        
+        if (typeof Swal !== 'undefined') {
+            // SweetAlert tersedia, gunakan konfirmasi
+            Swal.fire({
+                title: "Keluar dari aplikasi?",
+                text: "Anda akan keluar dari sesi saat ini.",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonColor: "#dc3545",
+                cancelButtonColor: "#6c757d",
+                confirmButtonText: "Ya, keluar!",
+                cancelButtonText: "Batal"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    console.log('SweetAlert confirmed, submitting logout form');
+                    document.getElementById("logout-form").submit();
+                }
+            });
+        } else {
+            // SweetAlert tidak tersedia, gunakan confirm native
+            if (confirm("Apakah Anda yakin ingin keluar dari aplikasi?")) {
+                console.log('Native confirm confirmed, submitting logout form');
+                document.getElementById("logout-form").submit();
+            }
+        }
+    };
+    
+    // Alternative logout function - direct submit
+    window.directLogout = function() {
+        console.log('Direct logout called');
+        document.getElementById("logout-form").submit();
+    };
+    
+    // Debug: Check if logout form exists
+    if (document.getElementById("logout-form")) {
+        console.log('Logout form found');
+    } else {
+        console.log('Logout form NOT found');
+    }
+});
+</script>

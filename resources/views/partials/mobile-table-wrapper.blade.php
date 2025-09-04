@@ -1,7 +1,5 @@
 {{-- Mobile Responsive Table Wrapper --}}
 <div class="table-responsive table-responsive-mobile">
-    {{ $slot }}
-</div>
 
 {{-- Mobile Table Instructions --}}
 <div class="mobile-table-instructions" style="display: none;">
@@ -24,3 +22,4 @@ $(document).ready(function() {
     }, 5000);
 });
 </script>
+</div>

@@ -34,8 +34,16 @@ php artisan migrate --force
 
 # 6. Restart web server
 echo "6. Restarting web server..."
-sudo systemctl restart apache2
-# atau jika menggunakan nginx:
-# sudo systemctl restart nginx
+# Cek apakah menggunakan Apache atau Nginx
+if systemctl is-active --quiet apache2; then
+    echo "Restarting Apache..."
+    sudo systemctl restart apache2
+elif systemctl is-active --quiet nginx; then
+    echo "Restarting Nginx..."
+    sudo systemctl restart nginx
+else
+    echo "Trying to restart Nginx (default)..."
+    sudo systemctl restart nginx
+fi
 
 echo "=== Deployment fix completed ==="

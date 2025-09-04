@@ -117,14 +117,23 @@ class PenjualanController extends Controller
                 return '<span class="label label-success">'. $penjualan->kode_penjualan .'</span>';
             })
             ->addColumn('total_harga', function ($penjualan) {
-                return 'Rp. '. format_uang($penjualan->total);
+                // Jika transaksi BPJS, tampilkan harga BPJS default
+                if ($penjualan->pasien && in_array($penjualan->pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+                    $bpjsPrice = 0;
+                    if ($penjualan->bpjs_default_price > 0) {
+                        $bpjsPrice = $penjualan->bpjs_default_price;
+                    } else {
+                        // Fallback jika bpjs_default_price tidak tersimpan
+                        $bpjsPricingService = new \App\Services\BpjsPricingService();
+                        $bpjsPrice = $bpjsPricingService->getDefaultPrice($penjualan->pasien->service_type);
+                    }
+                    
+                    return '<span class="label label-info" title="BPJS: ' . $penjualan->pasien->service_type . '">Rp. '. format_uang($bpjsPrice) . '</span>';
+                }
+                // Untuk transaksi umum, tampilkan total normal
+                return '<span class="text-success">Rp. '. format_uang($penjualan->total) . '</span>';
             })
-            ->addColumn('kasir', function ($penjualan) {
-                return $penjualan->user->name ?? 'N/A';
-            })
-             ->addColumn('cabang', function ($penjualan) {
-                return $penjualan->branch->name ?? 'N/A';
-            })
+
             ->addColumn('passet_by', function ($penjualan) {
                 return $penjualan->passetByUser->name ?? '-';
             })
@@ -139,6 +148,18 @@ class PenjualanController extends Controller
                     return $penjualan->dokter_manual;
                 }
                 return '-';
+            })
+            ->addColumn('jenis_layanan', function ($penjualan) {
+                if ($penjualan->pasien && !empty($penjualan->pasien->service_type)) {
+                    $serviceType = $penjualan->pasien->service_type;
+                    // Berikan warna berbeda untuk jenis layanan
+                    if (in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+                        return '<span class="label label-info">' . $serviceType . '</span>';
+                    } else {
+                        return '<span class="label label-default">' . $serviceType . '</span>';
+                    }
+                }
+                return '<span class="label label-default">UMUM</span>';
             })
             ->addColumn('status_transaksi', function ($penjualan) {
                 if ($penjualan->transaction_status == 'Naik Kelas') {
@@ -170,25 +191,32 @@ class PenjualanController extends Controller
             })
             ->addColumn('aksi', function ($penjualan) {
                 $user = auth()->user();
-                $detailButton = '<a href="'. route('penjualan.show', $penjualan->id) .'" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i></a>';
-                $editButton = '<a href="'. route('penjualan.edit', $penjualan->id) .'" class="btn btn-xs btn-warning btn-flat"><i class="fa fa-edit"></i></a>';
+                $detailButton = '<a href="'. route('penjualan.show', $penjualan->id) .'" class="btn btn-xs btn-info btn-flat" title="Detail"><i class="fa fa-eye"></i></a>';
+                $editButton = '<a href="'. route('penjualan.edit', $penjualan->id) .'" class="btn btn-xs btn-warning btn-flat" title="Edit"><i class="fa fa-edit"></i></a>';
+                $statusButton = '';
                 $ambilButton = '';
                 $deleteButton = '';
                 
+                // Tombol update status pengerjaan
+                if ($penjualan->status_pengerjaan != 'Sudah Diambil') {
+                    $statusButton = '<button onclick="updateStatusPengerjaan('.$penjualan->id.')" class="btn btn-xs btn-primary btn-flat" title="Update Status"><i class="fa fa-cogs"></i></button>';
+                }
+                
                 if ($penjualan->status_pengerjaan == 'Selesai Dikerjakan') {
-                    $ambilButton = '<button onclick="tandaiDiambil(`'. route('penjualan.diambil', $penjualan->id) .'`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-check-square"></i></button>';
+                    $ambilButton = '<button onclick="tandaiDiambil(`'. route('penjualan.diambil', $penjualan->id) .'`)" class="btn btn-xs btn-success btn-flat" title="Tandai Diambil"><i class="fa fa-check-square"></i></button>';
                 }
                 
                 // Hanya super admin dan admin yang bisa menghapus transaksi
                 if (($user->isSuperAdmin() || $user->isAdmin()) && 
                     ($user->role === 'super admin' || $penjualan->branch_id === $user->branch_id)) {
-                    $deleteButton = '<button onclick="hapusTransaksi(`'. route('penjualan.destroy', $penjualan->id) .'`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>';
+                    $deleteButton = '<button onclick="hapusTransaksi(`'. route('penjualan.destroy', $penjualan->id) .'`)" class="btn btn-xs btn-danger btn-flat" title="Hapus"><i class="fa fa-trash"></i></button>';
                 }
 
                 return '
                 <div class="btn-group">
                     '. $detailButton .'
                     '. $editButton .'
+                    '. $statusButton .'
                     '. $ambilButton .'
                     '. $deleteButton .'
                 </div>
@@ -197,7 +225,7 @@ class PenjualanController extends Controller
             ->addColumn('barcode', function ($penjualan) {
                 return $penjualan->barcode ?? null;
             })
-            ->rawColumns(['aksi', 'kode_penjualan', 'status_pengerjaan', 'status_transaksi'])
+            ->rawColumns(['aksi', 'kode_penjualan', 'status_pengerjaan', 'status_transaksi', 'total_harga', 'jenis_layanan'])
             ->make(true);
     }
     public function searchProduct(Request $request)
@@ -351,6 +379,14 @@ class PenjualanController extends Controller
                 if ($pasien && in_array($pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
                     $pasienServiceType = $pasien->service_type;
                     $bpjsDefaultPrice = $this->bpjsPricingService->getDefaultPrice($pasien->service_type);
+                    
+                    // Debug logging untuk BPJS pricing
+                    \Log::info('BPJS Pricing in Store Method:', [
+                        'pasien_id' => $pasien->id_pasien,
+                        'service_type' => $pasien->service_type,
+                        'bpjs_default_price' => $bpjsDefaultPrice,
+                        'pasien_service_type' => $pasienServiceType
+                    ]);
                 }
             }
 
@@ -394,6 +430,15 @@ class PenjualanController extends Controller
             }
 
             $penjualan = Penjualan::create($penjualanData);
+            
+            // Debug logging untuk memastikan data tersimpan
+            \Log::info('Penjualan Created with BPJS Data:', [
+                'penjualan_id' => $penjualan->id,
+                'bpjs_default_price' => $penjualan->bpjs_default_price,
+                'pasien_service_type' => $penjualan->pasien_service_type,
+                'total_additional_cost' => $penjualan->total_additional_cost,
+                'transaction_status' => $penjualan->transaction_status
+            ]);
 
             foreach ($items as $itemData) {
                 $itemModel = null;
@@ -464,11 +509,35 @@ class PenjualanController extends Controller
 
     public function edit($id)
     {
-        $penjualan = Penjualan::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
+        $penjualan = Penjualan::with([
+            'details.itemable', 
+            'user', 
+            'branch', 
+            'pasien.prescriptions' => function($query) {
+                $query->orderBy('tanggal', 'desc')->limit(1);
+            }, 
+            'dokter'
+        ])->findOrFail($id);
+        
         $dokters = \App\Models\Dokter::all();
         $pasiens = \App\Models\Pasien::all();
         
-        return view('penjualan.edit', compact('penjualan', 'dokters', 'pasiens'));
+        // Get latest prescription for the patient
+        $latestPrescription = null;
+        if ($penjualan->pasien) {
+            $latestPrescription = $penjualan->pasien->prescriptions->first();
+        }
+        
+        // Debug logging
+        \Log::info('Edit Penjualan Data:', [
+            'penjualan_id' => $penjualan->id,
+            'details_count' => $penjualan->details ? $penjualan->details->count() : 0,
+            'pasien_id' => $penjualan->pasien_id,
+            'latest_prescription' => $latestPrescription ? $latestPrescription->toArray() : null,
+            'details_data' => $penjualan->details ? $penjualan->details->toArray() : null
+        ]);
+        
+        return view('penjualan.edit', compact('penjualan', 'dokters', 'pasiens', 'latestPrescription'));
     }
 
     public function update(Request $request, $id)
@@ -669,6 +738,129 @@ class PenjualanController extends Controller
                 'success' => false,
                 'message' => 'Gagal menghitung harga: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Fix existing transactions that don't have BPJS default price set
+     */
+    public function fixBpjsPrices()
+    {
+        try {
+            $transactions = Penjualan::whereNotNull('pasien_id')
+                ->whereHas('pasien', function($query) {
+                    $query->whereIn('service_type', ['BPJS I', 'BPJS II', 'BPJS III']);
+                })
+                ->where(function($query) {
+                    $query->whereNull('bpjs_default_price')
+                          ->orWhere('bpjs_default_price', 0);
+                })
+                ->with('pasien')
+                ->get();
+
+            $fixed = 0;
+            foreach ($transactions as $transaction) {
+                if ($transaction->pasien && in_array($transaction->pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+                    $bpjsDefaultPrice = $this->bpjsPricingService->getDefaultPrice($transaction->pasien->service_type);
+                    
+                    $transaction->update([
+                        'bpjs_default_price' => $bpjsDefaultPrice,
+                        'pasien_service_type' => $transaction->pasien->service_type
+                    ]);
+                    
+                    $fixed++;
+                    
+                    \Log::info('Fixed BPJS transaction:', [
+                        'transaction_id' => $transaction->id,
+                        'pasien_service_type' => $transaction->pasien->service_type,
+                        'bpjs_default_price' => $bpjsDefaultPrice
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Berhasil memperbaiki {$fixed} transaksi BPJS",
+                'fixed_count' => $fixed
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memperbaiki data BPJS: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateStatusPengerjaan(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'status_pengerjaan' => 'required|in:Menunggu Pengerjaan,Sedang Dikerjakan,Selesai Dikerjakan,Sudah Diambil',
+                'passet_by' => 'required|string|max:255'
+            ]);
+
+            $penjualan = Penjualan::findOrFail($id);
+            
+            $updateData = [
+                'status_pengerjaan' => $request->status_pengerjaan,
+                'passet_by' => $request->passet_by
+            ];
+
+            // Set waktu selesai dikerjakan jika status berubah ke "Selesai Dikerjakan"
+            if ($request->status_pengerjaan == 'Selesai Dikerjakan' && $penjualan->status_pengerjaan != 'Selesai Dikerjakan') {
+                $updateData['waktu_selesai_dikerjakan'] = now();
+            }
+
+            $penjualan->update($updateData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Status pengerjaan berhasil diperbarui',
+                'data' => [
+                    'status_pengerjaan' => $penjualan->status_pengerjaan,
+                    'passet_by' => $penjualan->passet_by,
+                    'waktu_selesai_dikerjakan' => $penjualan->waktu_selesai_dikerjakan
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error updating status pengerjaan: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memperbarui status pengerjaan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getUsersList()
+    {
+        try {
+            \Log::info('getUsersList method called');
+            
+            $users = \App\Models\User::select('id', 'name', 'role', 'branch_id')
+                ->where('role', 'passet bantu')
+                ->orderBy('name')
+                ->get();
+            
+            \Log::info('Users found:', ['count' => $users->count(), 'users' => $users->toArray()]);
+            
+            // Jika tidak ada user dengan role passet bantu, tambahkan user yang sedang login jika role-nya passet bantu
+            if ($users->isEmpty() && auth()->user()->role === 'passet bantu') {
+                $currentUser = auth()->user();
+                $users->push((object)[
+                    'id' => $currentUser->id,
+                    'name' => $currentUser->name,
+                    'role' => $currentUser->role,
+                    'branch_id' => $currentUser->branch_id
+                ]);
+                \Log::info('Added current user as fallback');
+            }
+            
+            return response()->json($users);
+        } catch (\Exception $e) {
+            \Log::error('Error getting users list: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to get users'], 500);
         }
     }
 

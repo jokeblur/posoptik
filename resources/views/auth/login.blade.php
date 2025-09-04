@@ -5,12 +5,41 @@
     <div class="max-w-md w-full space-y-8">
         <!-- Logo dan Header -->
         <div class="text-center">
-            <div class="mx-auto h-20 w-20 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center mb-4">
-                <svg class="h-12 w-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
+            <div class="mx-auto mb-6">
+                <!-- Loading spinner dengan logo -->
+                <div id="logoLoader" class="mx-auto h-96 w-96 flex flex-col items-center justify-center">
+                    <div class="relative">
+                        <img src="{{ asset('image/logologin.png') }}" 
+                             alt="Optik Melati" 
+                             class="h-32 w-32 object-contain mb-4"
+                             onerror="this.style.display='none'; document.getElementById('loadingFallback').style.display='block';">
+                        <div id="loadingFallback" class="h-32 w-32 bg-gradient-to-r from-orange-300 to-pink-300 rounded-full flex items-center justify-center mb-4" style="display: none;">
+                            <svg class="h-16 w-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                    <p class="text-sm text-gray-600 mt-2">Loading...</p>
+                </div>
+                
+                <!-- Logo utama -->
+                <img id="logoImage" 
+                     src="{{ asset('image/logologin.png') }}" 
+                     alt="Optik Melati" 
+                     class="mx-auto h-96 w-96 object-contain shadow-2xl rounded-lg"
+                     style="filter: drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25)); display: none;"
+                     onerror="tryAlternativeLogo(this)"
+                     onload="showLogo(this)">
+                
+                <!-- Fallback logo jika semua gagal -->
+                <div id="fallbackLogo" class="mx-auto h-96 w-96 bg-gradient-to-r from-orange-300 to-pink-300 rounded-full flex items-center justify-center shadow-2xl" style="display: none; filter: drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25));">
+                    <svg class="h-48 w-48 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
             </div>
-            <h2 class="text-3xl font-bold text-gray-900 mb-2">OPTIK MELATI</h2>
+            <h2 class="text-3xl font-bold text-gray-900 mb-2"></h2>
             <p class="text-gray-600">Silahkan login untuk melanjutkan</p>
         </div>
 
@@ -30,7 +59,7 @@
                         </svg>
                     </div>
                     <input id="email" name="email" type="email" required 
-                           class="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm @error('email') border-red-500 @enderror"
+                           class="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 focus:z-10 sm:text-sm @error('email') border-red-500 @enderror"
                            placeholder="Masukkan email Anda"
                            value="{{ old('email') }}">
                 </div>
@@ -51,7 +80,7 @@
                         </svg>
                     </div>
                     <input id="password" name="password" type="password" required 
-                           class="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm @error('password') border-red-500 @enderror"
+                           class="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 focus:z-10 sm:text-sm @error('password') border-red-500 @enderror"
                            placeholder="Masukkan password Anda">
                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
                         <button type="button" id="togglePassword" class="text-gray-400 hover:text-gray-600">
@@ -71,14 +100,14 @@
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
                     <input id="remember_me" name="remember" type="checkbox" 
-                           class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+                           class="h-4 w-4 text-orange-500 focus:ring-orange-400 border-gray-300 rounded">
                     <label for="remember_me" class="ml-2 block text-sm text-gray-900">
                         Ingat saya
                     </label>
                 </div>
 
                 <div class="text-sm">
-                    <a href="{{ route('password.request') }}" class="font-medium text-red-600 hover:text-red-500">
+                    <a href="{{ route('password.request') }}" class="font-medium text-orange-600 hover:text-orange-500">
                         Lupa password?
                     </a>
                 </div>
@@ -87,9 +116,9 @@
             <!-- Login Button -->
             <div>
                 <button type="submit" 
-                        class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 transform hover:scale-105">
+                        class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-orange-300 to-pink-300 hover:from-orange-400 hover:to-pink-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400 transition-all duration-200 transform hover:scale-105 shadow-lg">
                     <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                        <svg class="h-5 w-5 text-red-200 group-hover:text-red-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="h-5 w-5 text-orange-200 group-hover:text-orange-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
                         </svg>
                     </span>
@@ -109,6 +138,103 @@
 
 <!-- JavaScript untuk toggle password dan force refresh -->
 <script>
+// Function untuk menampilkan logo setelah loading
+function showLogo(img) {
+    console.log('Logo berhasil dimuat dari:', img.src);
+    const loader = document.getElementById('logoLoader');
+    if (loader) {
+        loader.style.display = 'none';
+    }
+    img.style.display = 'block';
+    img.style.animation = 'fadeIn 0.5s ease-in';
+}
+
+// Function untuk mencoba logo alternatif
+function tryAlternativeLogo(img) {
+    const alternativePaths = [
+        '/image/logologin.png',
+        '/image/logoapp.png',
+        '/image/optik-melati.png',
+        '{{ asset("image/logologin.png") }}',
+        '{{ asset("image/logoapp.png") }}',
+        '{{ asset("image/optik-melati.png") }}'
+    ];
+    
+    const currentSrc = img.src;
+    const currentIndex = alternativePaths.indexOf(currentSrc);
+    
+    if (currentIndex < alternativePaths.length - 1) {
+        // Coba path berikutnya
+        img.src = alternativePaths[currentIndex + 1];
+        console.log('Mencoba logo alternatif:', img.src);
+    } else {
+        // Semua path gagal, tampilkan fallback
+        console.log('Semua logo gagal dimuat, menggunakan fallback');
+        const loader = document.getElementById('logoLoader');
+        if (loader) {
+            loader.style.display = 'none';
+        }
+        img.style.display = 'none';
+        const fallback = document.getElementById('fallbackLogo');
+        if (fallback) {
+            fallback.style.display = 'flex';
+            fallback.style.animation = 'fadeIn 0.5s ease-in';
+        }
+    }
+}
+
+// Function untuk timeout loading
+function handleLogoTimeout() {
+    setTimeout(() => {
+        const loader = document.getElementById('logoLoader');
+        const logo = document.getElementById('logoImage');
+        const fallback = document.getElementById('fallbackLogo');
+        
+        if (loader && loader.style.display !== 'none') {
+            console.log('Logo loading timeout, menggunakan fallback');
+            loader.style.display = 'none';
+            if (logo) {
+                logo.style.display = 'none';
+            }
+            if (fallback) {
+                fallback.style.display = 'flex';
+                fallback.style.animation = 'fadeIn 0.5s ease-in';
+            }
+        }
+    }, 3000); // 3 detik timeout
+}
+
+// Function untuk inisialisasi logo
+function initializeLogo() {
+    const logoImage = document.getElementById('logoImage');
+    const loader = document.getElementById('logoLoader');
+    
+    if (logoImage && loader) {
+        // Cek apakah logo sudah dimuat
+        if (logoImage.complete && logoImage.naturalHeight !== 0) {
+            showLogo(logoImage);
+        } else {
+            // Mulai timeout
+            handleLogoTimeout();
+        }
+    }
+}
+
+// Add CSS animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+`;
+document.head.appendChild(style);
+
+// Initialize logo loading when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    initializeLogo();
+});
+
 // Force refresh to prevent caching
 (function() {
     // Force reload if coming from back/forward

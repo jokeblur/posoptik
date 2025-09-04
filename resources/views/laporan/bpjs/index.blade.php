@@ -175,7 +175,7 @@
             },
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                { data: 'tanggal', name: 'created_at' },
+                { data: 'tanggal', name: 'tanggal' },
                 { data: 'kode_penjualan', name: 'kode_penjualan' },
                 { data: 'nama_pasien', name: 'nama_pasien' },
                 { data: 'jenis_layanan', name: 'pasien_service_type' },

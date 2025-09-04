@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Logo Loading</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex items-center justify-center py-12 px-4">
+        <div class="max-w-md w-full space-y-8">
+            <div class="text-center">
+                <h1 class="text-2xl font-bold mb-8">Test Logo Loading</h1>
+                
+                <!-- Test Loading Spinner dengan Logo -->
+                <div class="mx-auto mb-6">
+                    <div id="logoLoader" class="mx-auto h-96 w-96 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg">
+                        <div class="relative">
+                            <img src="/image/logologin.png" 
+                                 alt="Optik Melati" 
+                                 class="h-32 w-32 object-contain mb-4"
+                                 onerror="this.style.display='none'; document.getElementById('loadingFallback').style.display='block';">
+                            <div id="loadingFallback" class="h-32 w-32 bg-gradient-to-r from-orange-300 to-pink-300 rounded-full flex items-center justify-center mb-4" style="display: none;">
+                                <svg class="h-16 w-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                        <p class="text-sm text-gray-600 mt-2">Loading...</p>
+                    </div>
+                    
+                    <!-- Logo Utama -->
+                    <img id="logoImage" 
+                         src="/image/logologin.png" 
+                         alt="Optik Melati" 
+                         class="mx-auto h-96 w-96 object-contain shadow-2xl rounded-lg"
+                         style="filter: drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25)); display: none;"
+                         onerror="tryAlternativeLogo(this)"
+                         onload="showLogo(this)">
+                    
+                    <!-- Fallback Logo -->
+                    <div id="fallbackLogo" class="mx-auto h-96 w-96 bg-gradient-to-r from-orange-300 to-pink-300 rounded-full flex items-center justify-center shadow-2xl" style="display: none; filter: drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25));">
+                        <svg class="h-48 w-48 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Test Buttons -->
+                <div class="space-y-4">
+                    <button onclick="testLogoLoad()" class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+                        Test Logo Load
+                    </button>
+                    <button onclick="testFallback()" class="w-full bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600">
+                        Test Fallback
+                    </button>
+                    <button onclick="resetTest()" class="w-full bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600">
+                        Reset Test
+                    </button>
+                </div>
+                
+                <!-- Log Output -->
+                <div class="mt-8">
+                    <h3 class="text-lg font-semibold mb-2">Console Log:</h3>
+                    <div id="logOutput" class="bg-gray-800 text-green-400 p-4 rounded text-sm font-mono h-32 overflow-y-auto">
+                        <div>Ready to test logo loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Override console.log to show in page
+        const originalLog = console.log;
+        const logOutput = document.getElementById('logOutput');
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const logEntry = document.createElement('div');
+            logEntry.textContent = args.join(' ');
+            logEntry.className = 'mb-1';
+            logOutput.appendChild(logEntry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+        };
+
+        // Function untuk menampilkan logo setelah loading
+        function showLogo(img) {
+            console.log('Logo berhasil dimuat dari:', img.src);
+            const loader = document.getElementById('logoLoader');
+            if (loader) {
+                loader.style.display = 'none';
+            }
+            img.style.display = 'block';
+            img.style.animation = 'fadeIn 0.5s ease-in';
+        }
+
+        // Function untuk mencoba logo alternatif
+        function tryAlternativeLogo(img) {
+            const alternativePaths = [
+                '/image/logologin.png',
+                '/image/logoapp.png',
+                '/image/optik-melati.png'
+            ];
+            
+            const currentSrc = img.src;
+            const currentIndex = alternativePaths.indexOf(currentSrc);
+            
+            if (currentIndex < alternativePaths.length - 1) {
+                img.src = alternativePaths[currentIndex + 1];
+                console.log('Mencoba logo alternatif:', img.src);
+            } else {
+                console.log('Semua logo gagal dimuat, menggunakan fallback');
+                const loader = document.getElementById('logoLoader');
+                if (loader) {
+                    loader.style.display = 'none';
+                }
+                img.style.display = 'none';
+                const fallback = document.getElementById('fallbackLogo');
+                if (fallback) {
+                    fallback.style.display = 'flex';
+                    fallback.style.animation = 'fadeIn 0.5s ease-in';
+                }
+            }
+        }
+
+        // Function untuk timeout loading
+        function handleLogoTimeout() {
+            setTimeout(() => {
+                const loader = document.getElementById('logoLoader');
+                const logo = document.getElementById('logoImage');
+                const fallback = document.getElementById('fallbackLogo');
+                
+                if (loader && loader.style.display !== 'none') {
+                    console.log('Logo loading timeout, menggunakan fallback');
+                    loader.style.display = 'none';
+                    if (logo) {
+                        logo.style.display = 'none';
+                    }
+                    if (fallback) {
+                        fallback.style.display = 'flex';
+                        fallback.style.animation = 'fadeIn 0.5s ease-in';
+                    }
+                }
+            }, 3000);
+        }
+
+        // Function untuk inisialisasi logo
+        function initializeLogo() {
+            const logoImage = document.getElementById('logoImage');
+            const loader = document.getElementById('logoLoader');
+            
+            if (logoImage && loader) {
+                if (logoImage.complete && logoImage.naturalHeight !== 0) {
+                    showLogo(logoImage);
+                } else {
+                    handleLogoTimeout();
+                }
+            }
+        }
+
+        // Test functions
+        function testLogoLoad() {
+            console.log('Testing logo load...');
+            resetTest();
+            initializeLogo();
+        }
+
+        function testFallback() {
+            console.log('Testing fallback...');
+            resetTest();
+            const loader = document.getElementById('logoLoader');
+            const fallback = document.getElementById('fallbackLogo');
+            if (loader) loader.style.display = 'none';
+            if (fallback) {
+                fallback.style.display = 'flex';
+                fallback.style.animation = 'fadeIn 0.5s ease-in';
+            }
+        }
+
+        function resetTest() {
+            console.log('Resetting test...');
+            const loader = document.getElementById('logoLoader');
+            const logo = document.getElementById('logoImage');
+            const fallback = document.getElementById('fallbackLogo');
+            
+            if (loader) loader.style.display = 'flex';
+            if (logo) logo.style.display = 'none';
+            if (fallback) fallback.style.display = 'none';
+        }
+
+        // Add CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: scale(0.9); }
+                to { opacity: 1; transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, ready for testing');
+        });
+    </script>
+</body>
+</html>

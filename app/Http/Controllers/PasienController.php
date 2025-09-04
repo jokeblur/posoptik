@@ -37,7 +37,7 @@ class PasienController extends Controller
                 return '
             <div class="btn-group">
                 <button onclick="showDetail(`' . route('pasien.show', $pasien->id_pasien) . '`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-eye"></i></button>
-                <a href="' . route('pasien.cetak-resep', $pasien->id_pasien) . '" target="_blank" class="btn btn-xs btn-warning btn-flat"><i class="fa fa-print"></i></a>
+                <a href="' . route('pasien.cetak-resep-kartu', $pasien->id_pasien) . '" target="_blank" class="btn btn-xs btn-warning btn-flat"><i class="fa fa-print"></i></a>
                 <button onclick="editform(`' . route('pasien.update', $pasien->id_pasien) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-pencil"></i></button>
                 <button onclick="deleteData(`' . route('pasien.destroy', $pasien->id_pasien) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
             </div>
@@ -348,5 +348,28 @@ class PasienController extends Controller
         }
         
         return view('pasien.cetak-resep-a4', compact('pasien', 'latestPrescription'));
+    }
+
+    /**
+     * Cetak resep pasien dalam format kartu
+     */
+    public function cetakResepKartu($id)
+    {
+        $pasien = Pasien::with(['prescriptions.dokter'])->findOrFail($id);
+        
+        // Ambil resep terbaru
+        $latestPrescription = $pasien->prescriptions->sortByDesc('tanggal')->first();
+        
+        if (!$latestPrescription) {
+            abort(404, 'Tidak ada resep untuk pasien ini');
+        }
+        
+        // Ambil transaksi terbaru untuk mendapatkan data frame dan lensa
+        $latestTransaction = \App\Models\Penjualan::where('pasien_id', $id)
+            ->with(['details.itemable', 'dokter'])
+            ->latest('tanggal')
+            ->first();
+        
+        return view('pasien.cetak-resep-kartu', compact('pasien', 'latestPrescription', 'latestTransaction'));
     }
 }

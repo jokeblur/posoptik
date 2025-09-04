@@ -224,7 +224,7 @@
                             @if($isSuperAdmin && !$selectedBranchId)
                             <th>Cabang</th>
                             @endif
-                            <th>Total</th>
+                            <th>Harga Default Layanan BPJS</th>
                             <th>Bayar (DP)</th>
                             <th>Kekurangan</th>
                         </tr>
@@ -265,7 +265,7 @@
                             @if($isSuperAdmin && !$selectedBranchId)
                             <th>Cabang</th>
                             @endif
-                            <th>Total</th>
+                            <th>Harga Default Layanan BPJS</th>
                             <th>Bayar</th>
                         </tr>
                     </thead>
@@ -309,7 +309,7 @@
                             @if($isSuperAdmin && !$selectedBranchId)
                             <th>Cabang</th>
                             @endif
-                            <th>Total</th>
+                            <th>Harga Default Layanan BPJS</th>
                             <th>Bayar (DP)</th>
                             <th>Kekurangan</th>
                         </tr>
@@ -323,7 +323,13 @@
                             @if($isSuperAdmin && !$selectedBranchId)
                             <td><span class="label label-primary">{{ $trx->branch->name ?? '-' }}</span></td>
                             @endif
-                            <td>Rp {{ number_format($trx->total,0,',','.') }}</td>
+                            <td>
+                                @if($trx->pasien && in_array($trx->pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III']))
+                                    Rp {{ number_format($trx->bpjs_default_price ?? 0,0,',','.') }}
+                                @else
+                                    Rp {{ number_format(0,0,',','.') }}
+                                @endif
+                            </td>
                             <td>Rp {{ number_format($trx->bayar,0,',','.') }}</td>
                             <td>Rp {{ number_format($trx->kekurangan,0,',','.') }}</td>
                         </tr>
@@ -354,7 +360,7 @@
                             @if($isSuperAdmin && !$selectedBranchId)
                             <th>Cabang</th>
                             @endif
-                            <th>Total</th>
+                            <th>Harga Default Layanan BPJS</th>
                             <th>Bayar</th>
                             <th>Status</th>
                         </tr>
@@ -368,7 +374,13 @@
                             @if($isSuperAdmin && !$selectedBranchId)
                             <td><span class="label label-info">{{ $trx->branch->name ?? '-' }}</span></td>
                             @endif
-                            <td>Rp {{ number_format($trx->total,0,',','.') }}</td>
+                            <td>
+                                @if($trx->pasien && in_array($trx->pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III']))
+                                    Rp {{ number_format($trx->bpjs_default_price ?? 0,0,',','.') }}
+                                @else
+                                    Rp {{ number_format(0,0,',','.') }}
+                                @endif
+                            </td>
                             <td>Rp {{ number_format($trx->bayar,0,',','.') }}</td>
                             <td>{{ $trx->status }}</td>
                         </tr>
@@ -399,7 +411,7 @@
                             @if($isSuperAdmin && !$selectedBranchId)
                             <th>Cabang</th>
                             @endif
-                            <th>Total</th>
+                            <th>Harga Default Layanan BPJS</th>
                             <th>Bayar</th>
                             <th>Status</th>
                         </tr>
@@ -413,7 +425,13 @@
                             @if($isSuperAdmin && !$selectedBranchId)
                             <td><span class="label label-info">{{ $trx->branch->name ?? '-' }}</span></td>
                             @endif
-                            <td>Rp {{ number_format($trx->total,0,',','.') }}</td>
+                            <td>
+                                @if($trx->pasien && in_array($trx->pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III']))
+                                    Rp {{ number_format($trx->bpjs_default_price ?? 0,0,',','.') }}
+                                @else
+                                    Rp {{ number_format(0,0,',','.') }}
+                                @endif
+                            </td>
                             <td>Rp {{ number_format($trx->bayar,0,',','.') }}</td>
                             <td>{{ $trx->status }}</td>
                         </tr>

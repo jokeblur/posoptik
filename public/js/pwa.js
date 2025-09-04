@@ -11,6 +11,8 @@ class PWAInstaller {
         this.setupInstallPrompt();
         this.createInstallButton();
         this.setupOfflineIndicator();
+        this.createSplashScreen();
+        this.setupPushNotifications();
     }
 
     // Register Service Worker
@@ -261,6 +263,126 @@ class PWAInstaller {
                 }, 300);
             }
         }, 3000);
+    }
+
+    // Create Splash Screen
+    createSplashScreen() {
+        // Only show splash screen on first visit or after app install
+        if (this.shouldShowSplash()) {
+            const splash = document.createElement("div");
+            splash.className = "pwa-splash";
+            splash.innerHTML = `
+                <img src="/image/logoapp.png" alt="Optik Melati" class="logo" 
+                     onerror="this.src='/image/logologin.png'; this.onerror=function(){this.style.display='none'; document.getElementById('splash-fallback').style.display='block';}">
+                <div id="splash-fallback" class="logo-fallback" style="display: none;">
+                    <div class="fallback-icon">👓</div>
+                </div>
+                <div class="app-name">Optik Melati</div>
+                <div class="app-description">Aplikasi Manajemen Optik</div>
+                <div class="loading">
+                    <div class="loading-bar">
+                        <div class="loading-progress"></div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(splash);
+            
+            // Hide splash screen after 3 seconds
+            setTimeout(() => {
+                splash.classList.add("hidden");
+                setTimeout(() => {
+                    if (splash.parentNode) {
+                        splash.parentNode.removeChild(splash);
+                    }
+                }, 500);
+            }, 3000);
+            
+            // Mark splash as shown
+            localStorage.setItem("pwa-splash-shown", "true");
+        }
+    }
+
+    // Check if splash screen should be shown
+    shouldShowSplash() {
+        // Show splash if:
+        // 1. First time visiting
+        // 2. App was just installed
+        // 3. User cleared localStorage
+        return !localStorage.getItem("pwa-splash-shown") || 
+               this.isAppInstalled() ||
+               this.isFirstVisit();
+    }
+
+    // Check if app is installed
+    isAppInstalled() {
+        return window.matchMedia("(display-mode: standalone)").matches ||
+               window.navigator.standalone === true;
+    }
+
+    // Check if this is first visit
+    isFirstVisit() {
+        return !localStorage.getItem("pwa-first-visit");
+    }
+
+    // Setup Push Notifications
+    async setupPushNotifications() {
+        if ("Notification" in window && "serviceWorker" in navigator) {
+            // Request permission for notifications
+            if (Notification.permission === "default") {
+                try {
+                    const permission = await Notification.requestPermission();
+                    if (permission === "granted") {
+                        this.showSuccessMessage("Notifikasi diaktifkan!");
+                        this.subscribeToPush();
+                    }
+                } catch (error) {
+                    console.error("Error requesting notification permission:", error);
+                }
+            }
+        }
+    }
+
+    // Subscribe to push notifications
+    async subscribeToPush() {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: this.urlBase64ToUint8Array(
+                    "BEl62iUYgUivxIkv69yViEuiBIa40HI0QYlQ5U8X3hJ4vKBFxS5FHVPF8jf8WUvX4YyB0wzsN1yZp6F2G5u4BQ"
+                )
+            });
+            
+            // Send subscription to server
+            await fetch("/api/push-subscribe", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(subscription)
+            });
+            
+            console.log("Push subscription successful");
+        } catch (error) {
+            console.error("Push subscription failed:", error);
+        }
+    }
+
+    // Convert VAPID key
+    urlBase64ToUint8Array(base64String) {
+        const padding = "=".repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/\-/g, "+")
+            .replace(/_/g, "/");
+        
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
     }
 }
 

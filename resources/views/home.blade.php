@@ -154,6 +154,10 @@
     
     @includeIf('partials.dashboard_modals')
     
+
+    
+
+    
     {{-- Modal Low Stock Detail --}}
     @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
     <!-- Modal Lensa Low Stock -->
@@ -465,62 +469,29 @@
 
     {{-- Box untuk Kasir --}}
     @if(auth()->user()->isKasir())
-    {{-- Real-time Status Indicator --}}
-    <div class="row" style="margin-bottom: 16px;">
+
+    {{-- Quick Action Buttons untuk Kasir --}}
+    <div class="row" style="margin-bottom: 20px;">
         <div class="col-md-12">
-            <div id="kasir-status-info">
-                <!-- Status akan diupdate via JavaScript -->
-            </div>
-            <div id="realtime-status" class="alert alert-info text-center" style="margin-bottom: 10px; padding: 8px;">
-                <i class="fa fa-wifi" style="margin-right: 5px;"></i>
-                <span id="connection-status">Menghubungkan ke real-time server...</span>
+            <div class="text-center">
+                <div class="btn-group-vertical btn-group-lg" role="group" style="display: inline-block;">
+                    <a href="{{ route('penjualan.create') }}" class="btn btn-primary" style="padding: 15px 30px; font-size: 16px; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin: 5px; min-width: 250px;">
+                        <i class="fa fa-plus-circle" style="margin-right: 8px;"></i>
+                        Transaksi Penjualan Baru
+                    </a>
+                    <a href="{{ route('penjualan.index') }}" class="btn btn-info" style="padding: 15px 30px; font-size: 16px; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin: 5px; min-width: 250px;">
+                        <i class="fa fa-list" style="margin-right: 8px;"></i>
+                        Daftar Transaksi
+                    </a>
+                    <a href="{{ route('pasien.index') }}" class="btn btn-success" style="padding: 15px 30px; font-size: 16px; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin: 5px; min-width: 250px;">
+                        <i class="fa fa-users" style="margin-right: 8px;"></i>
+                        Data Pasien
+                    </a>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="row" style="margin-bottom: 32px;">
-        <div class="col-md-3">
-            <div class="small-box bg-aqua">
-                <div class="inner">
-                    <h3>{{ $jumlahFrame ?? 0 }}</h3>
-                    <p>Frame</p>
-                </div>
-                <div class="icon"><i class="fa fa-glasses"></i></div>
-                <a href="#modal-frame-admin" data-toggle="modal" class="small-box-footer">Detail <i class="fa fa-arrow-circle-right"></i></a>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="small-box bg-red">
-                <div class="inner">
-                    <h3>{{ $jumlahPasien ?? 0 }}</h3>
-                    <p>Pasien</p>
-                </div>
-                <div class="icon"><i class="fa fa-user"></i></div>
-                <a href="#modal-pasien-admin" data-toggle="modal" class="small-box-footer">Detail <i class="fa fa-arrow-circle-right"></i></a>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="small-box bg-green">
-                <div class="inner">
-                    <h3>{{ $jumlahLensa ?? 0 }}</h3>
-                    <p>Lensa</p>
-                </div>
-                <div class="icon"><i class="fa fa-tablets"></i></div>
-                <a href="#modal-lensa-admin" data-toggle="modal" class="small-box-footer">Detail <i class="fa fa-arrow-circle-right"></i></a>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="small-box bg-purple">
-                <div class="inner">
-                    <h3>{{ $jumlahTransaksiAktif ?? 0 }}</h3>
-                    <p>Transaksi Aktif Hari Ini</p>
-                </div>
-                <div class="icon"><i class="fa fa-shopping-cart"></i></div>
-                <a href="#modal-transaksi-aktif-admin" data-toggle="modal" class="small-box-footer">Detail <i class="fa fa-arrow-circle-right"></i></a>
-            </div>
-        </div>
-    </div>
-    
+
     {{-- Box Omset untuk Kasir --}}
     <div class="row" style="margin-bottom: 32px;">
         <div class="col-md-4">
@@ -774,6 +745,8 @@
     @endif
     @endif
 
+
+
     {{-- Konten lain dashboard --}}
 </div>
 @endsection
@@ -828,9 +801,7 @@
   51%, 100% { opacity: 0.3; }
 }
 
-#realtime-status {
-  transition: all 0.3s ease;
-}
+
 
 /* Stock update animations */
 .stock-updated {
@@ -849,14 +820,56 @@
 .stock-normal {
   background-color: rgba(0, 255, 0, 0.1) !important;
 }
+
+/* Fix modal backdrop issues */
+.modal-backdrop {
+  z-index: 1040 !important;
+}
+
+.modal {
+  z-index: 1050 !important;
+}
+
+.modal-backdrop.fade {
+  opacity: 0.5 !important;
+}
+
+.modal-backdrop.in {
+  opacity: 0.5 !important;
+}
+
+/* Ensure backdrop is removed properly */
+body.modal-open {
+  overflow: hidden;
+}
+
+body:not(.modal-open) {
+  overflow: auto;
+}
 </style>
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- DataTables (ensure available for modal table) -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<!-- Bootstrap 3 CDN as fallback -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script>
+// Fallback modal function
+if (typeof $.fn.modal === 'undefined') {
+    console.log('Bootstrap modal not found, using fallback');
+    $.fn.modal = function(action) {
+        if (action === 'show') {
+            this.show();
+        } else if (action === 'hide') {
+            this.hide();
+        }
+    };
+}
+</script>
+<!-- DataTables Bootstrap 3 compatible -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap.min.css">
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap.min.js"></script>
 <script src="{{ asset('js/realtime.js') }}"></script>
 <script>
 window.APP_BASE_URL = '{{ url('/') }}';
@@ -889,17 +902,22 @@ $(function() {
     // Setup real-time dashboard connection
     window.RealtimeManager.connectDashboard({
         onOpen: function() {
-            $('#connection-status').text('Terhubung ke real-time server');
-            $('#realtime-status').removeClass('alert-info alert-danger').addClass('alert-success');
+            console.log('Dashboard real-time connection established');
         },
         onError: function() {
-            $('#connection-status').text('Koneksi terputus, mencoba reconnect...');
-            $('#realtime-status').removeClass('alert-info alert-success').addClass('alert-danger');
+            // Connection error - silently handle without showing message to user
+            console.log('Dashboard real-time connection error');
+        },
+        onHeartbeat: function(data) {
+            console.log('Dashboard heartbeat received:', data.timestamp);
         }
     });
     
     // Setup real-time omset connection
     window.RealtimeManager.connectOmsetKasir({
+        onOpen: function() {
+            console.log('Omset real-time connection established');
+        },
         onData: function(data) {
             // Update omset displays
             $('.omset-total h3').text('Rp ' + new Intl.NumberFormat('id-ID').format(data.omset_kasir || 0));
@@ -917,6 +935,12 @@ $(function() {
             setTimeout(function() {
                 $('.omset-total, .omset-bpjs, .omset-umum').removeClass('pulse-animation');
             }, 1000);
+        },
+        onError: function() {
+            console.log('Omset real-time connection error');
+        },
+        onHeartbeat: function(data) {
+            console.log('Omset heartbeat received:', data.timestamp);
         }
     });
     
@@ -1163,12 +1187,203 @@ var branchSalesChart = new Chart(branchSalesCtx, {
 @endif
 @endif
 
-$(function() {
-    $('.datatable').DataTable({
+$(document).ready(function() {
+    console.log('Dashboard JavaScript loaded');
+    
+    // Initialize DataTables for existing tables (excluding admin transaction table)
+    $('.datatable:not(#table-transaksi-aktif-admin)').DataTable({
         responsive: true,
         pageLength: 10,
-        order: []
+        order: [],
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json'
+        },
+        columnDefs: [
+            { targets: '_all', defaultContent: '-' }
+        ]
     });
+    
+    // Specific initialization for admin transaction table with error handling
+    function initAdminTransactionTable() {
+        var $table = $('#table-transaksi-aktif-admin');
+        if ($table.length && !$.fn.DataTable.isDataTable('#table-transaksi-aktif-admin')) {
+            try {
+                // Check if table has proper structure
+                var headerCount = $table.find('thead th').length;
+                var firstRowCount = $table.find('tbody tr:first td').length;
+                var hasData = $table.find('tbody tr').length > 0;
+                
+                console.log('Table header columns:', headerCount);
+                console.log('First row columns:', firstRowCount);
+                console.log('Has data rows:', hasData);
+                
+                // Only initialize if we have proper structure or no data
+                if (hasData && headerCount !== firstRowCount) {
+                    console.error('Column count mismatch detected. Headers:', headerCount, 'Data:', firstRowCount);
+                    console.log('Skipping DataTable initialization for admin transaction table');
+                    return;
+                }
+                
+                $table.DataTable({
+                    responsive: true,
+                    pageLength: 10,
+                    order: [[8, 'desc']], // Sort by date column
+                    language: {
+                        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json'
+                    },
+                    columnDefs: [
+                        { targets: '_all', defaultContent: '-' },
+                        { targets: [5], className: 'text-right' }, // Total column
+                        { targets: [0], className: 'text-center' } // No column
+                    ],
+                    drawCallback: function() {
+                        console.log('Admin transaction table initialized successfully');
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('DataTable error:', error, thrown);
+                    }
+                });
+            } catch (error) {
+                console.error('Error initializing admin transaction table:', error);
+                // Fallback: just add basic styling
+                $table.addClass('table-striped table-hover');
+            }
+        }
+    }
+    
+    // Initialize the table
+    initAdminTransactionTable();
+    
+
+    
+    // Fix modal close buttons for admin dashboard
+    $(document).on('click', '.modal .close, .modal [data-dismiss="modal"]', function(e) {
+        e.preventDefault();
+        console.log('Modal close button clicked');
+        var modal = $(this).closest('.modal');
+        modal.modal('hide');
+        // Remove backdrop if stuck
+        setTimeout(function() {
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open');
+        }, 300);
+    });
+    
+    // Alternative close button handler
+    $(document).on('click', '.modal-header .close', function(e) {
+        e.preventDefault();
+        console.log('Modal header close clicked');
+        var modal = $(this).closest('.modal');
+        modal.modal('hide');
+        // Remove backdrop if stuck
+        setTimeout(function() {
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open');
+        }, 300);
+    });
+    
+    // Specific handlers for admin modals
+    $(document).on('click', '#modal-frame-admin .close', function(e) {
+        e.preventDefault();
+        console.log('Frame modal close clicked');
+        $('#modal-frame-admin').modal('hide');
+        setTimeout(function() {
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open');
+        }, 300);
+    });
+    
+    $(document).on('click', '#modal-lensa-admin .close', function(e) {
+        e.preventDefault();
+        console.log('Lensa modal close clicked');
+        $('#modal-lensa-admin').modal('hide');
+        setTimeout(function() {
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open');
+        }, 300);
+    });
+    
+    $(document).on('click', '#modal-pasien-admin .close', function(e) {
+        e.preventDefault();
+        console.log('Pasien modal close clicked');
+        $('#modal-pasien-admin').modal('hide');
+        setTimeout(function() {
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open');
+        }, 300);
+    });
+    
+    $(document).on('click', '#modal-transaksi-aktif-admin .close', function(e) {
+        e.preventDefault();
+        console.log('Transaksi modal close clicked');
+        $('#modal-transaksi-aktif-admin').modal('hide');
+        setTimeout(function() {
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open');
+        }, 300);
+    });
+    
+    // Modal open handlers for admin dashboard
+    $(document).on('click', 'a[href="#modal-frame-admin"]', function(e) {
+        e.preventDefault();
+        console.log('Frame modal clicked');
+        $('#modal-frame-admin').modal('show');
+    });
+    
+    $(document).on('click', 'a[href="#modal-lensa-admin"]', function(e) {
+        e.preventDefault();
+        console.log('Lensa modal clicked');
+        $('#modal-lensa-admin').modal('show');
+    });
+    
+    $(document).on('click', 'a[href="#modal-pasien-admin"]', function(e) {
+        e.preventDefault();
+        console.log('Pasien modal clicked');
+        $('#modal-pasien-admin').modal('show');
+    });
+    
+    $(document).on('click', 'a[href="#modal-transaksi-aktif-admin"]', function(e) {
+        e.preventDefault();
+        console.log('Transaksi modal clicked');
+        $('#modal-transaksi-aktif-admin').modal('show');
+    });
+    
+    // Reinitialize table when modal is shown
+    $(document).on('shown.bs.modal', '#modal-transaksi-aktif-admin', function() {
+        console.log('Admin transaction modal shown, reinitializing table...');
+        setTimeout(function() {
+            initAdminTransactionTable();
+        }, 100);
+    });
+    
+    // Fix modal backdrop issues
+    $(document).on('hidden.bs.modal', '.modal', function() {
+        console.log('Modal hidden event triggered');
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open');
+    });
+    
+    $(document).on('show.bs.modal', '.modal', function() {
+        console.log('Modal show event triggered');
+        // Remove any existing backdrops
+        $('.modal-backdrop').remove();
+    });
+    
+    // Click outside modal to close
+    $(document).on('click', '.modal-backdrop', function() {
+        console.log('Backdrop clicked');
+        $('.modal').modal('hide');
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open');
+    });
+    
+
+    
+
+    
+
+    
+
 });
 
 // Function untuk menampilkan modal low stock

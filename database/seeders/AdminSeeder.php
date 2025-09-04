@@ -15,11 +15,25 @@ class AdminSeeder extends Seeder
      */
     public function run()
     {
-        User::create([
-            'name' => 'Admin',
-            'email' => 'admin@admin.com',
-            'password' => bcrypt('password'),
-            'role' => 'admin', // Mengisi kolom 'role' secara langsung
-        ]);
+        // Admin user
+        User::firstOrCreate(
+            ['email' => 'admin@admin.com'],
+            [
+                'name' => 'Admin',
+                'password' => bcrypt('password'),
+                'role' => 'admin',
+            ]
+        );
+
+        // Super Admin user
+        User::firstOrCreate(
+            ['email' => 'superadmin@admin.com'],
+            [
+                'name' => 'Super Admin',
+                'password' => bcrypt('12345678'),
+                'role' => 'super admin',
+                'branch_id' => 1, // Default branch
+            ]
+        );
     }
 }

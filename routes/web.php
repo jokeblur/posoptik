@@ -35,8 +35,24 @@ use App\Exports\LensaExport;
 
 Route::get('/', fn () =>redirect()->route ('login') );
 
+// Route khusus untuk logout dengan redirect yang aman
+Route::post('/logout', function () {
+    auth()->logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect()->route('login');
+})->name('logout');
+
+// Fallback route untuk menangani masalah akses setelah logout
+Route::fallback(function () {
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
+});
+
 Route::middleware([
-    'auth:sanctum',
+    'auth:web',
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
@@ -57,13 +73,17 @@ Route::middleware([
     Route::get('/penjualan/{penjualan}/cetak-half', [PenjualanController::class, 'cetakHalf'])->name('penjualan.cetak-half');
     Route::get('/pasien/{pasien}/cetak-resep', [PasienController::class, 'cetakResep'])->name('pasien.cetak-resep');
     Route::get('/pasien/{pasien}/cetak-resep-a4', [PasienController::class, 'cetakResepA4'])->name('pasien.cetak-resep-a4');
+    Route::get('/pasien/{pasien}/cetak-resep-kartu', [PasienController::class, 'cetakResepKartu'])->name('pasien.cetak-resep-kartu');
     Route::post('/penjualan/{penjualan}/lunas', [PenjualanController::class, 'lunas'])->name('penjualan.lunas');
     Route::post('/penjualan/{id}/diambil', [PenjualanController::class, 'diambil'])->name('penjualan.diambil');
     Route::get('penjualan/omset-harian', [\App\Http\Controllers\PenjualanController::class, 'omsetHarian'])->name('penjualan.omset_harian');
     Route::post('/penjualan/calculate-bpjs-price', [PenjualanController::class, 'calculateBpjsPrice'])->name('penjualan.calculate_bpjs_price');
-    Route::resource('penjualan', App\Http\Controllers\PenjualanController::class);
+
     Route::post('/penjualan/test-bpjs-pricing', [PenjualanController::class, 'testBpjsPricing'])->name('penjualan.test_bpjs_pricing');
     Route::post('/penjualan/debug-frame-data', [PenjualanController::class, 'debugFrameData'])->name('penjualan.debug_frame_data');
+    Route::post('/penjualan/fix-bpjs-prices', [PenjualanController::class, 'fixBpjsPrices'])->name('penjualan.fix_bpjs_prices');
+    Route::post('/penjualan/{id}/update-status-pengerjaan', [PenjualanController::class, 'updateStatusPengerjaan'])->name('penjualan.update_status_pengerjaan');
+    Route::resource('penjualan', App\Http\Controllers\PenjualanController::class);
 
     Route::get('/laporan-pos', [App\Http\Controllers\LaporanPosController::class, 'index'])->name('laporan.pos')->middleware('role:admin,super admin');
     Route::get('/laporan-pos/data', [App\Http\Controllers\LaporanPosController::class, 'getData'])->name('laporan.pos.data')->middleware('role:admin,super admin');
@@ -197,6 +217,9 @@ Route::group(['middleware' => 'auth'], function() {
 
     Route::resource('/aksesoris', App\Http\Controllers\AksesorisController::class);
 });
+
+// Route untuk get users list (di luar group middleware untuk menghindari konflik)
+Route::get('/get-passet-users', [PenjualanController::class, 'getUsersList'])->name('penjualan.users_list')->middleware('auth');
 
 // Route test export tanpa middleware
 Route::get('/test-export', function() {

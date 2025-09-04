@@ -342,10 +342,10 @@
                 <span class="info-label">No. Transaksi:</span>
                 <span class="info-value">{{ $penjualan->kode_penjualan }}</span>
             </div>
-            <div class="info-row">
+            <!-- <div class="info-row">
                 <span class="info-label">📅 Tanggal Transaksi:</span>
                 <span class="info-value">{{ \Carbon\Carbon::parse($penjualan->tanggal)->format('d/m/Y H:i') }}</span>
-            </div>
+            </div> -->
             <div class="info-row">
                 <span class="info-label">📅 Tanggal Hari Ini:</span>
                 <span class="info-value" style="font-weight: 600; color: #17a2b8;">{{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</span>

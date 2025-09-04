@@ -99,6 +99,14 @@ class RealtimeManager {
         eventSource.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
+                
+                // Handle heartbeat messages
+                if (data.type === 'heartbeat') {
+                    console.log(`Heartbeat received for ${name}:`, data.timestamp);
+                    if (callbacks.onHeartbeat) callbacks.onHeartbeat(data);
+                    return;
+                }
+                
                 if (callbacks.onData) callbacks.onData(data);
             } catch (error) {
                 console.error(`Error parsing real-time data for ${name}:`, error);
@@ -118,20 +126,30 @@ class RealtimeManager {
     }
     
     /**
-     * Schedule reconnection
+     * Schedule reconnection with exponential backoff
      */
     scheduleReconnect(name, url, callbacks) {
         this.reconnectAttempts[name] = (this.reconnectAttempts[name] || 0) + 1;
         
         if (this.reconnectAttempts[name] <= this.maxReconnectAttempts) {
+            // Exponential backoff: 3s, 6s, 12s, 24s, 48s
+            const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts[name] - 1), 30000);
+            
             setTimeout(() => {
                 if (this.isPageVisible) {
-                    console.log(`Attempting to reconnect ${name} (attempt ${this.reconnectAttempts[name]})`);
+                    console.log(`Attempting to reconnect ${name} (attempt ${this.reconnectAttempts[name]}, delay: ${delay}ms)`);
                     this.connect(name, url, callbacks);
                 }
-            }, this.reconnectDelay * this.reconnectAttempts[name]);
+            }, delay);
         } else {
-            console.error(`Max reconnection attempts reached for ${name}`);
+            console.error(`Max reconnection attempts reached for ${name}. Will retry in 60 seconds.`);
+            // Reset attempts after 60 seconds for another try
+            setTimeout(() => {
+                this.reconnectAttempts[name] = 0;
+                if (this.isPageVisible) {
+                    console.log(`Resetting reconnection attempts for ${name}`);
+                }
+            }, 60000);
         }
     }
     

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Transaksi;
+use App\Models\Penjualan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -17,7 +17,7 @@ class LaporanBpjsController extends Controller
     public function data(Request $request)
     {
         $user = auth()->user();
-        $query = Transaksi::with('user', 'branch', 'pasien');
+        $query = Penjualan::with('user', 'branch', 'pasien');
 
         // Filter berdasarkan cabang jika bukan super admin
         if ($user->role !== 'super admin') {
@@ -26,10 +26,10 @@ class LaporanBpjsController extends Controller
 
         // Filter berdasarkan tanggal
         if ($request->filled('start_date')) {
-            $query->whereDate('created_at', '>=', $request->start_date);
+            $query->whereDate('tanggal', '>=', $request->start_date);
         }
         if ($request->filled('end_date')) {
-            $query->whereDate('created_at', '<=', $request->end_date);
+            $query->whereDate('tanggal', '<=', $request->end_date);
         }
 
         // Filter berdasarkan jenis transaksi
@@ -56,16 +56,16 @@ class LaporanBpjsController extends Controller
             ->of($query)
             ->addIndexColumn()
             ->orderColumn('tanggal', function ($query, $order) {
-                return $query->orderBy('created_at', $order);
+                return $query->orderBy('tanggal', $order);
             })
             ->addColumn('tanggal', function ($transaction) {
-                return tanggal_indonesia($transaction->created_at, false);
+                return tanggal_indonesia($transaction->tanggal, false);
             })
             ->editColumn('kode_penjualan', function ($transaction) {
                 return '<span class="label label-success">'. $transaction->kode_penjualan .'</span>';
             })
             ->addColumn('nama_pasien', function ($transaction) {
-                return $transaction->nama_pasien ?? 'N/A';
+                return $transaction->pasien->nama_pasien ?? 'N/A';
             })
             ->addColumn('jenis_layanan', function ($transaction) {
                 if ($transaction->pasien_service_type) {
@@ -107,10 +107,9 @@ class LaporanBpjsController extends Controller
                 return '<a href="'. route('penjualan.show', $transaction->id) .'" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i> Detail</a>';
             })
             ->filterColumn('nama_pasien', function($query, $keyword) {
-                $query->where('nama_pasien_manual', 'like', "%{$keyword}%")
-                      ->orWhereHas('pasien', function($q) use ($keyword) {
-                          $q->where('nama_pasien', 'like', "%{$keyword}%");
-                      });
+                $query->whereHas('pasien', function($q) use ($keyword) {
+                    $q->where('nama_pasien', 'like', "%{$keyword}%");
+                });
             })
             ->rawColumns(['kode_penjualan', 'jenis_layanan', 'status_transaksi', 'biaya_tambahan', 'aksi'])
             ->make(true);
@@ -119,7 +118,7 @@ class LaporanBpjsController extends Controller
     public function summary(Request $request)
     {
         $user = auth()->user();
-        $query = Transaksi::query();
+        $query = Penjualan::query();
 
         // Filter berdasarkan cabang jika bukan super admin
         if ($user->role !== 'super admin') {
@@ -128,10 +127,30 @@ class LaporanBpjsController extends Controller
 
         // Filter berdasarkan tanggal
         if ($request->filled('start_date')) {
-            $query->whereDate('created_at', '>=', $request->start_date);
+            $query->whereDate('tanggal', '>=', $request->start_date);
         }
         if ($request->filled('end_date')) {
-            $query->whereDate('created_at', '<=', $request->end_date);
+            $query->whereDate('tanggal', '<=', $request->end_date);
+        }
+
+        // Filter berdasarkan jenis transaksi
+        if ($request->filled('transaction_type')) {
+            switch ($request->transaction_type) {
+                case 'bpjs_normal':
+                    $query->whereNotNull('pasien_service_type')
+                          ->where('transaction_status', 'Normal');
+                    break;
+                case 'bpjs_naik_kelas':
+                    $query->whereNotNull('pasien_service_type')
+                          ->where('transaction_status', 'Naik Kelas');
+                    break;
+                case 'umum':
+                    $query->whereNull('pasien_service_type');
+                    break;
+                case 'all_bpjs':
+                    $query->whereNotNull('pasien_service_type');
+                    break;
+            }
         }
 
         // Summary berdasarkan jenis transaksi
@@ -161,7 +180,7 @@ class LaporanBpjsController extends Controller
     public function export(Request $request)
     {
         $user = auth()->user();
-        $query = Transaksi::with('user', 'branch', 'pasien')->latest();
+        $query = Penjualan::with('user', 'branch', 'pasien')->latest();
 
         // Filter berdasarkan cabang jika bukan super admin
         if ($user->role !== 'super admin') {
@@ -170,10 +189,10 @@ class LaporanBpjsController extends Controller
 
         // Filter berdasarkan tanggal
         if ($request->filled('start_date')) {
-            $query->whereDate('created_at', '>=', $request->start_date);
+            $query->whereDate('tanggal', '>=', $request->start_date);
         }
         if ($request->filled('end_date')) {
-            $query->whereDate('created_at', '<=', $request->end_date);
+            $query->whereDate('tanggal', '<=', $request->end_date);
         }
 
         // Filter berdasarkan jenis transaksi
@@ -226,9 +245,9 @@ class LaporanBpjsController extends Controller
             // Data
             foreach ($transactions as $transaction) {
                 fputcsv($file, [
-                    tanggal_indonesia($transaction->created_at, false),
+                    tanggal_indonesia($transaction->tanggal, false),
                     $transaction->kode_penjualan,
-                    $transaction->nama_pasien ?? 'N/A',
+                    $transaction->pasien->nama_pasien ?? 'N/A',
                     $transaction->pasien_service_type ?? 'Umum',
                     $transaction->transaction_status ?? 'Normal',
                     $transaction->total,

@@ -6,7 +6,7 @@
                 <h4 class="modal-title">Detail Pasien</h4>
                 <div>
                     <a href="#" id="btn-cetak-resep" class="btn btn-warning btn-sm" target="_blank" style="margin-right: 10px;">
-                        <i class="fa fa-print"></i> Cetak Resep
+                        <i class="fa fa-print"></i> Cetak Kartu
                     </a>
                     <a href="#" id="btn-cetak-resep-a4" class="btn btn-info btn-sm" target="_blank" style="margin-right: 10px;">
                         <i class="fa fa-print"></i> Cetak A4

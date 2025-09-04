@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Auth\Middleware\Authenticate as Middleware;
+use Illuminate\Support\Facades\Route;
 
 class Authenticate extends Middleware
 {
@@ -15,7 +16,12 @@ class Authenticate extends Middleware
     protected function redirectTo($request)
     {
         if (! $request->expectsJson()) {
-            return route('login');
+            // Pastikan route login tersedia
+            if (Route::has('login')) {
+                return route('login');
+            }
+            // Fallback ke URL login jika route tidak tersedia
+            return url('/login');
         }
     }
 }

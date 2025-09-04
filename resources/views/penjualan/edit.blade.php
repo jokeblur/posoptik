@@ -76,33 +76,44 @@
                         <div class="col-md-6">
                             <div class="panel panel-default" style="margin-bottom:0;">
                                 <div class="panel-heading" style="padding:6px 10px; font-size:14px; background:#f5f5f5;">
-                                    <b><i class="fa fa-stethoscope"></i> Resep Terakhir</b> <span class="text-muted">(<span id="resep-tanggal">{{ $penjualan->pasien->resep_terakhir ?? '' }}</span>)</span>
+                                    <b><i class="fa fa-stethoscope"></i> Resep Terakhir</b> 
+                                    @if($latestPrescription)
+                                        <span class="text-muted">({{ \Carbon\Carbon::parse($latestPrescription->tanggal)->format('d/m/Y') }})</span>
+                                    @else
+                                        <span class="text-muted">(Tidak ada resep)</span>
+                                    @endif
                                 </div>
                                 <div class="panel-body" style="padding:8px 10px;">
-                                    <table class="table table-bordered table-condensed text-center" style="margin-bottom:6px;">
-                                        <thead>
-                                            <tr class="bg-gray">
-                                                <th class="text-center" style="width: 20%;">Mata</th>
-                                                <th class="text-center" style="width: 20%;">SPH</th>
-                                                <th class="text-center" style="width: 20%;">CYL</th>
-                                                <th class="text-center" style="width: 20%;">AXIS</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><strong>OD (Kanan)</strong></td>
-                                                <td id="resep-od-sph">{{ $penjualan->pasien->resep_od_sph ?? '' }}</td>
-                                                <td id="resep-od-cyl">{{ $penjualan->pasien->resep_od_cyl ?? '' }}</td>
-                                                <td id="resep-od-axis">{{ $penjualan->pasien->resep_od_axis ?? '' }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>OS (Kiri)</strong></td>
-                                                <td id="resep-os-sph">{{ $penjualan->pasien->resep_os_sph ?? '' }}</td>
-                                                <td id="resep-os-cyl">{{ $penjualan->pasien->resep_os_cyl ?? '' }}</td>
-                                                <td id="resep-os-axis">{{ $penjualan->pasien->resep_os_axis ?? '' }}</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                    @if($latestPrescription)
+                                        <table class="table table-bordered table-condensed text-center" style="margin-bottom:6px;">
+                                            <thead>
+                                                <tr class="bg-gray">
+                                                    <th class="text-center" style="width: 20%;">Mata</th>
+                                                    <th class="text-center" style="width: 20%;">SPH</th>
+                                                    <th class="text-center" style="width: 20%;">CYL</th>
+                                                    <th class="text-center" style="width: 20%;">AXIS</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><strong>OD (Kanan)</strong></td>
+                                                    <td>{{ $latestPrescription->od_sph ?? '-' }}</td>
+                                                    <td>{{ $latestPrescription->od_cyl ?? '-' }}</td>
+                                                    <td>{{ $latestPrescription->od_axis ?? '-' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>OS (Kiri)</strong></td>
+                                                    <td>{{ $latestPrescription->os_sph ?? '-' }}</td>
+                                                    <td>{{ $latestPrescription->os_cyl ?? '-' }}</td>
+                                                    <td>{{ $latestPrescription->os_axis ?? '-' }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    @else
+                                        <div class="text-center text-muted" style="padding: 20px;">
+                                            <i class="fa fa-info-circle"></i> Belum ada data resep untuk pasien ini
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -132,19 +143,39 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($penjualan->details as $detail)
-                                <tr>
-                                    <td>{{ $detail->itemable->nama ?? 'N/A' }}</td>
-                                    <td>Rp. {{ number_format($detail->harga, 0, ',', '.') }}</td>
-                                    <td>{{ $detail->jumlah }}</td>
-                                    <td>Rp. {{ number_format($detail->subtotal, 0, ',', '.') }}</td>
-                                    <td>
-                                        <button type="button" class="btn btn-xs btn-danger" onclick="removeItem(this)">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                @endforeach
+                                @if($penjualan->details && $penjualan->details->count() > 0)
+                                    @foreach($penjualan->details as $detail)
+                                    <tr>
+                                        <td>
+                                            @if($detail->itemable)
+                                                @if($detail->itemable_type === 'App\Models\Frame')
+                                                    {{ $detail->itemable->merk_frame ?? 'N/A' }} - {{ $detail->itemable->jenis_frame ?? 'N/A' }}
+                                                @elseif($detail->itemable_type === 'App\Models\Lensa')
+                                                    {{ $detail->itemable->merk_lensa ?? 'N/A' }} - {{ $detail->itemable->type ?? 'N/A' }}
+                                                @else
+                                                    {{ $detail->itemable->nama ?? 'N/A' }}
+                                                @endif
+                                            @else
+                                                Item tidak ditemukan
+                                            @endif
+                                        </td>
+                                        <td>Rp. {{ number_format($detail->price ?? 0, 0, ',', '.') }}</td>
+                                        <td>{{ $detail->quantity ?? 1 }}</td>
+                                        <td>Rp. {{ number_format($detail->subtotal ?? 0, 0, ',', '.') }}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-xs btn-danger" onclick="removeItem(this)">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                @else
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">
+                                            <i class="fa fa-info-circle"></i> Tidak ada item transaksi
+                                        </td>
+                                    </tr>
+                                @endif
                             </tbody>
                         </table>
                     </div>

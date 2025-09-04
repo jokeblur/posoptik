@@ -3,8 +3,8 @@
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalFrameLabel">Detail Frame</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <h4 class="modal-title" id="modalFrameLabel">Detail Frame</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="cursor: pointer;">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -24,19 +24,25 @@
             </tr>
           </thead>
           <tbody>
-            @foreach($detailFrame ?? [] as $i => $frame)
-            <tr>
-              <td>{{ $i+1 }}</td>
-              <td>{{ $frame->merk_frame }}</td>
-              <td>{{ $frame->kode_frame }}</td>
-              <td>{{ $frame->stok }}</td>
-              <td>{{ number_format($frame->harga_jual_frame) }}</td>
-              @if(auth()->user()->isSuperAdmin())
-              <td>{{ number_format($frame->harga_beli_frame) }}</td>
-              @endif
-              <td>{{ $frame->branch->name ?? '-' }}</td>
-            </tr>
-            @endforeach
+            @if(isset($detailFrame) && $detailFrame->count() > 0)
+              @foreach($detailFrame as $i => $frame)
+              <tr>
+                <td>{{ $i+1 }}</td>
+                <td>{{ $frame->merk_frame ?? '-' }}</td>
+                <td>{{ $frame->kode_frame ?? '-' }}</td>
+                <td>{{ $frame->stok ?? 0 }}</td>
+                <td>{{ number_format($frame->harga_jual_frame ?? 0) }}</td>
+                @if(auth()->user()->isSuperAdmin())
+                <td>{{ number_format($frame->harga_beli_frame ?? 0) }}</td>
+                @endif
+                <td>{{ $frame->branch->name ?? '-' }}</td>
+              </tr>
+              @endforeach
+            @else
+              <tr>
+                <td colspan="{{ auth()->user()->isSuperAdmin() ? '7' : '6' }}" class="text-center">Tidak ada data frame</td>
+              </tr>
+            @endif
           </tbody>
         </table>
       </div>
@@ -49,8 +55,8 @@
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalLensaLabel">Detail Lensa</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <h4 class="modal-title" id="modalLensaLabel">Detail Lensa</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="cursor: pointer;">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -70,19 +76,25 @@
             </tr>
           </thead>
           <tbody>
-            @foreach($detailLensa ?? [] as $i => $lensa)
-            <tr>
-              <td>{{ $i+1 }}</td>
-              <td>{{ $lensa->merk_lensa }}</td>
-              <td>{{ $lensa->kode_lensa }}</td>
-              <td>{{ $lensa->stok }}</td>
-              <td>{{ number_format($lensa->harga_jual_lensa) }}</td>
-              @if(auth()->user()->isSuperAdmin())
-              <td>{{ number_format($lensa->harga_beli_lensa) }}</td>
-              @endif
-              <td>{{ $lensa->branch->name ?? '-' }}</td>
-            </tr>
-            @endforeach
+            @if(isset($detailLensa) && $detailLensa->count() > 0)
+              @foreach($detailLensa as $i => $lensa)
+              <tr>
+                <td>{{ $i+1 }}</td>
+                <td>{{ $lensa->merk_lensa ?? '-' }}</td>
+                <td>{{ $lensa->kode_lensa ?? '-' }}</td>
+                <td>{{ $lensa->stok ?? 0 }}</td>
+                <td>{{ number_format($lensa->harga_jual_lensa ?? 0) }}</td>
+                @if(auth()->user()->isSuperAdmin())
+                <td>{{ number_format($lensa->harga_beli_lensa ?? 0) }}</td>
+                @endif
+                <td>{{ $lensa->branch->name ?? '-' }}</td>
+              </tr>
+              @endforeach
+            @else
+              <tr>
+                <td colspan="{{ auth()->user()->isSuperAdmin() ? '7' : '6' }}" class="text-center">Tidak ada data lensa</td>
+              </tr>
+            @endif
           </tbody>
         </table>
       </div>
@@ -95,8 +107,8 @@
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalPasienLabel">Detail Pasien</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <h4 class="modal-title" id="modalPasienLabel">Detail Pasien</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="cursor: pointer;">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -114,17 +126,23 @@
             </tr>
           </thead>
           <tbody>
-            @foreach($detailPasien ?? [] as $i => $pasien)
-            <tr>
-              <td>{{ $i+1 }}</td>
-              <td>{{ $pasien->nama_pasien }}</td>
-              <td>{{ $pasien->nohp }}</td>
-              <td>{{ $pasien->alamat }}</td>
-              <td>{{ $pasien->service_type ?? '-' }}</td>
-              <td>{{ optional($pasien->prescriptions->last()?->dokter)->nama ?? $pasien->prescriptions->last()?->dokter_manual ?? '-' }}</td>
-              <td>{{ $pasien->created_at ? $pasien->created_at->format('d-m-Y') : '-' }}</td>
-            </tr>
-            @endforeach
+            @if(isset($detailPasien) && $detailPasien->count() > 0)
+              @foreach($detailPasien as $i => $pasien)
+              <tr>
+                <td>{{ $i+1 }}</td>
+                <td>{{ $pasien->nama_pasien ?? '-' }}</td>
+                <td>{{ $pasien->nohp ?? '-' }}</td>
+                <td>{{ $pasien->alamat ?? '-' }}</td>
+                <td>{{ $pasien->service_type ?? '-' }}</td>
+                <td>{{ optional($pasien->prescriptions->last()?->dokter)->nama ?? $pasien->prescriptions->last()?->dokter_manual ?? '-' }}</td>
+                <td>{{ $pasien->created_at ? $pasien->created_at->format('d-m-Y') : '-' }}</td>
+              </tr>
+              @endforeach
+            @else
+              <tr>
+                <td colspan="7" class="text-center">Tidak ada data pasien</td>
+              </tr>
+            @endif
           </tbody>
         </table>
       </div>
@@ -137,8 +155,8 @@
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalTransaksiAktifLabel">Detail Transaksi Aktif Hari Ini</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <h4 class="modal-title" id="modalTransaksiAktifLabel">Detail Transaksi Aktif Hari Ini</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="cursor: pointer;">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -158,19 +176,25 @@
             </tr>
           </thead>
           <tbody>
-            @foreach($detailTransaksiAktif ?? [] as $i => $trx)
-            <tr>
-              <td>{{ $i+1 }}</td>
-              <td>{{ $trx->kode_penjualan}}</td>
-              <td>{{ $trx->nama_pasien }}</td>
-              <td>{{ $trx->pasien->service_type ?? '-' }}</td>
-              <td>{{ optional($trx->dokter)->nama ?? $trx->dokter_manual ?? '-' }}</td>
-              <td>{{ number_format($trx->total) }}</td>
-              <td>{{ $trx->status }}</td>
-              <td>{{ $trx->status_pengerjaan ?? '-' }}</td>
-              <td>{{ $trx->created_at ? $trx->created_at->format('d-m-Y H:i') : '-' }}</td>
-            </tr>
-            @endforeach
+            @if(isset($detailTransaksiAktif) && $detailTransaksiAktif->count() > 0)
+              @foreach($detailTransaksiAktif as $i => $trx)
+              <tr>
+                <td>{{ $i+1 }}</td>
+                <td>{{ $trx->kode_penjualan ?? '-' }}</td>
+                <td>{{ $trx->pasien->nama_pasien ?? '-' }}</td>
+                <td>{{ $trx->pasien->service_type ?? '-' }}</td>
+                <td>{{ optional($trx->dokter)->nama ?? $trx->dokter_manual ?? '-' }}</td>
+                <td>Rp {{ number_format($trx->total ?? 0, 0, ',', '.') }}</td>
+                <td>{{ $trx->status ?? '-' }}</td>
+                <td>{{ $trx->status_pengerjaan ?? '-' }}</td>
+                <td>{{ $trx->created_at ? $trx->created_at->format('d-m-Y H:i') : '-' }}</td>
+              </tr>
+              @endforeach
+            @else
+              <tr>
+                <td colspan="9" class="text-center">Tidak ada transaksi aktif hari ini</td>
+              </tr>
+            @endif
           </tbody>
         </table>
       </div>

@@ -76,10 +76,30 @@
 }
 
 .pwa-splash .logo {
-    width: 120px;
-    height: 120px;
-    margin-bottom: 20px;
+    width: 200px;
+    height: 200px;
+    margin-bottom: 30px;
     animation: fadeInUp 1s ease;
+    filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3));
+    border-radius: 20px;
+}
+
+.pwa-splash .logo-fallback {
+    width: 200px;
+    height: 200px;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    animation: fadeInUp 1s ease;
+    filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3));
+}
+
+.pwa-splash .fallback-icon {
+    font-size: 80px;
+    opacity: 0.8;
 }
 
 .pwa-splash .app-name {
@@ -217,8 +237,17 @@
     }
 
     .pwa-splash .logo {
-        width: 80px;
-        height: 80px;
+        width: 150px;
+        height: 150px;
+    }
+
+    .pwa-splash .logo-fallback {
+        width: 150px;
+        height: 150px;
+    }
+
+    .pwa-splash .fallback-icon {
+        font-size: 60px;
     }
 
     .pwa-splash .app-name {

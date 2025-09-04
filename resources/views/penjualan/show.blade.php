@@ -100,7 +100,20 @@
                             @if($penjualan->photo_bpjs)
                             <tr>
                                 <th>Bukti BPJS</th>
-                                <td><a href="{{ asset('storage/' . $penjualan->photo_bpjs) }}" target="_blank">Lihat Foto</a></td>
+                                <td>
+                                    <a href="{{ asset('storage/' . $penjualan->photo_bpjs) }}" target="_blank" class="btn btn-sm btn-info">
+                                        <i class="fa fa-image"></i> Lihat Foto
+                                    </a>
+                                    <br><br>
+                                    <img src="{{ asset('storage/' . $penjualan->photo_bpjs) }}" 
+                                         alt="Bukti BPJS" 
+                                         style="max-width: 300px; max-height: 200px; border: 1px solid #ddd; border-radius: 5px;"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                    <div style="display: none; color: red; font-size: 12px;">
+                                        <i class="fa fa-exclamation-triangle"></i> Foto tidak dapat dimuat. 
+                                        <a href="{{ asset('storage/' . $penjualan->photo_bpjs) }}" target="_blank">Coba buka langsung</a>
+                                    </div>
+                                </td>
                             </tr>
                             @endif
                             @if($penjualan->signature_bpjs)
@@ -160,6 +173,16 @@
 
                 @php
                     $isBPJS = $penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii']);
+                    // Debug: Log BPJS information
+                    \Log::info('BPJS Debug in show view:', [
+                        'penjualan_id' => $penjualan->id,
+                        'pasien_service_type' => $penjualan->pasien->service_type ?? 'N/A',
+                        'bpjs_default_price' => $penjualan->bpjs_default_price ?? 'N/A',
+                        'isBPJS' => $isBPJS,
+                        'pasien_service_type_from_penjualan' => $penjualan->pasien_service_type ?? 'N/A',
+                        'photo_bpjs_path' => $penjualan->photo_bpjs ?? 'N/A',
+                        'photo_bpjs_url' => $penjualan->photo_bpjs ? asset('storage/' . $penjualan->photo_bpjs) : 'N/A'
+                    ]);
                 @endphp
                 
                 <h4>Detail Produk</h4>
@@ -171,7 +194,7 @@
                             @if(!$isBPJS)
                             <th>Harga Satuan</th>
                             @endif
-                            <th>{{ $isBPJS ? 'Biaya BPJS' : 'Subtotal' }}</th>
+                            <th>{{ $isBPJS ? 'Harga Jual Produk' : 'Subtotal' }}</th>
                             <th>Biaya Tambahan</th>
                         </tr>
                     </thead>
@@ -198,7 +221,15 @@
                             @endif
                             <td>
                                 @if($isBPJS)
-                                    Rp {{ format_uang($penjualan->bpjs_default_price) }}
+                                    @if($detail->itemable_type === 'App\\Models\\Frame')
+                                        Rp {{ format_uang($detail->itemable->harga_jual_frame ?? 0) }}
+                                    @elseif($detail->itemable_type === 'App\\Models\\Lensa')
+                                        Rp {{ format_uang($detail->itemable->harga_jual_lensa ?? 0) }}
+                                    @elseif($detail->itemable_type === 'App\\Models\\Aksesoris')
+                                        Rp {{ format_uang($detail->itemable->harga_jual ?? 0) }}
+                                    @else
+                                        Rp {{ format_uang($detail->price) }}
+                                    @endif
                                 @else
                                     Rp {{ format_uang($detail->subtotal) }}
                                 @endif
@@ -223,8 +254,32 @@
                         <table class="table">
                             @if($isBPJS)
                                 <tr>
+                                    <th style="width:50%">Total Harga Jual Produk:</th>
+                                    <td class="text-right">
+                                        @php
+                                            $totalSalePrice = 0;
+                                            foreach($penjualan->details as $detail) {
+                                                if($detail->itemable_type === 'App\\Models\\Frame') {
+                                                    $totalSalePrice += ($detail->itemable->harga_jual_frame ?? 0) * $detail->quantity;
+                                                } elseif($detail->itemable_type === 'App\\Models\\Lensa') {
+                                                    $totalSalePrice += ($detail->itemable->harga_jual_lensa ?? 0) * $detail->quantity;
+                                                } elseif($detail->itemable_type === 'App\\Models\\Aksesoris') {
+                                                    $totalSalePrice += ($detail->itemable->harga_jual ?? 0) * $detail->quantity;
+                                                }
+                                            }
+                                        @endphp
+                                        Rp {{ format_uang($totalSalePrice) }}
+                                    </td>
+                                </tr>
+                                <tr>
                                     <th style="width:50%">Biaya BPJS:</th>
-                                    <td class="text-right">Rp {{ format_uang($penjualan->bpjs_default_price) }}</td>
+                                    <td class="text-right">
+                                        @if($penjualan->bpjs_default_price > 0)
+                                            Rp {{ format_uang($penjualan->bpjs_default_price) }}
+                                        @else
+                                            <span class="text-danger">Rp 0 (BPJS price not set)</span>
+                                        @endif
+                                    </td>
                                 </tr>
                                 @if($penjualan->details->sum('additional_cost') > 0)
                                 <tr>

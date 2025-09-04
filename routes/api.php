@@ -39,3 +39,17 @@ Route::middleware('auth:sanctum')->get('/kasir-status', function (Request $reque
 });
 
 Route::middleware('auth:sanctum')->get('/open-day-status', [OpenDayController::class, 'status']);
+
+// API untuk mendapatkan daftar user
+Route::middleware('auth:sanctum')->get('/users', function (Request $request) {
+    try {
+        $users = \App\Models\User::select('id', 'name', 'role', 'branch_id')
+            ->orderBy('name')
+            ->get();
+        
+        return response()->json($users);
+    } catch (\Exception $e) {
+        \Log::error('Error getting users: ' . $e->getMessage());
+        return response()->json(['error' => 'Failed to get users'], 500);
+    }
+});

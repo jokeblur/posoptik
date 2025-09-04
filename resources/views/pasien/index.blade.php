@@ -204,7 +204,7 @@
                 $('#detail-dokter').text(dokterNama);
 
                 // Set URL untuk tombol cetak resep
-                $('#btn-cetak-resep').attr('href', '{{ route("pasien.cetak-resep", ":id") }}'.replace(':id', response.id_pasien));
+                $('#btn-cetak-resep').attr('href', '{{ route("pasien.cetak-resep-kartu", ":id") }}'.replace(':id', response.id_pasien));
                 $('#btn-cetak-resep-a4').attr('href', '{{ route("pasien.cetak-resep-a4", ":id") }}'.replace(':id', response.id_pasien));
 
                 // Tampilkan/sembunyikan baris No. BPJS sesuai jenis layanan

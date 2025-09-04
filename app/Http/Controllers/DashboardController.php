@@ -241,7 +241,37 @@ class DashboardController extends Controller
         $detailPasien = \App\Models\Pasien::limit(100)->get();
         $detailTransaksiAktif = \App\Models\Penjualan::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
             ->whereDate('created_at', now())
-            ->limit(100)->get();
+            ->with(['pasien', 'dokter'])
+            ->limit(100)
+            ->get()
+            ->map(function($trx) {
+                // Ensure all required fields are present
+                return (object) [
+                    'id' => $trx->id,
+                    'kode_penjualan' => $trx->kode_penjualan ?? '-',
+                    'total' => $trx->total ?? 0,
+                    'status' => $trx->status ?? '-',
+                    'status_pengerjaan' => $trx->status_pengerjaan ?? '-',
+                    'created_at' => $trx->created_at,
+                    'dokter_manual' => $trx->dokter_manual ?? '-',
+                    'pasien' => $trx->pasien ? (object) [
+                        'nama_pasien' => $trx->pasien->nama_pasien ?? '-',
+                        'service_type' => $trx->pasien->service_type ?? '-'
+                    ] : (object) ['nama_pasien' => '-', 'service_type' => '-'],
+                    'dokter' => $trx->dokter ? (object) [
+                        'nama' => $trx->dokter->nama ?? '-'
+                    ] : null
+                ];
+            });
+            
+        // Debug logging
+        \Log::info('Dashboard data for user: ' . $user->id, [
+            'frame_count' => $detailFrame->count(),
+            'lensa_count' => $detailLensa->count(),
+            'pasien_count' => $detailPasien->count(),
+            'transaksi_count' => $detailTransaksiAktif->count(),
+            'selected_branch_id' => $selectedBranchId
+        ]);
 
         // Data untuk grafik penjualan (hanya untuk super admin)
         $chartData = null;

@@ -85,13 +85,12 @@
                         <tr>
                             <th width="5%">No</th>
                             <th>Tanggal</th>
-                            <th>Kode Penjualan</th>
-                            <th>Total</th>
-                            <th>Kasir</th>
-                            <th>Cabang</th>
                             <th>Nama Pasien</th>
+                            <th>Kode Penjualan</th>
                             <th>Nama Dokter</th>
+                            <th>Total</th>
                             <th>Passet Oleh</th>
+                            <th>Jenis Layanan</th>
                             <th>Status Transaksi</th>
                             <th>Status Pengerjaan</th>
                             <th width="15%"><i class="fa fa-cog"></i></th>
@@ -241,13 +240,12 @@
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'tanggal', name: 'tanggal' },
-                { data: 'kode_penjualan', name: 'kode_penjualan' },
-                { data: 'total_harga', name: 'total_harga' },
-                { data: 'kasir', name: 'kasir' },
-                { data: 'cabang', name: 'cabang' },
                 { data: 'nama_pasien', name: 'nama_pasien' },
+                { data: 'kode_penjualan', name: 'kode_penjualan' },
                 { data: 'nama_dokter', name: 'nama_dokter' },
+                { data: 'total_harga', name: 'total_harga' },
                 { data: 'passet_by', name: 'passet_by' },
+                { data: 'jenis_layanan', name: 'jenis_layanan' },
                 { data: 'status_transaksi', name: 'status_transaksi' },
                 { data: 'status_pengerjaan', name: 'status_pengerjaan' },
                 { data: 'aksi', name: 'aksi', orderable: false, searchable: false }
@@ -727,6 +725,215 @@
                         message = errors.responseJSON.message;
                     }
                     Swal.fire('Gagal!', message, 'error');
+                });
+            }
+        });
+    }
+
+    // Function untuk update status pengerjaan dengan passet by
+    function updateStatusPengerjaan(penjualanId) {
+        // Ambil daftar user dengan CSRF token dan session
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            xhrFields: {
+                withCredentials: true
+            }
+        });
+        
+        $.ajax({
+            url: '/get-passet-users',
+            type: 'GET',
+            dataType: 'json',
+            xhrFields: {
+                withCredentials: true
+            },
+            success: function(users) {
+                console.log('=== AJAX SUCCESS ===');
+                console.log('Users received:', users);
+                console.log('Users type:', typeof users);
+                console.log('Users length:', users ? users.length : 'null/undefined');
+                
+                let userOptions = '<option value="">Pilih User</option>';
+                
+                if (users && Array.isArray(users) && users.length > 0) {
+                    console.log('Found users:', users.length);
+                    users.forEach(function(user, index) {
+                        console.log(`User ${index}:`, user.name, user.role);
+                        userOptions += `<option value="${user.name}">${user.name} (${user.role || 'passet bantu'})</option>`;
+                    });
+                } else {
+                    console.log('No users found or invalid data, using fallback');
+                    console.log('Users data:', users);
+                    // Jika tidak ada user dengan role passet bantu
+                    @if(auth()->user()->role === 'passet bantu')
+                        userOptions += '<option value="{{ auth()->user()->name }}">{{ auth()->user()->name }} ({{ auth()->user()->role }})</option>';
+                    @else
+                        userOptions += '<option value="" disabled>Tidak ada user dengan role passet bantu</option>';
+                    @endif
+                }
+                
+                console.log('Final userOptions:', userOptions);
+                
+                Swal.fire({
+                    title: 'Update Status Pengerjaan',
+                    html: `
+                        <div class="form-group">
+                            <label for="statusPengerjaan">Status Pengerjaan:</label>
+                            <select id="statusPengerjaan" class="form-control">
+                                <option value="">Pilih Status</option>
+                                <option value="Menunggu Pengerjaan">Menunggu Pengerjaan</option>
+                                <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
+                                <option value="Selesai Dikerjakan">Selesai Dikerjakan</option>
+                                <option value="Sudah Diambil">Sudah Diambil</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="passetBy">Passet Oleh:</label>
+                            <select id="passetBy" class="form-control" required>
+                                ${userOptions}
+                            </select>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Update Status',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    preConfirm: () => {
+                        const status = document.getElementById('statusPengerjaan').value;
+                        const passetBy = document.getElementById('passetBy').value;
+                        
+                        if (!status) {
+                            Swal.showValidationMessage('Silakan pilih status pengerjaan');
+                            return false;
+                        }
+                        
+                        if (!passetBy) {
+                            Swal.showValidationMessage('Silakan pilih user yang melakukan passet');
+                            return false;
+                        }
+                        
+                        return { status, passetBy };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const { status, passetBy } = result.value;
+                        
+                        $.post(`/penjualan/${penjualanId}/update-status-pengerjaan`, {
+                            '_token': '{{ csrf_token() }}',
+                            'status_pengerjaan': status,
+                            'passet_by': passetBy
+                        })
+                        .done(response => {
+                            if (response.success) {
+                                Swal.fire('Berhasil!', response.message, 'success')
+                                    .then(() => {
+                                        table.ajax.reload(); // Reload table
+                                        updateStatistics(); // Update statistics
+                                    });
+                            } else {
+                                Swal.fire('Gagal!', response.message, 'error');
+                            }
+                        })
+                        .fail(errors => {
+                            let message = 'Tidak dapat mengupdate status pengerjaan.';
+                            if (errors.responseJSON && errors.responseJSON.message) {
+                                message = errors.responseJSON.message;
+                            }
+                            Swal.fire('Gagal!', message, 'error');
+                        });
+                    }
+                });
+            },
+            error: function(xhr, status, error) {
+                console.error('=== AJAX ERROR ===');
+                console.error('Status:', status);
+                console.error('Error:', error);
+                console.error('Response Text:', xhr.responseText);
+                console.error('Status Code:', xhr.status);
+                console.error('Response Headers:', xhr.getAllResponseHeaders());
+                
+                // Fallback: gunakan user yang sedang login jika role passet bantu
+                let userOptions = '<option value="">Pilih User</option>';
+                @if(auth()->user()->role === 'passet bantu')
+                    userOptions += '<option value="{{ auth()->user()->name }}">{{ auth()->user()->name }} ({{ auth()->user()->role }})</option>';
+                @else
+                    userOptions += '<option value="" disabled>Tidak ada user dengan role passet bantu</option>';
+                @endif
+                
+                console.log('Using fallback userOptions:', userOptions);
+                
+                Swal.fire({
+                    title: 'Update Status Pengerjaan',
+                    html: `
+                        <div class="form-group">
+                            <label for="statusPengerjaan">Status Pengerjaan:</label>
+                            <select id="statusPengerjaan" class="form-control">
+                                <option value="">Pilih Status</option>
+                                <option value="Menunggu Pengerjaan">Menunggu Pengerjaan</option>
+                                <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
+                                <option value="Selesai Dikerjakan">Selesai Dikerjakan</option>
+                                <option value="Sudah Diambil">Sudah Diambil</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="passetBy">Passet Oleh:</label>
+                            <select id="passetBy" class="form-control" required>
+                                ${userOptions}
+                            </select>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Update Status',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    preConfirm: () => {
+                        const status = document.getElementById('statusPengerjaan').value;
+                        const passetBy = document.getElementById('passetBy').value;
+                        
+                        if (!status) {
+                            Swal.showValidationMessage('Silakan pilih status pengerjaan');
+                            return false;
+                        }
+                        
+                        if (!passetBy) {
+                            Swal.showValidationMessage('Silakan pilih user yang melakukan passet');
+                            return false;
+                        }
+                        
+                        return { status, passetBy };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const { status, passetBy } = result.value;
+                        
+                        $.post(`/penjualan/${penjualanId}/update-status-pengerjaan`, {
+                            '_token': '{{ csrf_token() }}',
+                            'status_pengerjaan': status,
+                            'passet_by': passetBy
+                        })
+                        .done(response => {
+                            if (response.success) {
+                                Swal.fire('Berhasil!', response.message, 'success')
+                                    .then(() => {
+                                        table.ajax.reload(); // Reload table
+                                        updateStatistics(); // Update statistics
+                                    });
+                            } else {
+                                Swal.fire('Gagal!', response.message, 'error');
+                            }
+                        })
+                        .fail(errors => {
+                            let message = 'Tidak dapat mengupdate status pengerjaan.';
+                            if (errors.responseJSON && errors.responseJSON.message) {
+                                message = errors.responseJSON.message;
+                            }
+                            Swal.fire('Gagal!', message, 'error');
+                        });
+                    }
                 });
             }
         });

@@ -15,7 +15,9 @@ class Penjualan extends Model
     protected $fillable = [
         'kode_penjualan', 'tanggal', 'user_id', 'branch_id', 'pasien_id', 
         'dokter_id', 'dokter_manual', 'tanggal_siap', 'total', 'diskon', 'bayar', 
-        'kekurangan', 'status', 'status_pengerjaan', 'photo_bpjs', 'signature_bpjs', 'signature_date'
+        'kekurangan', 'status', 'status_pengerjaan', 'photo_bpjs', 'signature_bpjs', 'signature_date',
+        'pasien_service_type', 'bpjs_default_price', 'total_additional_cost', 'transaction_status',
+        'passet_by', 'waktu_selesai_dikerjakan'
     ];
 
     protected $casts = [

@@ -2,7 +2,10 @@
 <browserconfig>
     <msapplication>
         <tile>
-            <square150x150logo src="/image/optik-melati.png"/>
+            <square70x70logo src="/image/logoapp.png"/>
+            <square150x150logo src="/image/logoapp.png"/>
+            <square310x310logo src="/image/logoapp.png"/>
+            <wide310x150logo src="/image/logoapp.png"/>
             <TileColor>#e74c3c</TileColor>
         </tile>
     </msapplication>

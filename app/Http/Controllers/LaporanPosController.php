@@ -42,13 +42,25 @@ class LaporanPosController extends Controller
         $layananList = ['BPJS I', 'BPJS II', 'BPJS III', 'Umum'];
         $omsetLayanan = [];
         foreach ($layananList as $layanan) {
-            $omsetLayanan[$layanan] = Penjualan::when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->whereHas('pasien', function($q) use ($layanan) {
-                    $q->where('service_type', $layanan);
-                })
-                ->whereMonth('created_at', $bulan)
-                ->whereYear('created_at', $tahun)
-                ->sum('total');
+            if ($layanan === 'Umum') {
+                // Untuk layanan umum, gunakan total transaksi
+                $omsetLayanan[$layanan] = Penjualan::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->whereHas('pasien', function($q) use ($layanan) {
+                        $q->where('service_type', $layanan);
+                    })
+                    ->whereMonth('created_at', $bulan)
+                    ->whereYear('created_at', $tahun)
+                    ->sum('total');
+            } else {
+                // Untuk layanan BPJS, gunakan bpjs_default_price
+                $omsetLayanan[$layanan] = Penjualan::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->whereHas('pasien', function($q) use ($layanan) {
+                        $q->where('service_type', $layanan);
+                    })
+                    ->whereMonth('created_at', $bulan)
+                    ->whereYear('created_at', $tahun)
+                    ->sum('bpjs_default_price');
+            }
         }
 
         // Rekap DP (Belum Lunas, sudah bayar sebagian)

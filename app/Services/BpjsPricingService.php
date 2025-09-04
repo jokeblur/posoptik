@@ -83,16 +83,28 @@ class BpjsPricingService
      */
     public function getDefaultPrice(string $serviceType): int
     {
+        $price = 0;
         switch ($serviceType) {
             case 'BPJS I':
-                return self::BPJS_I_PRICE;
+                $price = self::BPJS_I_PRICE;
+                break;
             case 'BPJS II':
-                return self::BPJS_II_PRICE;
+                $price = self::BPJS_II_PRICE;
+                break;
             case 'BPJS III':
-                return self::BPJS_III_PRICE;
+                $price = self::BPJS_III_PRICE;
+                break;
             default:
-                return 0;
+                $price = 0;
         }
+        
+        // Debug logging
+        Log::info('BpjsPricingService::getDefaultPrice called:', [
+            'service_type' => $serviceType,
+            'returned_price' => $price
+        ]);
+        
+        return $price;
     }
 
     /**

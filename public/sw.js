@@ -1,9 +1,9 @@
-const CACHE_NAME = "optik-melati-v1.0.0";
+const CACHE_NAME = "optik-melati-v1.1.0";
 const urlsToCache = [
     "/",
     "/css/app.css",
     "/js/app.js",
-    "/image/optik-melati.png",
+    "/image/logoapp.png",
     "/AdminLTE2/bower_components/bootstrap/dist/css/bootstrap.min.css",
     "/AdminLTE2/bower_components/jquery/dist/jquery.min.js",
     "/AdminLTE2/bower_components/bootstrap/dist/js/bootstrap.min.js",
@@ -28,11 +28,16 @@ self.addEventListener("fetch", (event) => {
                 return response;
             }
 
-            // If request fails and it's a navigation request, show offline page
-            return fetch(event.request).catch(() => {
-                if (event.request.mode === "navigate") {
+            // For navigation requests, try network first, then offline page
+            if (event.request.mode === "navigate") {
+                return fetch(event.request).catch(() => {
                     return caches.match("/offline.html");
-                }
+                });
+            }
+
+            // For other requests, try network first, then cache
+            return fetch(event.request).catch(() => {
+                return caches.match(event.request);
             });
         })
     );
@@ -64,5 +69,87 @@ self.addEventListener("sync", (event) => {
 function doBackgroundSync() {
     // Handle offline data sync when connection is restored
     console.log("Background sync triggered");
-    // Add your sync logic here
+    
+    // Sync offline data to server
+    return syncOfflineData();
 }
+
+async function syncOfflineData() {
+    try {
+        // Get offline data from IndexedDB or localStorage
+        const offlineData = await getOfflineData();
+        
+        if (offlineData && offlineData.length > 0) {
+            // Send data to server
+            for (const data of offlineData) {
+                await fetch('/api/sync-offline-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+            }
+            
+            // Clear offline data after successful sync
+            await clearOfflineData();
+            console.log('Offline data synced successfully');
+        }
+    } catch (error) {
+        console.error('Background sync failed:', error);
+    }
+}
+
+async function getOfflineData() {
+    // Implementation to get offline data
+    return [];
+}
+
+async function clearOfflineData() {
+    // Implementation to clear offline data
+    return true;
+}
+
+// Push notification handling
+self.addEventListener("push", (event) => {
+    if (event.data) {
+        const data = event.data.json();
+        const options = {
+            body: data.body,
+            icon: "/image/logoapp.png",
+            badge: "/image/logoapp.png",
+            vibrate: [100, 50, 100],
+            data: {
+                dateOfArrival: Date.now(),
+                primaryKey: data.primaryKey
+            },
+            actions: [
+                {
+                    action: "explore",
+                    title: "Lihat Detail",
+                    icon: "/image/logoapp.png"
+                },
+                {
+                    action: "close",
+                    title: "Tutup",
+                    icon: "/image/logoapp.png"
+                }
+            ]
+        };
+        
+        event.waitUntil(
+            self.registration.showNotification(data.title, options)
+        );
+    }
+});
+
+// Notification click handling
+self.addEventListener("notificationclick", (event) => {
+    event.notification.close();
+    
+    if (event.action === "explore") {
+        event.waitUntil(
+            clients.openWindow("/dashboard")
+        );
+    }
+});

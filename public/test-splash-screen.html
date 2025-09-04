@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PWA Splash Screen</title>
+    <link rel="stylesheet" href="/css/pwa.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .test-controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100000;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .test-controls button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .test-controls button:hover {
+            background: #c0392b;
+        }
+        
+        .info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100000;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Test Controls -->
+    <div class="test-controls">
+        <h3>PWA Splash Screen Test</h3>
+        <button onclick="showSplashScreen()">Show Splash Screen</button>
+        <button onclick="clearSplashData()">Clear Splash Data</button>
+        <button onclick="testLogoFallback()">Test Logo Fallback</button>
+        <button onclick="location.reload()">Reload Page</button>
+    </div>
+    
+    <!-- Info Panel -->
+    <div class="info">
+        <strong>Test Info:</strong><br>
+        • Logo size: 200x200px (150px mobile)<br>
+        • Fallback: logoapp.png → logologin.png → 👓 icon<br>
+        • Duration: 3 seconds<br>
+        • Background: Orange gradient
+    </div>
+    
+    <!-- Main Content -->
+    <div style="padding: 100px 20px; text-align: center;">
+        <h1>PWA Splash Screen Test Page</h1>
+        <p>Use the controls on the left to test the splash screen functionality.</p>
+        
+        <div style="margin: 40px 0;">
+            <h2>Expected Behavior:</h2>
+            <ul style="text-align: left; max-width: 600px; margin: 0 auto;">
+                <li>✅ Logo should be 200x200px (desktop) / 150x150px (mobile)</li>
+                <li>✅ Logo should have drop shadow and rounded corners</li>
+                <li>✅ If logoapp.png fails, try logologin.png</li>
+                <li>✅ If both fail, show 👓 emoji fallback</li>
+                <li>✅ Splash should show for 3 seconds then fade out</li>
+                <li>✅ Should only show on first visit or after clearing data</li>
+            </ul>
+        </div>
+        
+        <div style="margin: 40px 0;">
+            <h2>Logo Paths Tested:</h2>
+            <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                <div style="text-align: center;">
+                    <img src="/image/logoapp.png" alt="logoapp.png" style="width: 100px; height: 100px; border: 2px solid #ccc; border-radius: 10px;" onerror="this.style.border='2px solid red'; this.alt='FAILED'">
+                    <p>logoapp.png</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="/image/logologin.png" alt="logologin.png" style="width: 100px; height: 100px; border: 2px solid #ccc; border-radius: 10px;" onerror="this.style.border='2px solid red'; this.alt='FAILED'">
+                    <p>logologin.png</p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="width: 100px; height: 100px; border: 2px solid #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 40px; background: rgba(255,255,255,0.1);">
+                        👓
+                    </div>
+                    <p>Fallback Icon</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // PWA Splash Screen Functions
+        function createSplashScreen() {
+            // Clear any existing splash
+            const existingSplash = document.querySelector('.pwa-splash');
+            if (existingSplash) {
+                existingSplash.remove();
+            }
+            
+            const splash = document.createElement("div");
+            splash.className = "pwa-splash";
+            splash.innerHTML = `
+                <img src="/image/logoapp.png" alt="Optik Melati" class="logo" 
+                     onerror="this.src='/image/logologin.png'; this.onerror=function(){this.style.display='none'; document.getElementById('splash-fallback').style.display='block';}">
+                <div id="splash-fallback" class="logo-fallback" style="display: none;">
+                    <div class="fallback-icon">👓</div>
+                </div>
+                <div class="app-name">Optik Melati</div>
+                <div class="app-description">Aplikasi Manajemen Optik</div>
+                <div class="loading">
+                    <div class="loading-bar">
+                        <div class="loading-progress"></div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(splash);
+            
+            // Hide splash screen after 3 seconds
+            setTimeout(() => {
+                splash.classList.add("hidden");
+                setTimeout(() => {
+                    if (splash.parentNode) {
+                        splash.parentNode.removeChild(splash);
+                    }
+                }, 500);
+            }, 3000);
+        }
+        
+        function showSplashScreen() {
+            console.log('Showing splash screen...');
+            createSplashScreen();
+        }
+        
+        function clearSplashData() {
+            localStorage.removeItem("pwa-splash-shown");
+            localStorage.removeItem("pwa-first-visit");
+            console.log('Splash data cleared. Next page load will show splash.');
+            alert('Splash data cleared! Reload the page to see splash screen.');
+        }
+        
+        function testLogoFallback() {
+            console.log('Testing logo fallback...');
+            const splash = document.createElement("div");
+            splash.className = "pwa-splash";
+            splash.innerHTML = `
+                <img src="/image/nonexistent.png" alt="Test Fallback" class="logo" 
+                     onerror="this.src='/image/also-nonexistent.png'; this.onerror=function(){this.style.display='none'; document.getElementById('splash-fallback').style.display='block';}">
+                <div id="splash-fallback" class="logo-fallback" style="display: none;">
+                    <div class="fallback-icon">👓</div>
+                </div>
+                <div class="app-name">Fallback Test</div>
+                <div class="app-description">Testing logo fallback system</div>
+                <div class="loading">
+                    <div class="loading-bar">
+                        <div class="loading-progress"></div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(splash);
+            
+            setTimeout(() => {
+                splash.classList.add("hidden");
+                setTimeout(() => {
+                    if (splash.parentNode) {
+                        splash.parentNode.removeChild(splash);
+                    }
+                }, 500);
+            }, 3000);
+        }
+        
+        // Auto-show splash on first load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('PWA Splash Screen Test Page Loaded');
+            
+            // Check if this is first visit
+            if (!localStorage.getItem("pwa-splash-shown")) {
+                console.log('First visit detected, showing splash screen...');
+                setTimeout(showSplashScreen, 1000);
+            }
+        });
+    </script>
+</body>
+</html>

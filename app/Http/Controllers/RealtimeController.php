@@ -15,12 +15,24 @@ class RealtimeController extends Controller
     {
         $user = auth()->user();
         
+        // Set execution time limit
+        set_time_limit(0);
+        ini_set('memory_limit', '256M');
+        
         return response()->stream(function () use ($user) {
             $lastCheck = now();
+            $heartbeatCount = 0;
             
             while (true) {
+                // Send heartbeat every 30 seconds to keep connection alive
+                if ($heartbeatCount % 6 == 0) {
+                    echo "data: " . json_encode(['type' => 'heartbeat', 'timestamp' => now()->toISOString()]) . "\n\n";
+                }
+                
                 // Get real-time data
                 $data = $this->getDashboardData($user);
+                $data['type'] = 'dashboard_update';
+                $data['timestamp'] = now()->toISOString();
                 
                 // Send data as SSE
                 echo "data: " . json_encode($data) . "\n\n";
@@ -33,6 +45,7 @@ class RealtimeController extends Controller
                 
                 // Update last check time
                 $lastCheck = now();
+                $heartbeatCount++;
                 
                 // Wait 5 seconds before next update
                 sleep(5);
@@ -46,6 +59,7 @@ class RealtimeController extends Controller
             'Cache-Control' => 'no-cache',
             'Content-Type' => 'text/event-stream',
             'X-Accel-Buffering' => 'no', // Disable Nginx buffering
+            'Connection' => 'keep-alive',
         ]);
     }
     
@@ -57,9 +71,22 @@ class RealtimeController extends Controller
             abort(403, 'Unauthorized');
         }
         
+        // Set execution time limit
+        set_time_limit(0);
+        ini_set('memory_limit', '256M');
+        
         return response()->stream(function () use ($user) {
+            $heartbeatCount = 0;
+            
             while (true) {
+                // Send heartbeat every 30 seconds to keep connection alive
+                if ($heartbeatCount % 10 == 0) {
+                    echo "data: " . json_encode(['type' => 'heartbeat', 'timestamp' => now()->toISOString()]) . "\n\n";
+                }
+                
                 $data = $this->getOmsetKasirData($user);
+                $data['type'] = 'omset_update';
+                $data['timestamp'] = now()->toISOString();
                 
                 echo "data: " . json_encode($data) . "\n\n";
                 
@@ -68,6 +95,7 @@ class RealtimeController extends Controller
                 }
                 flush();
                 
+                $heartbeatCount++;
                 sleep(3); // Update setiap 3 detik untuk omset
                 
                 if (connection_aborted()) {
@@ -78,6 +106,7 @@ class RealtimeController extends Controller
             'Cache-Control' => 'no-cache',
             'Content-Type' => 'text/event-stream',
             'X-Accel-Buffering' => 'no',
+            'Connection' => 'keep-alive',
         ]);
     }
     

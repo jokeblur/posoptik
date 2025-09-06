@@ -190,6 +190,9 @@ Route::group(['middleware' => 'auth'], function() {
     Route::get('/lensa/data/{branch}', [LensaController::class, 'dataByBranch'])->name('lensa.data.branch');
     Route::post('/lensa/store', [LensaController::class, 'store'])->name('lensa.store');
     Route::post('/lensa/bulk-delete', [LensaController::class, 'bulkDelete'])->name('lensa.bulk-delete');
+    Route::post('/lensa/import', [LensaController::class, 'import'])->name('lensa.import');
+    Route::get('/lensa/export', [LensaController::class, 'export'])->name('lensa.export');
+    Route::get('/lensa/template', [LensaController::class, 'downloadTemplate'])->name('lensa.template');
     Route::resource('/lensa', LensaController::class);
 
     Route::get('/sales/data', [SalesController::class, 'data'])->name('sales.data');    
@@ -225,16 +228,10 @@ Route::group(['middleware' => 'auth'], function() {
     
     // Route::post('/lensa/store', [LensaController::class, 'store'])->name('lensa.store');
     Route::post('/frame/store', [FrameController::class, 'store'])->name('frame.store');
-    Route::post('/lensa/import', [LensaController::class, 'import'])->name('lensa.import');
-    Route::post('/lensa/test-import', [LensaController::class, 'testImport'])->name('lensa.test-import');
-    Route::get('/lensa/test-manual', [LensaController::class, 'testManualImport'])->name('lensa.test-manual');
-    Route::get('/lensa/export', [LensaController::class, 'export'])->name('lensa.export');
-    Route::get('/lensa/export-full', [LensaController::class, 'exportFull'])->name('lensa.export-full');
     Route::post('/frame/import', [FrameController::class, 'import'])->name('frame.import');
     Route::get('/frame/export', [FrameController::class, 'export'])->name('frame.export');
     Route::get('/frame/export-full', [FrameController::class, 'exportFull'])->name('frame.export-full');
     Route::get('/frame/template', [FrameController::class, 'downloadTemplate'])->name('frame.template');
-    Route::get('/lensa/template', [LensaController::class, 'downloadTemplate'])->name('lensa.template');
     
     // Passet routes
     Route::get('/passet/data', [App\Http\Controllers\PassetController::class, 'data'])->name('passet.data')->middleware('role:passet bantu,admin,super admin');

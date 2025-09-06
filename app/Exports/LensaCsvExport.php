@@ -22,7 +22,7 @@ class LensaCsvExport implements FromCollection, WithHeadings, WithMapping
             
             // Get lensas based on user permissions
             if (method_exists($user, 'isSuperAdmin') && method_exists($user, 'isAdmin')) {
-                if (($user->isSuperAdmin ?? false) || ($user->isAdmin ?? false)) {
+                if ($user->isSuperAdmin() || $user->isAdmin()) {
                     $lensas = Lensa::with(['branch', 'sales'])->orderBy('id', 'desc')->get();
                 } else {
                     $lensas = Lensa::with(['branch', 'sales'])->where('branch_id', $user->branch_id ?? 0)->orderBy('id', 'desc')->get();

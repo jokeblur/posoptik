@@ -5,8 +5,8 @@ namespace App\Exports;
 use App\Models\Lensa;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
@@ -16,55 +16,36 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use Illuminate\Support\Facades\Log;
 
-class LensaExport implements FromCollection, WithHeadings, WithStyles, ShouldAutoSize, WithColumnWidths, WithEvents
+class NewLensaExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithEvents
 {
+    protected $user;
+
+    public function __construct($user)
+    {
+        $this->user = $user;
+    }
+
     public function collection()
     {
         try {
-            $user = auth()->user();
+            Log::info('NewLensaExport: Starting export for user ' . $this->user->id . ' (role: ' . $this->user->role . ')');
             
-            // Simple auth check
-            if (!$user) {
-                Log::warning('LensaExport: No authenticated user found');
-                return collect([]);
-            }
-            
-            // Get lensas based on user permissions - simplified
-            if (method_exists($user, 'isSuperAdmin') && method_exists($user, 'isAdmin')) {
-                if ($user->isSuperAdmin() || $user->isAdmin()) {
-                    $lensas = Lensa::orderBy('id', 'desc')->get();
-                } else {
-                    $lensas = Lensa::where('branch_id', $user->branch_id ?? 0)->orderBy('id', 'desc')->get();
-                }
+            // Get lensas based on user permissions
+            if ($this->user->isSuperAdmin() || $this->user->isAdmin()) {
+                $lensas = Lensa::with(['branch', 'sales'])->orderBy('id', 'desc')->get();
+                Log::info('NewLensaExport: Getting all lensas (admin/superadmin)');
             } else {
-                // Fallback: get all lensas
-                $lensas = Lensa::orderBy('id', 'desc')->get();
+                $lensas = Lensa::with(['branch', 'sales'])
+                    ->where('branch_id', $this->user->branch_id ?? 0)
+                    ->orderBy('id', 'desc')
+                    ->get();
+                Log::info('NewLensaExport: Getting lensas for branch ' . ($this->user->branch_id ?? 0));
             }
             
-            // Transform data to simple array format - format import
-            $result = $lensas->map(function($lensa) {
-                return [
-                    (string) ($lensa->kode_lensa ?? ''),
-                    (string) ($lensa->merk_lensa ?? ''),
-                    (string) ($lensa->type ?? ''),
-                    (string) ($lensa->index ?? ''),
-                    (string) ($lensa->coating ?? ''),
-                    (string) ($lensa->harga_beli_lensa ?? '0'),
-                    (string) ($lensa->harga_jual_lensa ?? '0'),
-                    (string) ($lensa->stok ?? '0'),
-                    (string) ($lensa->branch ? $lensa->branch->name : ''),
-                    (string) ($lensa->sales ? $lensa->sales->nama_sales : ''),
-                    (string) ($lensa->is_custom_order ? 'Custom Order' : 'Ready Stock'),
-                    (string) ($lensa->add ?? ''),
-                    (string) ($lensa->cly ?? ''),
-                ];
-            });
-            
-            Log::info('LensaExport: Successfully exported ' . $result->count() . ' records');
-            return $result;
+            Log::info('NewLensaExport: Found ' . $lensas->count() . ' lensas to export');
+            return $lensas;
         } catch (\Exception $e) {
-            Log::error('LensaExport error: ' . $e->getMessage());
-            Log::error('LensaExport trace: ' . $e->getTraceAsString());
+            Log::error('NewLensaExport error: ' . $e->getMessage());
             return collect([]);
         }
     }
@@ -83,15 +64,33 @@ class LensaExport implements FromCollection, WithHeadings, WithStyles, ShouldAut
             'Cabang',
             'Sales',
             'Tipe Stok',
-            'Catatan',
+            'Catatan (ADD)',
             'Cly'
+        ];
+    }
+
+    public function map($lensa): array
+    {
+        return [
+            $lensa->kode_lensa ?? '',
+            $lensa->merk_lensa ?? '',
+            $lensa->type ?? '',
+            $lensa->index ?? '',
+            $lensa->coating ?? '',
+            $lensa->harga_beli_lensa ?? 0,
+            $lensa->harga_jual_lensa ?? 0,
+            $lensa->stok ?? 0,
+            $lensa->branch ? $lensa->branch->name : '',
+            $lensa->sales ? $lensa->sales->nama_sales : '',
+            $lensa->is_custom_order ? 'Custom Order' : 'Ready Stock',
+            $lensa->add ?? '',
+            $lensa->cly ?? '',
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
         return [
-            // Style the first row as bold text.
             1 => ['font' => ['bold' => true]],
         ];
     }
@@ -100,7 +99,7 @@ class LensaExport implements FromCollection, WithHeadings, WithStyles, ShouldAut
     {
         return [
             'A' => 15, // Kode Lensa
-            'B' => 20, // Merk Lensa
+            'B' => 25, // Merk Lensa
             'C' => 15, // Type
             'D' => 10, // Index
             'E' => 15, // Coating
@@ -110,7 +109,7 @@ class LensaExport implements FromCollection, WithHeadings, WithStyles, ShouldAut
             'I' => 20, // Cabang
             'J' => 15, // Sales
             'K' => 15, // Tipe Stok
-            'L' => 20, // Catatan (ADD)
+            'L' => 25, // Catatan (ADD)
             'M' => 10, // Cly
         ];
     }
@@ -127,7 +126,7 @@ class LensaExport implements FromCollection, WithHeadings, WithStyles, ShouldAut
                     ],
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => '366092'],
+                        'startColor' => ['rgb' => '2E86AB'],
                     ],
                     'alignment' => [
                         'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -161,5 +160,4 @@ class LensaExport implements FromCollection, WithHeadings, WithStyles, ShouldAut
             },
         ];
     }
-
-} 
+}

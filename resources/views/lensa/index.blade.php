@@ -88,6 +88,7 @@
     </div>
 </div>
 
+@if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
 <div class="row mb-3">
     <div class="col-md-12 d-flex align-items-center gap-2">
         <button onclick="showImportModal()" class="btn btn-success">
@@ -96,14 +97,9 @@
         <button onclick="exportLensaData()" class="btn btn-info">
             <i class="fa fa-download"></i> Export Excel
         </button>
-        <button onclick="exportLensaDataFull()" class="btn btn-warning">
-            <i class="fa fa-download"></i> Export Lengkap
-        </button>
-        <button onclick="testImportDebug()" class="btn btn-secondary">
-            <i class="fa fa-bug"></i> Test Import Debug
-        </button>
     </div>
 </div>
+@endif
 
 <!-- Tabel utama tetap ada untuk semua data -->
 <div class="row">
@@ -467,7 +463,7 @@
         }
     }
 
-    // Fungsi untuk export Lensa data
+    // Fungsi untuk export Lensa data (sudah diperbaiki dengan kolom ADD)
     function exportLensaData() {
         // Tampilkan loading
         Swal.fire({
@@ -479,74 +475,49 @@
             }
         });
 
-        // Buat link untuk download dengan proper headers
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = '{{ route('lensa.export') }}';
-        a.download = 'lensa_data.xlsx';
-        a.target = '_blank';
+        // Gunakan window.open untuk download
+        const exportUrl = '{{ route('lensa.export') }}';
+        const newWindow = window.open(exportUrl, '_blank');
         
-        // Add proper headers
-        a.setAttribute('type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        // Tutup loading setelah beberapa detik
-        setTimeout(() => {
+        // Check if window opened successfully
+        if (newWindow) {
+            // Tutup loading setelah beberapa detik
+            setTimeout(() => {
+                Swal.close();
+                
+                // Tampilkan pesan sukses
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Export Berhasil!',
+                    text: 'File Excel data lensa dengan kolom ADD telah berhasil diunduh',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            }, 2000);
+        } else {
+            // Popup blocked, try alternative method
             Swal.close();
+            
+            // Create a temporary link
+            const link = document.createElement('a');
+            link.href = exportUrl;
+            link.download = 'lensa_data_' + new Date().toISOString().slice(0,10) + '.xlsx';
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
             
             // Tampilkan pesan sukses
             Swal.fire({
                 icon: 'success',
                 title: 'Export Berhasil!',
-                text: 'File Excel data lensa telah berhasil diunduh',
-                timer: 2000,
+                text: 'File Excel data lensa dengan kolom ADD telah berhasil diunduh',
+                timer: 3000,
                 showConfirmButton: false
             });
-        }, 2000);
+        }
     }
 
-    function exportLensaDataFull() {
-        // Tampilkan loading
-        Swal.fire({
-            title: 'Mengexport Data Lensa Lengkap...',
-            text: 'Mohon tunggu sebentar',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        // Buat link untuk download dengan proper headers
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = '{{ route('lensa.export-full') }}';
-        a.download = 'lensa_data_lengkap.xlsx';
-        a.target = '_blank';
-        
-        // Add proper headers
-        a.setAttribute('type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        // Tutup loading setelah beberapa detik
-        setTimeout(() => {
-            Swal.close();
-            
-            // Tampilkan pesan sukses
-            Swal.fire({
-                icon: 'success',
-                title: 'Export Berhasil!',
-                text: 'File Excel data lensa lengkap telah berhasil diunduh',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        }, 2000);
-    }
 
     // Fungsi untuk menampilkan modal import
     function showImportModal() {

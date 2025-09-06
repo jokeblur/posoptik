@@ -193,58 +193,79 @@ class LensaController extends Controller
     public function import(Request $request)
     {
         try {
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User tidak terautentikasi'
+                ], 401);
+            }
+
+            // Check if user is admin or super admin
+            if (!$user->isAdmin() && !$user->isSuperAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hanya admin dan super admin yang dapat melakukan import data'
+                ], 403);
+            }
+
             $request->validate([
-                'file' => 'required|mimes:xlsx,xls'
+                'file' => 'required|mimes:xlsx,xls|max:10240' // Max 10MB
             ]);
 
-            // Debug: Log file info
-            \Log::info('Lensa import file info:', [
-                'filename' => $request->file('file')->getClientOriginalName(),
-                'size' => $request->file('file')->getSize(),
-                'mime' => $request->file('file')->getMimeType()
+            $file = $request->file('file');
+            $filename = $file->getClientOriginalName();
+            
+            Log::info('New lensa import started', [
+                'user_id' => $user->id,
+                'user_role' => $user->role,
+                'filename' => $filename,
+                'file_size' => $file->getSize()
             ]);
 
             // Count records before import
-            $beforeCount = \App\Models\Lensa::count();
-            \Log::info('Lensa count before import: ' . $beforeCount);
+            $beforeCount = Lensa::count();
 
-            $import = new LensaImport;
-            Excel::import($import, $request->file('file'));
-            
+            // Process import with new import class
+            $import = new \App\Imports\NewLensaImport($user);
+            Excel::import($import, $file);
+
             // Count records after import
-            $afterCount = \App\Models\Lensa::count();
+            $afterCount = Lensa::count();
             $importedCount = $afterCount - $beforeCount;
-            \Log::info('Lensa count after import: ' . $afterCount . ' (imported: ' . $importedCount . ')');
-            
-            // Log some sample imported records to check stock values
-            $recentLensa = \App\Models\Lensa::latest()->take(5)->get();
-            \Log::info('Sample imported lensa with stock values:', $recentLensa->map(function($lensa) {
-                return [
-                    'id' => $lensa->id,
-                    'merk_lensa' => $lensa->merk_lensa,
-                    'stok' => $lensa->stok,
-                    'stok_type' => gettype($lensa->stok)
-                ];
-            })->toArray());
-            
+
+            Log::info('New lensa import completed', [
+                'imported_count' => $importedCount,
+                'before_count' => $beforeCount,
+                'after_count' => $afterCount
+            ]);
+
             return response()->json([
                 'success' => true,
-                'message' => "Data lensa berhasil diimport! ($importedCount record ditambahkan)"
+                'message' => "Berhasil mengimport {$importedCount} data lensa",
+                'imported_count' => $importedCount,
+                'total_records' => $afterCount
             ]);
-        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-            $failures = $e->failures();
-            \Log::error('Lensa import validation error:', $failures);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error validasi: ' . $e->getMessage(),
+                'message' => 'File tidak valid: ' . implode(', ', $e->validator->errors()->all())
+            ], 422);
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            Log::error('New lensa import validation error:', $failures);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error validasi data: ' . $e->getMessage(),
                 'failures' => $failures
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Lensa import error: ' . $e->getMessage());
-            \Log::error('Lensa import error trace: ' . $e->getTraceAsString());
+            Log::error('New lensa import error: ' . $e->getMessage());
+            Log::error('New lensa import trace: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal import data: ' . $e->getMessage()
+                'message' => 'Gagal mengimport data: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -334,40 +355,35 @@ class LensaController extends Controller
         try {
             $user = auth()->user();
             if (!$user) {
-                Log::warning('Lensa export: No authenticated user');
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User tidak terautentikasi'
-                ], 401);
+                return response('Unauthorized', 401);
             }
 
-            Log::info('Lensa export started by user: ' . $user->id);
+            // Check if user is admin or super admin
+            if (!$user->isAdmin() && !$user->isSuperAdmin()) {
+                return response('Forbidden: Only admin and super admin can export data', 403);
+            }
+
+            Log::info('New lensa export started by user: ' . $user->id . ' (role: ' . $user->role . ')');
             
-            // Create export instance
-            $export = new LensaExport();
+            // Create new export instance
+            $export = new \App\Exports\NewLensaExport($user);
             
             // Test if export data is valid
             $data = $export->collection();
             if ($data->isEmpty()) {
-                Log::warning('Lensa export: No data to export');
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tidak ada data untuk diexport'
-                ], 404);
+                Log::warning('New lensa export: No data to export');
+                return response('No data to export', 404);
             }
             
-            $filename = 'lensa_' . date('Y-m-d_H-i-s') . '.xlsx';
-            Log::info('Lensa export: Generating file ' . $filename . ' with ' . $data->count() . ' records');
+            $filename = 'lensa_data_' . date('Y-m-d_H-i-s') . '.xlsx';
+            Log::info('New lensa export: Generating file ' . $filename . ' with ' . $data->count() . ' records');
             
-            // Simple download without complex headers
-            return Excel::download($export, $filename);
+            // Return Excel download with proper headers
+            return Excel::download($export, $filename, \Maatwebsite\Excel\Excel::XLSX);
         } catch (\Exception $e) {
-            Log::error('Lensa export error: ' . $e->getMessage());
-            Log::error('Lensa export trace: ' . $e->getTraceAsString());
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengexport data: ' . $e->getMessage()
-            ], 500);
+            Log::error('New lensa export error: ' . $e->getMessage());
+            Log::error('New lensa export trace: ' . $e->getTraceAsString());
+            return response('Export failed: ' . $e->getMessage(), 500);
         }
     }
 
@@ -421,7 +437,17 @@ class LensaController extends Controller
     public function downloadTemplate()
     {
         try {
-            \Log::info('Starting template download for lensa');
+            $user = auth()->user();
+            if (!$user) {
+                return response('Unauthorized', 401);
+            }
+
+            // Check if user is admin or super admin
+            if (!$user->isAdmin() && !$user->isSuperAdmin()) {
+                return response('Forbidden: Only admin and super admin can download template', 403);
+            }
+
+            Log::info('New lensa template download by user: ' . $user->id . ' (role: ' . $user->role . ')');
             
             // Alternative approach: Create template directly without separate export class
             $headers = [
@@ -436,7 +462,7 @@ class LensaController extends Controller
                 'Cabang',
                 'Sales',
                 'Tipe Stok',
-                'Catatan',
+                'Catatan (ADD)',
                 'Cly'
             ];
             
@@ -450,7 +476,7 @@ class LensaController extends Controller
                     200000,
                     300000,
                     20,
-                    'Cabang Utama',
+                    'Optik Melati Cabang 1',
                     'John Sales',
                     'Ready Stock',
                     'Lensa premium kualitas tinggi',
@@ -465,7 +491,7 @@ class LensaController extends Controller
                     400000,
                     600000,
                     15,
-                    'Cabang Utama',
+                    'Optik Melati Cabang 1',
                     'Jane Sales',
                     'Custom Order',
                     'Lensa progresif untuk presbyopia',

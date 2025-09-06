@@ -193,6 +193,7 @@ Route::group(['middleware' => 'auth'], function() {
     Route::post('/lensa/import', [LensaController::class, 'import'])->name('lensa.import');
     Route::get('/lensa/export', [LensaController::class, 'export'])->name('lensa.export');
     Route::get('/lensa/template', [LensaController::class, 'downloadTemplate'])->name('lensa.template');
+    Route::get('/penjualan/lensa-stok', [PenjualanController::class, 'getLensaStok'])->name('penjualan.lensa-stok');
     Route::resource('/lensa', LensaController::class);
 
     Route::get('/sales/data', [SalesController::class, 'data'])->name('sales.data');    

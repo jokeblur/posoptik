@@ -240,13 +240,72 @@ class PenjualanController extends Controller
             
         $lenses = \App\Models\Lensa::where('merk_lensa', 'LIKE', "%{$query}%")
             ->orWhere('kode_lensa', 'LIKE', "%{$query}%")
-            ->select('id', 'merk_lensa as name', 'harga_jual_lensa as price', \DB::raw("'lensa' as type"))
+            ->select('id', 'merk_lensa as name', 'harga_jual_lensa as price', 'index', 'cly', 'add', \DB::raw("'lensa' as type"))
             ->limit(5)
             ->get();
 
         $products = $frames->concat($lenses);
 
         return response()->json($products);
+    }
+
+    public function getLensaStok(Request $request)
+    {
+        try {
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $query = \App\Models\Lensa::with(['branch', 'sales'])
+                ->where('stok', '>', 0);
+
+            // Filter by branch if not admin/super admin
+            if (!$user->isAdmin() && !$user->isSuperAdmin()) {
+                $query->where('branch_id', $user->branch_id);
+            }
+
+            // Apply search filter
+            if ($request->has('search') && !empty($request->search)) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('kode_lensa', 'LIKE', "%{$search}%")
+                      ->orWhere('merk_lensa', 'LIKE', "%{$search}%")
+                      ->orWhere('type', 'LIKE', "%{$search}%")
+                      ->orWhere('index', 'LIKE', "%{$search}%")
+                      ->orWhere('coating', 'LIKE', "%{$search}%");
+                });
+            }
+
+            $lensas = $query->orderBy('merk_lensa', 'asc')->get();
+
+            $data = $lensas->map(function($lensa) {
+                return [
+                    'id' => $lensa->id,
+                    'kode_lensa' => $lensa->kode_lensa,
+                    'merk_lensa' => $lensa->merk_lensa,
+                    'type' => $lensa->type ?? '-',
+                    'index' => $lensa->index ?? '-',
+                    'coating' => $lensa->coating ?? '-',
+                    'cly' => $lensa->cly ?? '-',
+                    'add' => $lensa->add ?? '-',
+                    'stok' => $lensa->stok,
+                    'harga_jual_lensa' => $lensa->harga_jual_lensa,
+                    'harga_formatted' => format_uang($lensa->harga_jual_lensa),
+                    'branch_name' => $lensa->branch ? $lensa->branch->name : '-',
+                    'sales_name' => $lensa->sales ? $lensa->sales->nama_sales : '-'
+                ];
+            });
+
+            return response()->json([
+                'data' => $data,
+                'total' => $data->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Get lensa stok error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load lensa data'], 500);
+        }
     }
 
     /**

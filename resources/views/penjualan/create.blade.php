@@ -1580,6 +1580,219 @@ $(function() {
         };
         fileInput.click();
     });
+    
+    // Handle lensa gosok form
+    $('#btn-add-gosok').on('click', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        let formData = {
+            merk: $('#gosok_merk').val(),
+            type: $('#gosok_type').val(),
+            index: $('#gosok_index').val(),
+            coating: $('#gosok_coating').val(),
+            cly: $('#gosok_cly').val(),
+            harga: parseFloat($('#gosok_harga').val()),
+            quantity: parseInt($('#gosok_quantity').val()),
+            catatan: $('#gosok_catatan').val()
+        };
+        
+        // Validate required fields
+        if (!formData.merk || !formData.harga || !formData.quantity) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Data Tidak Lengkap!',
+                text: 'Mohon isi Merk Lensa, Harga Jual, dan Jumlah dengan benar.',
+            });
+            return;
+        }
+        
+        // Validate numeric fields
+        if (isNaN(formData.harga) || formData.harga <= 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Harga Tidak Valid!',
+                text: 'Harga jual harus berupa angka positif.',
+            });
+            return;
+        }
+        
+        if (isNaN(formData.quantity) || formData.quantity <= 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Jumlah Tidak Valid!',
+                text: 'Jumlah harus berupa angka positif.',
+            });
+            return;
+        }
+        
+        // Create product object for gosok lensa
+        let product = {
+            id: 'gosok_' + Date.now(), // Unique ID for gosok lensa
+            name: formData.merk + (formData.type ? ' - ' + formData.type : ''),
+            price: formData.harga,
+            type: 'lensa',
+            quantity: formData.quantity,
+            lensa_type: 'gosok',
+            gosok_data: {
+                merk: formData.merk,
+                type: formData.type,
+                index: formData.index,
+                coating: formData.coating,
+                cly: formData.cly,
+                catatan: formData.catatan
+            }
+        };
+        
+        // Validasi untuk BPJS: hanya boleh ada 1 frame dan 1 lensa
+        let serviceType = $('#detail-jenis_layanan').text().toLowerCase();
+        let isBPJS = serviceType.includes('bpjs');
+        
+        if (isBPJS) {
+            let existingFrame = cart.find(item => item.type === 'frame');
+            let existingLensa = cart.filter(item => item.type === 'lensa');
+            
+            if (existingLensa.length >= 2) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan!',
+                    text: 'Pasien BPJS hanya boleh memilih maksimal 2 lensa.',
+                });
+                return;
+            }
+        }
+        
+        // Add to cart
+        cart.push(product);
+        updateCartDisplay();
+        
+        // Show success message
+        Swal.fire({
+            icon: 'success',
+            title: 'Lensa Gosok Ditambahkan!',
+            text: 'Lensa gosok telah ditambahkan ke keranjang.',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        
+        // Reset form
+        $('#form-lensa-gosok')[0].reset();
+        $('#gosok_quantity').val(1);
+        
+        // Close modal
+        $('#modal-lenses').modal('hide');
+    });
+    
+    // Initialize DataTable for lensa stok
+    let lensaStokTable;
+    
+    function initLensaStokTable() {
+        if ($.fn.DataTable.isDataTable('#table-lenses-stok')) {
+            $('#table-lenses-stok').DataTable().destroy();
+        }
+        
+        lensaStokTable = $('#table-lenses-stok').DataTable({
+            processing: true,
+            serverSide: false,
+            ajax: {
+                url: '{{ route("penjualan.lensa-stok") }}',
+                type: 'GET',
+                data: function(d) {
+                    d.search = $('#search-lensa-stok').val();
+                }
+            },
+            columns: [
+                { data: 'kode_lensa', name: 'kode_lensa' },
+                { data: 'merk_lensa', name: 'merk_lensa' },
+                { data: 'type', name: 'type' },
+                { data: 'index', name: 'index' },
+                { data: 'coating', name: 'coating' },
+                { data: 'cly', name: 'cly' },
+                { data: 'add', name: 'add' },
+                { 
+                    data: 'stok', 
+                    name: 'stok',
+                    render: function(data, type, row) {
+                        return '<span class="label label-success">' + data + '</span>';
+                    }
+                },
+                { 
+                    data: 'harga_formatted', 
+                    name: 'harga_formatted' 
+                },
+                {
+                    data: 'id',
+                    name: 'action',
+                    orderable: false,
+                    searchable: false,
+                    render: function(data, type, row) {
+                        return '<a href="#" class="btn btn-primary btn-sm add-to-cart" ' +
+                               'data-id="' + data + '" ' +
+                               'data-name="' + row.merk_lensa + '" ' +
+                               'data-price="' + row.harga_jual_lensa + '" ' +
+                               'data-type="lensa" ' +
+                               'data-lensa-type="stok">' +
+                               '<i class="fa fa-plus"></i></a>';
+                    }
+                }
+            ],
+            order: [[1, 'asc']],
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+            language: {
+                processing: "Memproses...",
+                lengthMenu: "Tampilkan _MENU_ data per halaman",
+                zeroRecords: "Tidak ada data lensa stok",
+                info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                infoEmpty: "Menampilkan 0 sampai 0 dari 0 data",
+                infoFiltered: "(disaring dari _MAX_ total data)",
+                search: "Cari:",
+                paginate: {
+                    first: "Pertama",
+                    last: "Terakhir",
+                    next: "Selanjutnya",
+                    previous: "Sebelumnya"
+                }
+            },
+            dom: 'rtip',
+            responsive: true
+        });
+    }
+    
+    // Search functionality
+    $('#search-lensa-stok').on('keyup', function() {
+        lensaStokTable.ajax.reload();
+    });
+    
+    // Refresh functionality
+    $('#refresh-lensa-stok').on('click', function() {
+        $('#search-lensa-stok').val('');
+        lensaStokTable.ajax.reload();
+    });
+    
+    // Initialize table when modal is shown
+    $('#modal-lenses').on('shown.bs.modal', function() {
+        // Switch to stok tab and initialize table
+        $('#stok-tab').tab('show');
+        setTimeout(function() {
+            initLensaStokTable();
+        }, 100);
+    });
+    
+    // Reset gosok form
+    $('#btn-reset-gosok').on('click', function(e) {
+        e.preventDefault();
+        $('#form-lensa-gosok')[0].reset();
+        $('#gosok_quantity').val(1);
+        
+        Swal.fire({
+            icon: 'info',
+            title: 'Form Direset!',
+            text: 'Form lensa gosok telah direset.',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    });
 });
 </script>
 

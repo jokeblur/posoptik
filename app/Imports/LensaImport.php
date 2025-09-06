@@ -75,6 +75,7 @@ class LensaImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnErr
                 'stok' => $this->parseNumeric($normalizedRow['stok']),
                 'is_custom_order' => $this->parseBoolean($normalizedRow['is_custom_order'] ?? ''),
                 'add' => $normalizedRow['add'] ?? null,
+                'cly' => $normalizedRow['cly'] ?? null,
                 'branch_id' => $branchId,
                 'sales_id' => $salesId,
             ];
@@ -326,6 +327,9 @@ class LensaImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnErr
             elseif ($cleanKey === 'catatan' || strpos($originalCleanKey, 'catatan') !== false || strpos($originalCleanKey, 'add') !== false || strpos($originalCleanKey, 'tambahan') !== false || strpos($originalCleanKey, 'keterangan') !== false) {
                 $normalized['add'] = $value;
             }
+            elseif ($cleanKey === 'cly' || strpos($originalCleanKey, 'cly') !== false) {
+                $normalized['cly'] = $value;
+            }
             else {
                 // Jika tidak cocok dengan mapping, gunakan key asli
                 $normalized[$cleanKey] = $value;
@@ -353,6 +357,7 @@ class LensaImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnErr
             'sales' => 'nullable|string|max:255',
             'is_custom_order' => 'nullable',
             'add' => 'nullable|string',
+            'cly' => 'nullable|string',
         ];
     }
 
@@ -379,6 +384,7 @@ class LensaImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnErr
             'sales.string' => 'Sales harus berupa teks',
             'sales.max' => 'Sales maksimal 255 karakter',
             'add.string' => 'Field add harus berupa teks',
+            'cly.string' => 'Field cly harus berupa teks',
         ];
     }
 } 

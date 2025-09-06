@@ -25,7 +25,8 @@ class LensaTemplateExport implements FromArray, WithHeadings, WithStyles, Should
                 'Cabang Utama',
                 'John Sales',
                 'Ready Stock',
-                'Lensa premium kualitas tinggi'
+                'Lensa premium kualitas tinggi',
+                'Cly data'
             ],
             [
                 'L00002',
@@ -39,9 +40,10 @@ class LensaTemplateExport implements FromArray, WithHeadings, WithStyles, Should
                 'Cabang Utama',
                 'Jane Sales',
                 'Custom Order',
-                'Lensa progresif untuk presbyopia'
+                'Lensa progresif untuk presbyopia',
+                'Cly data'
             ],
-            array_fill(0, 12, '') // Empty row for more data
+            array_fill(0, 13, '') // Empty row for more data
         ];
     }
 
@@ -59,7 +61,8 @@ class LensaTemplateExport implements FromArray, WithHeadings, WithStyles, Should
             'Cabang',
             'Sales',
             'Tipe Stok',
-            'Catatan'
+            'Catatan',
+            'Cly'
         ];
     }
 
@@ -70,4 +73,5 @@ class LensaTemplateExport implements FromArray, WithHeadings, WithStyles, Should
             1 => ['font' => ['bold' => true]],
         ];
     }
+
 } 

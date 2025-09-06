@@ -25,7 +25,7 @@ class LensaExport implements FromCollection, WithHeadings, WithStyles, ShouldAut
             
             // Get lensas based on user permissions - simplified
             if (method_exists($user, 'isSuperAdmin') && method_exists($user, 'isAdmin')) {
-                if ($user->isSuperAdmin() || $user->isAdmin()) {
+                if (($user->isSuperAdmin ?? false) || ($user->isAdmin ?? false)) {
                     $lensas = Lensa::orderBy('id', 'desc')->get();
                 } else {
                     $lensas = Lensa::where('branch_id', $user->branch_id ?? 0)->orderBy('id', 'desc')->get();
@@ -50,6 +50,7 @@ class LensaExport implements FromCollection, WithHeadings, WithStyles, ShouldAut
                     (string) ($lensa->sales ? $lensa->sales->nama_sales : ''),
                     (string) ($lensa->is_custom_order ? 'Custom Order' : 'Ready Stock'),
                     (string) ($lensa->add ?? ''),
+                    (string) ($lensa->cly ?? ''),
                 ];
             });
             
@@ -76,7 +77,8 @@ class LensaExport implements FromCollection, WithHeadings, WithStyles, ShouldAut
             'Cabang',
             'Sales',
             'Tipe Stok',
-            'Catatan'
+            'Catatan',
+            'Cly'
         ];
     }
 
@@ -87,4 +89,5 @@ class LensaExport implements FromCollection, WithHeadings, WithStyles, ShouldAut
             1 => ['font' => ['bold' => true]],
         ];
     }
+
 } 

@@ -40,6 +40,12 @@
                         </div>
                     </div>
                     <div class="form-group">
+                        <label for="cly" class="col-sm-2 control-label">cly</label>
+                        <div class="col-sm-10">
+                            <input type="text" name="cly" class="form-control" id="cly"></input>
+                        </div>
+                    </div>
+                    <div class="form-group">
                         <label for="coating" class="col-sm-2 control-label">Coating</label>
                         <div class="col-sm-10">
                             <input type="text" class="form-control" name="coating" id="coating">

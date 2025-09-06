@@ -88,6 +88,9 @@ class LensaController extends Controller
             ->addColumn('add', function ($lensa) {
                 return $lensa->add ? substr($lensa->add, 0, 50) . (strlen($lensa->add) > 50 ? '...' : '') : '-';
             })
+            ->addColumn('cly', function ($lensa) {
+                return $lensa->cly ? substr($lensa->cly, 0, 50) . (strlen($lensa->cly) > 50 ? '...' : '') : '-';
+            })
             ->addIndexColumn()
             ->addColumn('aksi', function ($lensa) {
                 return '<div class="btn-group">
@@ -297,6 +300,7 @@ class LensaController extends Controller
                             'sales_id' => $processedRow->sales_id,
                             'is_custom_order' => $processedRow->is_custom_order,
                             'add' => $processedRow->add,
+                            'cly' => $processedRow->cly,
                         ],
                         'original_row' => $rowData
                     ];
@@ -355,7 +359,7 @@ class LensaController extends Controller
             $filename = 'lensa_' . date('Y-m-d_H-i-s') . '.xlsx';
             Log::info('Lensa export: Generating file ' . $filename . ' with ' . $data->count() . ' records');
             
-            // Use simple download like test route
+            // Simple download without complex headers
             return Excel::download($export, $filename);
         } catch (\Exception $e) {
             Log::error('Lensa export error: ' . $e->getMessage());
@@ -397,7 +401,7 @@ class LensaController extends Controller
             $filename = 'lensa_lengkap_' . date('Y-m-d_H-i-s') . '.xlsx';
             Log::info('Lensa export full: Generating file ' . $filename . ' with ' . $data->count() . ' records');
             
-            // Use simple download like test route
+            // Simple download without complex headers
             return Excel::download($export, $filename);
         } catch (\Exception $e) {
             Log::error('Lensa export full error: ' . $e->getMessage());
@@ -432,7 +436,8 @@ class LensaController extends Controller
                 'Cabang',
                 'Sales',
                 'Tipe Stok',
-                'Catatan'
+                'Catatan',
+                'Cly'
             ];
             
             $sampleData = [
@@ -448,7 +453,8 @@ class LensaController extends Controller
                     'Cabang Utama',
                     'John Sales',
                     'Ready Stock',
-                    'Lensa premium kualitas tinggi'
+                    'Lensa premium kualitas tinggi',
+                    'Cly data'
                 ],
                 [
                     'L00002',
@@ -462,9 +468,10 @@ class LensaController extends Controller
                     'Cabang Utama',
                     'Jane Sales',
                     'Custom Order',
-                    'Lensa progresif untuk presbyopia'
+                    'Lensa progresif untuk presbyopia',
+                    'Cly data'
                 ],
-                array_fill(0, 12, '') // Empty row
+                array_fill(0, 13, '') // Empty row
             ];
             
             // Create array for export
@@ -485,10 +492,7 @@ class LensaController extends Controller
             
             \Log::info('Export instance created successfully');
             
-            return Excel::download(
-                $export, 
-                'template_lensa.xlsx'
-            );
+            return Excel::download($export, 'template_lensa.xlsx');
             
         } catch (\Exception $e) {
             \Log::error('Template download error: ' . $e->getMessage());
@@ -551,7 +555,8 @@ class LensaController extends Controller
                 'Cabang' => 'Optik Melati Cabang 1',
                 'Sales' => 'KRYP CR MC HIJAU',
                 'Tipe Stok' => 'Ready Stock', // This should be parsed as false (not custom order)
-                'Catatan' => '100'
+                'Catatan' => '100',
+                'Cly' => 'Cly data'
             ];
 
             \Log::info('Testing manual import with sample data:', $sampleData);

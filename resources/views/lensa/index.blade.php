@@ -127,6 +127,7 @@
                         <th>Type</th>
                         <th>Ukuran</th>
                         <th>ADD</th>
+                        <th>CLY</th>
                         <th>Coating</th>
                         @if(auth()->user()->isSuperAdmin())
                             <th>Harga Beli</th>
@@ -206,6 +207,7 @@
             {data: 'type'},
             {data: 'index'},
             {data: 'add'},
+            {data: 'cly'},
             {data: 'coating'}
         ];
         

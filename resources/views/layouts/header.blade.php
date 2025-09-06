@@ -43,6 +43,7 @@
                     <a href="{{ route('logout.direct') }}" onclick="return confirm('Yakin ingin logout?')" class="logout-btn-secondary" title="Logout Cepat">
                         <i class="fa fa-power-off"></i>
                     </a>
+                
                 </li> -->
                 
                 <!-- User Account: style can be found in dropdown.less -->

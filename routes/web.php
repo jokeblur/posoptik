@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 use App\Exports\FrameExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\LensaExport;
+use App\Exports\LensaCsvExport;
 
 
 /*
@@ -316,6 +317,14 @@ Route::get('/test-export-lensa-real', function() {
         return Excel::download(new \App\Exports\LensaExport, 'test_lensa_real.xlsx');
     } catch (\Exception $e) {
         return response('Export error: ' . $e->getMessage(), 500);
+    }
+});
+
+Route::get('/test-export-lensa-csv', function() {
+    try {
+        return Excel::download(new LensaCsvExport, 'test_lensa.csv', \Maatwebsite\Excel\Excel::CSV);
+    } catch (\Exception $e) {
+        return response('CSV Export error: ' . $e->getMessage(), 500);
     }
 });
 

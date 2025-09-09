@@ -1807,6 +1807,146 @@ $(function() {
     background-color: rgba(255, 0, 0, 0.1) !important;
 }
 
+/* Custom Tab Styles */
+.nav-tabs-custom .nav-tabs > li > a {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-tabs-custom .nav-tabs > li > a:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.nav-tabs-custom .nav-tabs > li.active > a {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+.nav-tabs-custom .nav-tabs > li.active > a:before {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: white;
+    z-index: 11;
+}
+
+/* Form Input Styles */
+.form-control:focus {
+    border-color: #3c8dbc !important;
+    box-shadow: 0 0 0 0.2rem rgba(60, 141, 188, 0.25) !important;
+}
+
+.input-group-addon {
+    transition: all 0.3s ease;
+}
+
+.input-group-addon:hover {
+    transform: scale(1.05);
+}
+
+/* Button Styles */
+.btn {
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Modal Content */
+.modal-content {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #3c8dbc, #3498db);
+    color: white;
+    border-bottom: none;
+    padding: 15px 20px;
+}
+
+.modal-header .close {
+    color: white;
+    opacity: 0.8;
+    text-shadow: none;
+}
+
+.modal-header .close:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Tab Content */
+.tab-content {
+    background: #f8f9fa;
+    min-height: 400px;
+}
+
+.tab-pane {
+    background: white;
+    border-radius: 0 0 10px 10px;
+}
+
+/* Alert Styles */
+.alert-info {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Table Styles */
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    background: #f8f9fa;
+    font-weight: bold;
+    color: #2c3e50;
+    border-top: none;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Label Styles */
+.label {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .nav-tabs-custom .nav-tabs > li > a {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    .nav-tabs-custom .nav-tabs > li > a small {
+        display: none;
+    }
+    
+    .form-group {
+        margin-bottom: 10px;
+    }
+    
+    .btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+}
+
 .stock-medium {
     background-color: rgba(255, 165, 0, 0.1) !important;
 }

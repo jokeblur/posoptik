@@ -95,6 +95,7 @@ Route::middleware([
     
     // Penjualan routes - accessible by all authenticated users
     Route::get('penjualan/search_product', [App\Http\Controllers\PenjualanController::class, 'searchProduct'])->name('penjualan.search_product');
+    Route::get('/penjualan/lensa-stok', [PenjualanController::class, 'getLensaStok'])->name('penjualan.lensa-stok');
     Route::get('/penjualan/data', [PenjualanController::class, 'data'])->name('penjualan.data');
     Route::get('/penjualan/statistics', [PenjualanController::class, 'statistics'])->name('penjualan.statistics');
     Route::get('/penjualan/{penjualan}/cetak', [PenjualanController::class, 'cetak'])->name('penjualan.cetak');
@@ -193,7 +194,6 @@ Route::group(['middleware' => 'auth'], function() {
     Route::post('/lensa/import', [LensaController::class, 'import'])->name('lensa.import');
     Route::get('/lensa/export', [LensaController::class, 'export'])->name('lensa.export');
     Route::get('/lensa/template', [LensaController::class, 'downloadTemplate'])->name('lensa.template');
-    Route::get('/penjualan/lensa-stok', [PenjualanController::class, 'getLensaStok'])->name('penjualan.lensa-stok');
     Route::resource('/lensa', LensaController::class);
 
     Route::get('/sales/data', [SalesController::class, 'data'])->name('sales.data');    

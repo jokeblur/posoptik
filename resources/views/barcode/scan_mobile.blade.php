@@ -150,10 +150,12 @@
     }
     
     #reader {
-        min-height: 250px !important;
+        max-width: 300px !important;
+        min-height: 300px !important;
+        aspect-ratio: 1 / 1 !important;
         border: 2px dashed #ddd !important;
         border-radius: 8px !important;
-        background: #f9f9f9 !important;
+        background: #111 !important;
     }
     
     .btn-lg {
@@ -178,7 +180,11 @@
 
 /* Camera viewport optimization */
 #reader {
-    background: #000 !important;
+    max-width: 360px !important;
+    min-height: 360px !important;
+    aspect-ratio: 1 / 1 !important;
+    margin: 0 auto !important;
+    background: #111 !important;
     border-radius: 8px !important;
     overflow: hidden !important;
     position: relative !important;
@@ -186,29 +192,42 @@
 
 #reader video {
     width: 100% !important;
-    height: auto !important;
+    height: 100% !important;
     border-radius: 8px !important;
-    background: #000 !important;
+    background: transparent !important;
     object-fit: cover !important;
     display: block !important;
+    filter: brightness(1.18) contrast(1.08) !important;
 }
 
 #reader canvas {
     width: 100% !important;
-    height: auto !important;
+    height: 100% !important;
     border-radius: 8px !important;
-    background: #000 !important;
+    background: transparent !important;
     display: block !important;
 }
 
 /* Fix for white screen issue */
 #reader > div {
-    background: #000 !important;
+    background: transparent !important;
     border-radius: 8px !important;
 }
 
 #reader > div > div {
-    background: #000 !important;
+    background: transparent !important;
+}
+
+#reader__scan_region {
+    min-height: 360px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#reader__dashboard {
+    background: #fff !important;
+    padding: 12px !important;
 }
 
 /* Loading state for camera */
@@ -217,8 +236,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 300px;
-    background: #000;
+    min-height: 360px;
+    background: #111;
     color: #fff;
     font-size: 18px;
     border-radius: 8px;

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Penjualan;
+use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -11,7 +12,13 @@ class LaporanBpjsController extends Controller
 {
     public function index()
     {
-        return view('laporan.bpjs.index');
+        $user = auth()->user();
+        $isSuperAdmin = $user->isSuperAdmin();
+
+        $branches = $isSuperAdmin ? Branch::active()->get() : Branch::where('id', $user->branch_id)->get();
+        $selectedBranchId = $isSuperAdmin ? session('active_branch_id', $user->branch_id) : $user->branch_id;
+
+        return view('laporan.bpjs.index', compact('branches', 'selectedBranchId', 'isSuperAdmin'));
     }
 
     public function data(Request $request)
@@ -19,9 +26,15 @@ class LaporanBpjsController extends Controller
         $user = auth()->user();
         $query = Penjualan::with('user', 'branch', 'pasien');
 
-        // Filter berdasarkan cabang jika bukan super admin
-        if ($user->role !== 'super admin') {
-            $query->where('branch_id', $user->branch_id);
+        $branchId = $request->input('branch_id');
+        if ($user->isSuperAdmin()) {
+            $branchId = $branchId ?: session('active_branch_id', $user->branch_id);
+        } else {
+            $branchId = $user->branch_id;
+        }
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
         }
 
         // Filter berdasarkan tanggal
@@ -104,7 +117,10 @@ class LaporanBpjsController extends Controller
                 return $transaction->branch->name ?? 'N/A';
             })
             ->addColumn('aksi', function ($transaction) {
-                return '<a href="'. route('penjualan.show', $transaction->id) .'" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i> Detail</a>';
+                return '<div class="btn-group">'
+                    . '<a href="'. route('penjualan.show', $transaction->id) .'" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i> Detail</a>'
+                    . '<button type="button" class="btn btn-xs btn-danger btn-flat" onclick="hapusTransaksi(\'' . route('penjualan.destroy', $transaction->id) . '\')"><i class="fa fa-trash"></i> Hapus</button>'
+                    . '</div>';
             })
             ->filterColumn('nama_pasien', function($query, $keyword) {
                 $query->whereHas('pasien', function($q) use ($keyword) {
@@ -120,9 +136,15 @@ class LaporanBpjsController extends Controller
         $user = auth()->user();
         $query = Penjualan::query();
 
-        // Filter berdasarkan cabang jika bukan super admin
-        if ($user->role !== 'super admin') {
-            $query->where('branch_id', $user->branch_id);
+        $branchId = $request->input('branch_id');
+        if ($user->isSuperAdmin()) {
+            $branchId = $branchId ?: session('active_branch_id', $user->branch_id);
+        } else {
+            $branchId = $user->branch_id;
+        }
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
         }
 
         // Filter berdasarkan tanggal
@@ -182,9 +204,15 @@ class LaporanBpjsController extends Controller
         $user = auth()->user();
         $query = Penjualan::with('user', 'branch', 'pasien')->latest();
 
-        // Filter berdasarkan cabang jika bukan super admin
-        if ($user->role !== 'super admin') {
-            $query->where('branch_id', $user->branch_id);
+        $branchId = $request->input('branch_id');
+        if ($user->isSuperAdmin()) {
+            $branchId = $branchId ?: session('active_branch_id', $user->branch_id);
+        } else {
+            $branchId = $user->branch_id;
+        }
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
         }
 
         // Filter berdasarkan tanggal

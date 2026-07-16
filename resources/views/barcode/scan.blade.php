@@ -20,13 +20,6 @@
                             </div>
                             <div class="box-body text-center">
                                 <div id="reader" style="width: 100%; max-width: 500px; margin: 0 auto;"></div>
-                                <div class="mt-3">
-                                    <button id="startScan" class="btn btn-primary">Mulai Scan QR Code</button>
-                                    <button id="stopScan" class="btn btn-danger" style="display: none;">Stop Scan</button>
-                                    <button id="switchCamera" class="btn btn-info" style="display: none;">
-                                        <i class="fa fa-refresh"></i> Ganti Kamera
-                                    </button>
-                                </div>
                                 <div id="cameraInfo" class="mt-2" style="display: none;">
                                     <small class="text-muted">
                                         <i class="fa fa-camera"></i> <span id="cameraLabel">Kamera: -</span>
@@ -43,8 +36,8 @@
                         </div>
 
                         <!-- Manual Input Section -->
-                        <!-- <div class="col-md-6">
-                                                    <div class="box box-success">
+                        <div class="col-md-6">
+                            <div class="box box-success">
                             <div class="box-header with-border">
                                 <h4 class="box-title">Input Manual</h4>
                             </div>
@@ -58,7 +51,7 @@
                                 </form>
                             </div>
                         </div>
-                        </div> -->
+                        </div>
                     </div>
 
                     <!-- Result Section -->
@@ -279,25 +272,104 @@
 @endsection
 
 @push('scripts')
-<script src="https://unpkg.com/html5-qrcode"></script>
+<style>
+#reader {
+    width: 100% !important;
+    max-width: 360px !important;
+    aspect-ratio: 1 / 1 !important;
+    min-height: 360px !important;
+    margin: 0 auto !important;
+    background: #111 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+#reader video {
+    background: transparent !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    filter: brightness(1.18) contrast(1.08) !important;
+}
+
+#reader canvas {
+    background: transparent !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+#reader > div,
+#reader > div > div,
+#reader__scan_region,
+#reader__scan_region > img {
+    background: transparent !important;
+}
+
+#reader__scan_region {
+    min-height: 360px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#reader__dashboard {
+    background: #fff !important;
+    padding: 12px !important;
+}
+
+#reader__camera_selection,
+#reader__dashboard_section_csr select,
+#reader__dashboard_section_swaplink {
+    color: #333 !important;
+}
+
+#reader:empty::before {
+    content: 'Memuat Kamera...';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 360px;
+    background: #111;
+    color: #fff;
+    font-size: 18px;
+}
+
+@media (max-width: 768px) {
+    #reader {
+        max-width: 300px !important;
+        min-height: 300px !important;
+    }
+
+    #reader__scan_region,
+    #reader:empty::before {
+        min-height: 300px !important;
+    }
+}
+</style>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
-let html5QrcodeScanner = null;
 let currentTransaksi = null;
-let availableCameras = [];
-let currentCameraIndex = 0;
-let isScanning = false;
+let scannerUi = null;
 
 $(document).ready(function() {
     console.log('Document ready, starting scanner initialization');
+
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        || window.innerWidth <= 768;
+
+    if (isMobileDevice) {
+        window.location.href = '{{ route("barcode.scan.mobile") }}';
+        return;
+    }
     
     // Check if SweetAlert is available
     if (typeof Swal === 'undefined') {
         alert('SweetAlert tidak tersedia, beberapa notifikasi mungkin tidak muncul');
     }
-    
-    // Initialize scanner
-    $('#debugStatus').text('Inisialisasi scanner...');
-    initializeScanner();
+
+    initializeScannerUi();
     
     // Form submission
     $('#searchForm').on('submit', function(e) {
@@ -329,230 +401,34 @@ $(document).ready(function() {
     });
 });
 
-function initializeScanner() {
-    console.log('Initializing scanner...');
-    $('#debugStatus').text('Memeriksa library scanner...');
-    
-    // Check if Html5Qrcode is available
-    if (typeof Html5Qrcode === 'undefined') {
-        console.error('Html5Qrcode library not loaded');
-        $('#debugStatus').text('Error: Library scanner tidak dimuat');
-        Swal.fire('Error', 'Scanner library tidak dapat dimuat. Silakan refresh halaman.', 'error');
+function initializeScannerUi() {
+    if (typeof Html5QrcodeScanner === 'undefined') {
+        $('#debugStatus').text('Library scanner gagal dimuat');
         return;
     }
-    
-    // Get available cameras and prioritize back camera
-    $('#debugStatus').text('Mencari kamera yang tersedia...');
-    Html5Qrcode.getCameras().then(cameras => {
-        console.log('Camera detection successful:', cameras);
-        
-        if (cameras && cameras.length) {
-            availableCameras = cameras;
-            console.log('Available cameras:', cameras);
-            $('#debugStatus').text(`Ditemukan ${cameras.length} kamera`);
-            
-            // Try to find back camera (environment facing)
-            let backCameraIndex = cameras.findIndex(camera => 
-                camera.label && (
-                    camera.label.toLowerCase().includes('back') ||
-                    camera.label.toLowerCase().includes('rear') ||
-                    camera.label.toLowerCase().includes('environment') ||
-                    camera.label.toLowerCase().includes('0')
-                )
-            );
-            
-            // If back camera found, use it as default
-            if (backCameraIndex !== -1) {
-                currentCameraIndex = backCameraIndex;
-                console.log('Back camera found at index:', backCameraIndex);
-                $('#debugStatus').text(`Siap - Kamera belakang terdeteksi`);
-            } else {
-                // Fallback to last camera (usually back camera on mobile)
-                currentCameraIndex = cameras.length - 1;
-                console.log('Using last camera as fallback:', currentCameraIndex);
-                $('#debugStatus').text(`Siap - Menggunakan kamera default`);
-            }
-            
-            // Show camera info if multiple cameras available
-            if (cameras.length > 1) {
-                updateCameraInfo();
-                $('#switchCamera').show();
-            }
-        } else {
-            console.log('No cameras found, will use simple scanner');
-            $('#debugStatus').text('Siap - Mode auto-detect');
-        }
-    }).catch(err => {
-        console.error('Error getting cameras:', err);
-        console.log('Will fallback to simple scanner');
-        $('#debugStatus').text('Siap - Mode fallback');
-        // Don't show error immediately, let it fallback to simple scanner
-    });
-    
-    $('#startScan').on('click', function() {
-        console.log('Start scan clicked');
-        startScanning();
-    });
-    
-    $('#stopScan').on('click', function() {
-        console.log('Stop scan clicked');
-        stopScanning();
-    });
-    
-    $('#switchCamera').on('click', function() {
-        console.log('Switch camera clicked');
-        switchCamera();
-    });
-}
 
-function startScanning() {
-    // Fallback to simple Html5QrcodeScanner if no cameras detected
-    if (availableCameras.length === 0) {
-        console.log('No cameras detected, using simple scanner');
-        startSimpleScanner();
-        return;
-    }
-    
+    $('#debugStatus').text('Menyiapkan scanner kamera...');
+
     const config = {
         fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const boxSize = Math.max(180, Math.floor(minEdge * 0.68));
+            return { width: boxSize, height: boxSize };
+        },
+        rememberLastUsedCamera: true,
+        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
     };
-    
-    html5QrcodeScanner = new Html5Qrcode("reader");
-    
-    // Try to start with specific camera
-    const cameraId = availableCameras[currentCameraIndex].id;
-    console.log('Starting scanner with camera ID:', cameraId);
-    
-    html5QrcodeScanner.start(
-        // Pass explicit videoConstraints here instead of just cameraId
-        { deviceId: { exact: cameraId }, facingMode: { ideal: "environment" } },
-        config,
-        onScanSuccess,
-        onScanFailure
-    ).then(() => {
-        isScanning = true;
-        $('#startScan').hide();
-        $('#stopScan').show();
-        $('#switchCamera').show();
-        $('#cameraInfo').show();
-        updateCameraInfo();
-        console.log('Scanner started with camera:', availableCameras[currentCameraIndex].label);
-    }).catch(err => {
-        console.error('Error starting scanner with specific camera:', err);
-        // Fallback to simple scanner
-        startSimpleScanner();
-    });
+
+    scannerUi = new Html5QrcodeScanner('reader', config, false);
+    scannerUi.render(onScanSuccess, onScanFailure);
+
+    $('#debugStatus').text('Scanner siap. Pilih kamera lalu klik start.');
 }
 
-function startSimpleScanner() {
-    console.log('Starting simple scanner fallback');
-    
-    const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-        // Try to prioritize back camera
-        videoConstraints: {
-            facingMode: { ideal: "environment" }
-        }
-    };
-    
-    html5QrcodeScanner = new Html5QrcodeScanner("reader", config);
-    
-    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-    
-    isScanning = true;
-    $('#startScan').hide();
-    $('#stopScan').show();
-    $('#cameraInfo').show();
-    $('#cameraLabel').text('Kamera: Auto-detected');
-    console.log('Simple scanner started');
-}
-
-function stopScanning() {
-    if (html5QrcodeScanner && isScanning) {
-        // Check if it's Html5Qrcode or Html5QrcodeScanner
-        if (typeof html5QrcodeScanner.stop === 'function') {
-            // Html5Qrcode method
-            html5QrcodeScanner.stop().then(() => {
-                cleanup();
-            }).catch(err => {
-                console.error('Error stopping Html5Qrcode scanner:', err);
-                cleanup();
-            });
-        } else if (typeof html5QrcodeScanner.clear === 'function') {
-            // Html5QrcodeScanner method
-            try {
-                html5QrcodeScanner.clear();
-                cleanup();
-            } catch (err) {
-                console.error('Error clearing Html5QrcodeScanner:', err);
-                cleanup();
-            }
-        } else {
-            cleanup();
-        }
-    }
-}
-
-function cleanup() {
-    isScanning = false;
-    $('#startScan').show();
-    $('#stopScan').hide();
-    $('#switchCamera').hide();
-    $('#cameraInfo').hide();
-    html5QrcodeScanner = null;
-    console.log('Scanner stopped and cleaned up');
-}
-
-function switchCamera() {
-    if (!isScanning || availableCameras.length <= 1) {
-        return;
-    }
-    
-    // Stop current scanner
-    html5QrcodeScanner.stop().then(() => {
-        // Switch to next camera
-        currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
-        console.log('Switching to camera index:', currentCameraIndex);
-        
-        // Start with new camera
-        setTimeout(() => {
-            startScanning();
-        }, 500); // Small delay to ensure cleanup
-    }).catch(err => {
-        console.error('Error switching camera:', err);
-        Swal.fire('Error', 'Gagal mengganti kamera', 'error');
-    });
-}
-
-function updateCameraInfo() {
-    if (availableCameras.length > 0 && currentCameraIndex < availableCameras.length) {
-        const camera = availableCameras[currentCameraIndex];
-        let cameraName = camera.label || `Kamera ${currentCameraIndex + 1}`;
-        
-        // Detect camera type
-        if (cameraName.toLowerCase().includes('back') || 
-            cameraName.toLowerCase().includes('rear') || 
-            cameraName.toLowerCase().includes('environment')) {
-            cameraName += ' (Belakang)';
-        } else if (cameraName.toLowerCase().includes('front') || 
-                   cameraName.toLowerCase().includes('user')) {
-            cameraName += ' (Depan)';
-        }
-        
-        $('#cameraLabel').text(`Kamera: ${cameraName}`);
-    }
-}
-
-function onScanSuccess(decodedText, decodedResult) {
+window.onQRCodeScanned = function(decodedText) {
     // Play beep sound
     playBeep();
-    
-    // Stop scanner
-    stopScanning();
     
     console.log('QR Code scanned:', decodedText);
     $('#debugStatus').text('QR Code berhasil discan');
@@ -570,10 +446,24 @@ function onScanSuccess(decodedText, decodedResult) {
         // If it's just barcode text, search using AJAX and show in modal
         searchTransaksiForModal(decodedText);
     }
+};
+
+function onScanSuccess(decodedText) {
+    playBeep();
+    $('#debugStatus').text('QR Code berhasil discan');
+
+    if (decodedText.startsWith('http')) {
+        const urlParts = decodedText.split('/');
+        const barcode = urlParts[urlParts.length - 1];
+        searchTransaksiForModal(barcode);
+        return;
+    }
+
+    searchTransaksiForModal(decodedText);
 }
 
-function onScanFailure(error) {
-    // Handle scan failure silently
+function onScanFailure() {
+    // no-op
 }
 
 function playBeep() {

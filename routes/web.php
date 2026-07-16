@@ -122,6 +122,7 @@ Route::middleware([
 
     Route::get('/laporan-pos', [App\Http\Controllers\LaporanPosController::class, 'index'])->name('laporan.pos')->middleware('role:admin,super admin');
     Route::get('/laporan-pos/data', [App\Http\Controllers\LaporanPosController::class, 'getData'])->name('laporan.pos.data')->middleware('role:admin,super admin');
+    Route::get('/laporan-laba-rugi', [App\Http\Controllers\LaporanPosController::class, 'profitLoss'])->name('laporan.profit-loss')->middleware('role:super admin');
     
     // Laporan BPJS routes
     Route::get('/laporan-bpjs', [App\Http\Controllers\LaporanBpjsController::class, 'index'])->name('laporan.bpjs')->middleware('role:admin,super admin');
@@ -165,7 +166,7 @@ Route::middleware([
                Route::get('/stock-transfer/products', [StockTransferController::class, 'getProducts'])->name('stock-transfer.products');
                Route::post('/stock-transfer/{id}/approve', [StockTransferController::class, 'approve'])->name('stock-transfer.approve')->middleware('role:admin,super admin');
                Route::post('/stock-transfer/{id}/reject', [StockTransferController::class, 'reject'])->name('stock-transfer.reject')->middleware('role:admin,super admin');
-               Route::post('/stock-transfer/{id}/complete', [StockTransferController::class, 'complete'])->name('stock-transfer.complete');
+               Route::post('/stock-transfer/{id}/complete', [StockTransferController::class, 'complete'])->name('stock-transfer.complete')->middleware('role:admin,super admin');
                Route::post('/stock-transfer/{id}/cancel', [StockTransferController::class, 'cancel'])->name('stock-transfer.cancel');
                Route::get('/stock-transfer/branch/{branchId}/history', [StockTransferController::class, 'branchHistory'])->name('stock-transfer.branch-history');
                Route::get('/stock-transfer/export', [StockTransferController::class, 'export'])->name('stock-transfer.export')->middleware('role:admin,super admin');

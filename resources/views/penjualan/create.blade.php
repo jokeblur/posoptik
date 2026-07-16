@@ -95,7 +95,7 @@
                     </div>
                     <div class="form-group col-md-4">
                         <label for="tanggal_siap">Tanggal Siap</label>
-                        <input type="date" class="form-control" name="tanggal_siap">
+                        <input type="date" class="form-control" name="tanggal_siap" id="tanggal_siap">
                     </div>
                     <div class="form-group col-md-4">
                         <label>Pasien</label>
@@ -694,6 +694,8 @@ $(function() {
         let subtotal = 0;
         let total = 0;
 
+        updateTanggalSiapByCart();
+
         // Ambil jenis layanan pasien
         let serviceType = $('#detail-jenis_layanan').text().toLowerCase();
         let isBPJS = serviceType.includes('bpjs');
@@ -977,6 +979,26 @@ $(function() {
         $('#total-amount').text('Rp ' + total.toLocaleString('id-ID'));
         $('#total-input').val(total);
         $('#items-input').val(JSON.stringify(cart));
+    }
+
+    function updateTanggalSiapByCart() {
+        const tanggalSiapInput = $('#tanggal_siap');
+        if (!tanggalSiapInput.length) {
+            return;
+        }
+
+        const hasLensaGosok = cart.some(item => item.type === 'lensa_gosok');
+        if (hasLensaGosok) {
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() + 15);
+            const yyyy = targetDate.getFullYear();
+            const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(targetDate.getDate()).padStart(2, '0');
+            tanggalSiapInput.val(`${yyyy}-${mm}-${dd}`);
+            tanggalSiapInput.prop('readonly', true);
+        } else {
+            tanggalSiapInput.prop('readonly', false);
+        }
     }
 
     // Tandai jika user sudah mengubah input bayar secara manual
@@ -1584,108 +1606,6 @@ $(function() {
         fileInput.click();
     });
     
-    // Handle lensa gosok form
-    $('#btn-add-gosok').on('click', function(e) {
-        e.preventDefault();
-        
-        // Get form data
-        let formData = {
-            merk: $('#gosok_merk').val(),
-            type: $('#gosok_type').val(),
-            index: $('#gosok_index').val(),
-            coating: $('#gosok_coating').val(),
-            cly: $('#gosok_cly').val(),
-            harga: parseFloat($('#gosok_harga').val()),
-            quantity: parseInt($('#gosok_quantity').val()),
-            catatan: $('#gosok_catatan').val()
-        };
-        
-        // Validate required fields
-        if (!formData.merk || !formData.harga || !formData.quantity) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Data Tidak Lengkap!',
-                text: 'Mohon isi Merk Lensa, Harga Jual, dan Jumlah dengan benar.',
-            });
-            return;
-        }
-        
-        // Validate numeric fields
-        if (isNaN(formData.harga) || formData.harga <= 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Harga Tidak Valid!',
-                text: 'Harga jual harus berupa angka positif.',
-            });
-            return;
-        }
-        
-        if (isNaN(formData.quantity) || formData.quantity <= 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Jumlah Tidak Valid!',
-                text: 'Jumlah harus berupa angka positif.',
-            });
-            return;
-        }
-        
-        // Create product object for gosok lensa
-        let product = {
-            id: 'gosok_' + Date.now(), // Unique ID for gosok lensa
-            name: formData.merk + (formData.type ? ' - ' + formData.type : ''),
-            price: formData.harga,
-            type: 'lensa',
-            quantity: formData.quantity,
-            lensa_type: 'gosok',
-            gosok_data: {
-                merk: formData.merk,
-                type: formData.type,
-                index: formData.index,
-                coating: formData.coating,
-                cly: formData.cly,
-                catatan: formData.catatan
-            }
-        };
-        
-        // Validasi untuk BPJS: hanya boleh ada 1 frame dan 1 lensa
-        let serviceType = $('#detail-jenis_layanan').text().toLowerCase();
-        let isBPJS = serviceType.includes('bpjs');
-        
-        if (isBPJS) {
-            let existingFrame = cart.find(item => item.type === 'frame');
-            let existingLensa = cart.filter(item => item.type === 'lensa');
-            
-            if (existingLensa.length >= 2) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Peringatan!',
-                    text: 'Pasien BPJS hanya boleh memilih maksimal 2 lensa.',
-                });
-                return;
-            }
-        }
-        
-        // Add to cart
-        cart.push(product);
-        updateCartDisplay();
-        
-        // Show success message
-        Swal.fire({
-            icon: 'success',
-            title: 'Lensa Gosok Ditambahkan!',
-            text: 'Lensa gosok telah ditambahkan ke keranjang.',
-            timer: 2000,
-            showConfirmButton: false
-        });
-        
-        // Reset form
-        $('#form-lensa-gosok')[0].reset();
-        $('#gosok_quantity').val(1);
-        
-        // Close modal
-        $('#modal-lenses').modal('hide');
-    });
-    
     // Initialize DataTable for lensa stok
     let lensaStokTable;
     
@@ -1775,91 +1695,79 @@ $(function() {
     
     // Initialize table when modal is shown
     $('#modal-lenses').on('shown.bs.modal', function() {
-        // Switch to stok tab and initialize table
-        $('#stok-tab').tab('show');
+        // Initialize table when stock lens modal is opened.
         setTimeout(function() {
             initLensaStokTable();
         }, 100);
     });
-    
-    // Reset gosok form
-    $('#btn-reset-gosok').on('click', function(e) {
-        e.preventDefault();
-        $('#form-lensa-gosok')[0].reset();
-        $('#gosok_quantity').val(1);
-        
-        Swal.fire({
-            icon: 'info',
-            title: 'Form Direset!',
-            text: 'Form lensa gosok telah direset.',
-            timer: 1500,
-            showConfirmButton: false
-        });
-    });
-});
-</script>
 
-<script>
-// Handler untuk Lensa Gosok Modal
-$(function() {
-    // Reset form lensa gosok
+    // Reset form lensa gosok manual (modal baru)
     $(document).on('click', '#btn-reset-gosok-modal', function() {
-        $('#form-lensa-gosok-modal')[0].reset();
+        const form = $('#form-lensa-gosok-modal')[0];
+        if (form) {
+            form.reset();
+        }
+        $('#gosok_quantity_modal').val(1);
     });
-    
-    // Tambah lensa gosok ke keranjang
+
+    // Tambah lensa gosok manual ke keranjang
     $(document).on('click', '#btn-add-gosok-modal', function() {
         const form = $('#form-lensa-gosok-modal');
-        
-        // Validate form
-        if (!form[0].checkValidity()) {
-            form[0].reportValidity();
+        const formEl = form[0];
+
+        if (!formEl) {
             return;
         }
-        
-        // Get form data dengan suffix _modal
+
+        if (!formEl.checkValidity()) {
+            formEl.reportValidity();
+            return;
+        }
+
         const merk = $('#gosok_merk_modal').val();
-        const type = $('#gosok_type_modal').val() || '-';
-        const index = $('#gosok_index_modal').val() || '-';
+        const lensaType = $('#gosok_type_modal').val() || '-';
+        const indexValue = $('#gosok_index_modal').val() || '-';
         const coating = $('#gosok_coating_modal').val() || '-';
         const cly = $('#gosok_cly_modal').val() || '-';
-        const harga = parseInt($('#gosok_harga_modal').val());
-        const quantity = parseInt($('#gosok_quantity_modal').val());
+        const harga = parseInt($('#gosok_harga_modal').val(), 10) || 0;
+        const quantity = parseInt($('#gosok_quantity_modal').val(), 10) || 1;
         const catatan = $('#gosok_catatan_modal').val() || '';
-        
-        // Generate unique ID untuk lensa gosok (timestamp + random)
-        const uniqueId = 'gosok_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        
-        // Create product object
+
+        if (harga <= 0 || quantity <= 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Data belum valid',
+                text: 'Harga dan jumlah harus lebih dari 0.'
+            });
+            return;
+        }
+
         const product = {
-            id: uniqueId,
+            id: 'gosok_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
             type: 'lensa_gosok',
-            name: `Lensa Gosok - ${merk} (${type}, Index: ${index}, ${coating}, ${cly}mm)`,
+            name: `Lensa Gosok - ${merk} (${lensaType}, Index: ${indexValue}, ${coating}, ${cly})`,
             price: harga,
             quantity: quantity,
             catatan: catatan,
             merk: merk,
-            lensaType: type,
-            index: index,
+            lensaType: lensaType,
+            index: indexValue,
             coating: coating,
             cly: cly
         };
-        
-        // Add to cart using existing function
+
         addToCart(product);
-        
-        // Reset form dan close modal
-        form[0].reset();
+
+        formEl.reset();
+        $('#gosok_quantity_modal').val(1);
         $('#modal-lenses-gosok').modal('hide');
-        
-        // Show success message
+
         Swal.fire({
             icon: 'success',
-            title: 'Berhasil!',
-            text: `${product.name} ditambahkan ke keranjang`,
-            timer: 2000,
-            toast: true,
-            position: 'top-end'
+            title: 'Berhasil',
+            text: 'Lensa gosok ditambahkan ke keranjang.',
+            timer: 1800,
+            showConfirmButton: false
         });
     });
 });

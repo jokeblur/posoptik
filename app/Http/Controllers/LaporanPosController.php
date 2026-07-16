@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Penjualan;
 use App\Models\Branch;
+use App\Models\Frame;
+use App\Models\Lensa;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class LaporanPosController extends Controller
 {
@@ -17,8 +20,9 @@ class LaporanPosController extends Controller
         // Get all branches for super admin, only user's branch for others
         $branches = $isSuperAdmin ? Branch::active()->get() : Branch::where('id', $user->branch_id)->get();
         
-        // Get selected branch from request or default to user's branch
-        $selectedBranchId = $request->input('branch_id', $isSuperAdmin ? null : $user->branch_id);
+        // Get selected branch from request or default to active branch for super admin.
+        $defaultBranchId = $isSuperAdmin ? session('active_branch_id', $user->branch_id) : $user->branch_id;
+        $selectedBranchId = $request->input('branch_id', $defaultBranchId);
         $selectedBranch = $selectedBranchId ? Branch::find($selectedBranchId) : null;
 
         // Filter data berdasarkan cabang
@@ -171,5 +175,99 @@ class LaporanPosController extends Controller
         ];
 
         return response()->json($data);
+    }
+
+    /**
+     * Laporan laba/rugi khusus super admin.
+     */
+    public function profitLoss(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->isSuperAdmin()) {
+            abort(403, 'Halaman ini hanya untuk super admin.');
+        }
+
+        $branches = Branch::active()->get();
+        $selectedBranchId = $request->input('branch_id');
+
+        $frameStats = DB::table('frames')
+            ->where('stok', '>', 0)
+            ->when($selectedBranchId, function ($query) use ($selectedBranchId) {
+                return $query->where('branch_id', $selectedBranchId);
+            })
+            ->selectRaw('COUNT(*) as total_item')
+            ->selectRaw('COALESCE(SUM(stok), 0) as total_qty')
+            ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_jual_frame, 0)), 0) as total_jual')
+            ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_beli_frame, 0)), 0) as total_beli')
+            ->first();
+
+        $lensaStats = DB::table('lensa')
+            ->where('stok', '>', 0)
+            ->when($selectedBranchId, function ($query) use ($selectedBranchId) {
+                return $query->where('branch_id', $selectedBranchId);
+            })
+            ->selectRaw('COUNT(*) as total_item')
+            ->selectRaw('COALESCE(SUM(stok), 0) as total_qty')
+            ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_jual_lensa, 0)), 0) as total_jual')
+            ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_beli_lensa, 0)), 0) as total_beli')
+            ->first();
+
+        $totalItem = (float) $frameStats->total_item + (float) $lensaStats->total_item;
+        $totalQty = (float) $frameStats->total_qty + (float) $lensaStats->total_qty;
+        $totalJual = (float) $frameStats->total_jual + (float) $lensaStats->total_jual;
+        $totalBeli = (float) $frameStats->total_beli + (float) $lensaStats->total_beli;
+        $totalSelisih = $totalJual - $totalBeli;
+
+        $branchList = Branch::active()
+            ->when($selectedBranchId, function ($query) use ($selectedBranchId) {
+                return $query->where('id', $selectedBranchId);
+            })
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $summaryPerBranch = $branchList->map(function ($branch) {
+            $frame = DB::table('frames')
+                ->where('branch_id', $branch->id)
+                ->where('stok', '>', 0)
+                ->selectRaw('COUNT(*) as total_item')
+                ->selectRaw('COALESCE(SUM(stok), 0) as total_qty')
+                ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_jual_frame, 0)), 0) as total_jual')
+                ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_beli_frame, 0)), 0) as total_beli')
+                ->first();
+
+            $lensa = DB::table('lensa')
+                ->where('branch_id', $branch->id)
+                ->where('stok', '>', 0)
+                ->selectRaw('COUNT(*) as total_item')
+                ->selectRaw('COALESCE(SUM(stok), 0) as total_qty')
+                ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_jual_lensa, 0)), 0) as total_jual')
+                ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_beli_lensa, 0)), 0) as total_beli')
+                ->first();
+
+            return (object) [
+                'branch_name' => $branch->name,
+                'frame_item' => (float) $frame->total_item,
+                'frame_qty' => (float) $frame->total_qty,
+                'lensa_item' => (float) $lensa->total_item,
+                'lensa_qty' => (float) $lensa->total_qty,
+                'total_qty' => (float) $frame->total_qty + (float) $lensa->total_qty,
+                'total_jual' => (float) $frame->total_jual + (float) $lensa->total_jual,
+                'total_beli' => (float) $frame->total_beli + (float) $lensa->total_beli,
+                'selisih' => ((float) $frame->total_jual + (float) $lensa->total_jual) - ((float) $frame->total_beli + (float) $lensa->total_beli),
+            ];
+        });
+
+        return view('laporan.profit-loss', compact(
+            'branches',
+            'selectedBranchId',
+            'frameStats',
+            'lensaStats',
+            'totalItem',
+            'totalQty',
+            'totalJual',
+            'totalBeli',
+            'totalSelisih',
+            'summaryPerBranch'
+        ));
     }
 } 

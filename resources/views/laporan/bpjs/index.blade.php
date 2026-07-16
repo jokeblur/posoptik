@@ -13,6 +13,16 @@
                 <!-- Filter Section -->
                 <div class="row mb-3">
                     <div class="col-md-3">
+                        <label>Cabang:</label>
+                        <select id="branch_id" class="form-control">
+                            @foreach($branches as $branch)
+                                <option value="{{ $branch->id }}" {{ (string) $selectedBranchId === (string) $branch->id ? 'selected' : '' }}>
+                                    {{ $branch->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3">
                         <label>Tanggal Mulai:</label>
                         <input type="date" id="start_date" class="form-control">
                     </div>
@@ -164,6 +174,7 @@
             ajax: {
                 url: '{{ route("laporan.bpjs.data") }}',
                 data: function(d) {
+                    d.branch_id = $('#branch_id').val();
                     d.start_date = $('#start_date').val();
                     d.end_date = $('#end_date').val();
                     d.transaction_type = $('#transaction_type').val();
@@ -200,6 +211,7 @@
 
     function loadSummary() {
         $.get('{{ route("laporan.bpjs.summary") }}', {
+            branch_id: $('#branch_id').val(),
             start_date: $('#start_date').val(),
             end_date: $('#end_date').val(),
             transaction_type: $('#transaction_type').val()
@@ -235,12 +247,48 @@
 
     function exportData() {
         let params = new URLSearchParams({
+            branch_id: $('#branch_id').val(),
             start_date: $('#start_date').val(),
             end_date: $('#end_date').val(),
             transaction_type: $('#transaction_type').val()
         });
 
         window.open('{{ route("laporan.bpjs.export") }}?' + params.toString(), '_blank');
+    }
+
+    function hapusTransaksi(url) {
+        Swal.fire({
+            title: 'Konfirmasi Penghapusan',
+            text: 'Anda yakin ingin menghapus transaksi ini?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            $.ajax({
+                url: url,
+                type: 'DELETE',
+                data: { '_token': '{{ csrf_token() }}' },
+                success: function(response) {
+                    Swal.fire('Berhasil!', response.message, 'success');
+                    table.ajax.reload();
+                    loadSummary();
+                },
+                error: function(xhr) {
+                    let message = 'Tidak dapat menghapus transaksi.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+                    Swal.fire('Gagal!', message, 'error');
+                }
+            });
+        });
     }
 
     function formatNumber(num) {

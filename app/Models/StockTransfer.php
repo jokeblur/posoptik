@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use App\Models\Frame;
+use App\Models\Lensa;
 
 class StockTransfer extends Model
 {
@@ -112,9 +114,7 @@ class StockTransfer extends Model
      */
     public function canBeCompletedBy($user)
     {
-        return $this->status === 'Approved' && 
-               ($user->isSuperAdmin() || $user->isAdmin() || 
-                $user->branch_id === $this->to_branch_id);
+        return $this->status === 'Approved' && ($user->isSuperAdmin() || $user->isAdmin());
     }
 
     /**
@@ -150,24 +150,41 @@ class StockTransfer extends Model
         DB::transaction(function () {
             // Update stock in both branches
             foreach ($this->details as $detail) {
-                $item = $detail->itemable;
-                
-                // Reduce stock from source branch
-                if ($item->branch_id === $this->from_branch_id) {
-                    $item->decrement('stok', $detail->quantity);
+                $sourceItem = $detail->itemable;
+
+                if (!$sourceItem || (int) $sourceItem->branch_id !== (int) $this->from_branch_id) {
+                    throw new \RuntimeException('Item sumber transfer tidak valid.');
                 }
-                
-                // Add stock to destination branch
-                if ($item->branch_id === $this->to_branch_id) {
-                    $item->increment('stok', $detail->quantity);
+
+                $sourceItem->refresh();
+                if ((int) $sourceItem->stok < (int) $detail->quantity) {
+                    throw new \RuntimeException('Stok item sumber tidak mencukupi saat proses transfer.');
+                }
+
+                // Kurangi stok dari cabang asal.
+                $sourceItem->decrement('stok', $detail->quantity);
+
+                $destinationItem = $this->findDestinationItem($sourceItem);
+                if ($destinationItem) {
+                    $destinationItem->increment('stok', $detail->quantity);
                 } else {
-                    // Create new item in destination branch if it doesn't exist
-                    $newItem = $item->replicate();
-                    $newItem->branch_id = $this->to_branch_id;
-                    $newItem->stok = $detail->quantity;
-                    $newItem->created_at = now();
-                    $newItem->updated_at = now();
-                    $newItem->save();
+                    if ($sourceItem instanceof Frame && (int) $sourceItem->stok === 0) {
+                        // Untuk frame berkode unik, pindahkan ownership jika stok sumber habis.
+                        $sourceItem->update([
+                            'branch_id' => $this->to_branch_id,
+                            'stok' => $detail->quantity,
+                        ]);
+                    } else {
+                        $newItem = $sourceItem->replicate();
+                        $newItem->branch_id = $this->to_branch_id;
+                        $newItem->stok = $detail->quantity;
+
+                        if ($newItem instanceof Frame) {
+                            $newItem->kode_frame = $this->generateDestinationFrameCode($sourceItem->kode_frame);
+                        }
+
+                        $newItem->save();
+                    }
                 }
             }
             
@@ -176,6 +193,41 @@ class StockTransfer extends Model
                 'completed_at' => now()
             ]);
         });
+    }
+
+    private function findDestinationItem($sourceItem)
+    {
+        if ($sourceItem instanceof Frame) {
+            return Frame::where('branch_id', $this->to_branch_id)
+                ->where('merk_frame', $sourceItem->merk_frame)
+                ->where('jenis_frame', $sourceItem->jenis_frame)
+                ->first();
+        }
+
+        if ($sourceItem instanceof Lensa) {
+            return Lensa::where('branch_id', $this->to_branch_id)
+                ->where('kode_lensa', $sourceItem->kode_lensa)
+                ->where('merk_lensa', $sourceItem->merk_lensa)
+                ->where('type', $sourceItem->type)
+                ->where('index', $sourceItem->index)
+                ->where('coating', $sourceItem->coating)
+                ->first();
+        }
+
+        return null;
+    }
+
+    private function generateDestinationFrameCode($baseCode)
+    {
+        $candidate = $baseCode;
+        $suffix = 1;
+
+        while (Frame::where('kode_frame', $candidate)->exists()) {
+            $candidate = $baseCode . '-TRF' . $suffix;
+            $suffix++;
+        }
+
+        return $candidate;
     }
 
     /**

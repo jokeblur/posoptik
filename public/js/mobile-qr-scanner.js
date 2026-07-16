@@ -18,17 +18,59 @@ class MobileQRScanner {
         this.checkPermissions();
         this.setupEventListeners();
     }
+
+    setupEventListeners() {
+        // Event listener utama di-bind dari halaman view.
+    }
+
+    hasCameraSupport() {
+        return !!(
+            (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) ||
+            navigator.getUserMedia ||
+            navigator.webkitGetUserMedia ||
+            navigator.mozGetUserMedia ||
+            navigator.msGetUserMedia
+        );
+    }
+
+    isSecureCameraContext() {
+        return !!(
+            window.isSecureContext ||
+            location.hostname === 'localhost' ||
+            location.hostname === '127.0.0.1'
+        );
+    }
+
+    async requestCameraStream(constraints) {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            return navigator.mediaDevices.getUserMedia(constraints);
+        }
+
+        const legacyGetUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+
+        if (!legacyGetUserMedia) {
+            throw new Error('GET_USER_MEDIA_UNSUPPORTED');
+        }
+
+        return new Promise((resolve, reject) => {
+            legacyGetUserMedia.call(navigator, constraints, resolve, reject);
+        });
+    }
     
     async checkPermissions() {
         try {
-            // Check if getUserMedia is supported
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                this.showError('Browser tidak mendukung akses kamera');
+            if (!this.hasCameraSupport()) {
+                this.showError('Browser atau aplikasi yang digunakan tidak mendukung akses kamera. Coba gunakan Chrome, Edge, atau Safari terbaru.');
+                return false;
+            }
+
+            if (!this.isSecureCameraContext()) {
+                this.showError('Akses kamera membutuhkan HTTPS. Buka aplikasi dari domain HTTPS atau localhost.');
                 return false;
             }
             
             // Request camera permission
-            const stream = await navigator.mediaDevices.getUserMedia({ 
+            const stream = await this.requestCameraStream({ 
                 video: { 
                     facingMode: { ideal: "environment" },
                     width: { ideal: 1280 },
@@ -61,6 +103,10 @@ class MobileQRScanner {
             message = 'Browser tidak mendukung akses kamera.';
         } else if (error.name === 'NotReadableError') {
             message = 'Kamera sedang digunakan oleh aplikasi lain.';
+        } else if (error.name === 'SecurityError') {
+            message = 'Akses kamera diblokir karena halaman tidak berjalan di HTTPS atau dibatasi browser.';
+        } else if (error.message === 'GET_USER_MEDIA_UNSUPPORTED') {
+            message = 'Browser atau aplikasi ini belum mendukung API kamera.';
         }
         
         this.showError(message);
@@ -68,6 +114,12 @@ class MobileQRScanner {
     
     async getAvailableCameras() {
         try {
+            if (!(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices)) {
+                this.updateStatus('Browser tidak mendukung daftar kamera, memakai kamera default');
+                this.availableCameras = [];
+                return [];
+            }
+
             const devices = await navigator.mediaDevices.enumerateDevices();
             const cameras = devices.filter(device => device.kind === 'videoinput');
             
@@ -116,7 +168,7 @@ class MobileQRScanner {
             const cameras = await this.getAvailableCameras();
             
             if (cameras.length === 0) {
-                this.showError('Tidak ada kamera yang tersedia');
+                await this.tryStartWithoutCameraId();
                 return;
             }
             
@@ -126,6 +178,67 @@ class MobileQRScanner {
         } catch (error) {
             console.error('Error starting scanner:', error);
             this.handleScanError(error);
+        }
+    }
+
+    async tryStartWithoutCameraId() {
+        const configs = [
+            {
+                fps: 10,
+                qrbox: {
+                    width: Math.min(250, window.innerWidth * 0.6),
+                    height: Math.min(250, window.innerWidth * 0.6)
+                },
+                aspectRatio: 1.0,
+                videoConstraints: {
+                    facingMode: { ideal: 'environment' },
+                    width: { ideal: 1280, max: 1920 },
+                    height: { ideal: 720, max: 1080 }
+                }
+            },
+            {
+                fps: 10,
+                qrbox: {
+                    width: Math.min(200, window.innerWidth * 0.5),
+                    height: Math.min(200, window.innerWidth * 0.5)
+                },
+                aspectRatio: 1.0,
+                videoConstraints: {
+                    facingMode: { ideal: 'environment' }
+                }
+            }
+        ];
+
+        for (let i = 0; i < configs.length; i++) {
+            try {
+                this.updateStatus(`Mencoba kamera default ${i + 1}...`);
+                this.scanner = new Html5Qrcode('reader');
+                await this.scanner.start(
+                    { facingMode: 'environment' },
+                    configs[i],
+                    this.onScanSuccess.bind(this),
+                    this.onScanFailure.bind(this)
+                );
+
+                this.isScanning = true;
+                this.updateUI();
+                this.updateStatus('Scanner aktif - Arahkan kamera ke QR Code');
+                return;
+            } catch (error) {
+                console.error(`Default camera config ${i + 1} failed:`, error);
+                if (this.scanner) {
+                    try {
+                        await this.scanner.stop();
+                    } catch (e) {
+                        console.log('Error stopping failed default scanner:', e);
+                    }
+                    this.scanner = null;
+                }
+
+                if (i === configs.length - 1) {
+                    throw error;
+                }
+            }
         }
     }
     

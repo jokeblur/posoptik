@@ -430,6 +430,13 @@ class PenjualanController extends Controller
             $hanyaAksesoris = !empty($items) && collect($items)->every(function($item) {
                 return $item['type'] === 'aksesoris';
             });
+            $mengandungLensaGosok = !empty($items) && collect($items)->contains(function ($item) {
+                return ($item['type'] ?? null) === 'lensa_gosok';
+            });
+
+            $tanggalSiap = $mengandungLensaGosok
+                ? now()->addDays(15)->toDateString()
+                : $request->tanggal_siap;
 
             // Jika ada pasien, gunakan BPJS pricing service
             $pasien = null;
@@ -456,7 +463,7 @@ class PenjualanController extends Controller
                 'kode_penjualan' => $request->kode_penjualan,
                 'barcode' => $barcode,
                 'tanggal' => now(),
-                'tanggal_siap' => $request->tanggal_siap,
+                'tanggal_siap' => $tanggalSiap,
                 'pasien_id' => $request->filled('pasien_id') ? $request->pasien_id : null,
                 'nama_pasien_manual' => $request->filled('pasien_id') ? null : $request->pasien_name,
                 'dokter_id' => $request->filled('dokter_id') ? $request->dokter_id : null,
@@ -522,6 +529,24 @@ class PenjualanController extends Controller
                     }
                 } elseif ($itemData['type'] === 'lensa') {
                     $itemModel = \App\Models\Lensa::find($itemData['id']);
+                } elseif ($itemData['type'] === 'lensa_gosok') {
+                    $kodeLensaGosok = 'GSK-' . now()->format('YmdHis') . '-' . strtoupper(substr(md5(uniqid((string) mt_rand(), true)), 0, 4));
+
+                    $itemModel = \App\Models\Lensa::create([
+                        'kode_lensa' => $kodeLensaGosok,
+                        'merk_lensa' => $itemData['merk'] ?? 'Lensa Gosok',
+                        'type' => $itemData['lensaType'] ?? null,
+                        'index' => $itemData['index'] ?? null,
+                        'coating' => $itemData['coating'] ?? null,
+                        'cly' => $itemData['cly'] ?? null,
+                        'add' => $itemData['catatan'] ?? null,
+                        'harga_beli_lensa' => 0,
+                        'harga_jual_lensa' => $itemData['price'] ?? 0,
+                        'stok' => 0,
+                        'is_custom_order' => true,
+                        'sales_id' => null,
+                        'branch_id' => $branch_id,
+                    ]);
                 } elseif ($itemData['type'] === 'aksesoris') {
                     $itemModel = \App\Models\Aksesoris::find($itemData['id']);
                 }
@@ -536,8 +561,10 @@ class PenjualanController extends Controller
                         'additional_cost' => $additionalCost, // Simpan biaya tambahan
                     ]);
 
-                    // Update stok
-                    $itemModel->decrement('stok', $itemData['quantity']);
+                    // Update stok untuk item inventori (bukan lensa gosok manual/custom)
+                    if ($itemData['type'] !== 'lensa_gosok') {
+                        $itemModel->decrement('stok', $itemData['quantity']);
+                    }
                 }
             }
             

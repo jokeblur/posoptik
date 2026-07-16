@@ -86,6 +86,12 @@ class StockTransferController extends Controller
     public function create()
     {
         $user = Auth::user();
+
+        if (!$user->isKasir()) {
+            return redirect()->route('stock-transfer.index')
+                ->with('error', 'Hanya kasir yang dapat membuat permintaan transfer stok.');
+        }
+
         $branches = Branch::active()->get();
         
         // Get available products from user's branch
@@ -162,13 +168,19 @@ class StockTransferController extends Controller
                     throw new \Exception("Stok {$productCode} tidak mencukupi.");
                 }
 
+                $unitPrice = $this->resolveTransferUnitPrice($product);
+                if ($unitPrice <= 0) {
+                    $productCode = $product->kode_frame ?? $product->kode_lensa;
+                    throw new \Exception("Harga item {$productCode} belum diatur. Isi harga beli/jual terlebih dahulu.");
+                }
+
                 StockTransferDetail::create([
                     'stock_transfer_id' => $transfer->id,
                     'itemable_type' => $item['itemable_type'],
                     'itemable_id' => $item['itemable_id'],
                     'quantity' => $item['quantity'],
-                    'unit_price' => $product->harga_beli_frame ?? $product->harga_beli_lensa ?? 0,
-                    'total_price' => ($product->harga_beli_frame ?? $product->harga_beli_lensa ?? 0) * $item['quantity'],
+                    'unit_price' => $unitPrice,
+                    'total_price' => $unitPrice * $item['quantity'],
                 ]);
             }
 
@@ -210,9 +222,12 @@ class StockTransferController extends Controller
         }
 
         try {
-            $transfer->approve($user);
+            DB::transaction(function () use ($transfer, $user) {
+                $transfer->approve($user);
+                $transfer->complete();
+            });
             
-            return back()->with('success', 'Transfer stok berhasil disetujui.');
+            return back()->with('success', 'Transfer stok berhasil disetujui dan stok sudah dipindahkan.');
         } catch (\Exception $e) {
             Log::error('Stock transfer approval failed: ' . $e->getMessage());
             return back()->with('error', 'Gagal menyetujui transfer: ' . $e->getMessage());
@@ -279,14 +294,47 @@ class StockTransferController extends Controller
         if ($type === 'frame') {
             $products = Frame::where('branch_id', $branchId)
                 ->where('stok', '>', 0)
-                ->get(['id', 'kode_frame', 'merk_frame', 'jenis_frame', 'stok', 'harga_beli_frame']);
+                ->get(['id', 'kode_frame', 'merk_frame', 'jenis_frame', 'stok', 'harga_beli_frame', 'harga_jual_frame'])
+                ->map(function ($product) {
+                    $product->transfer_price = $this->resolveTransferUnitPrice($product);
+                    return $product;
+                });
         } else {
             $products = Lensa::where('branch_id', $branchId)
                 ->where('stok', '>', 0)
-                ->get(['id', 'kode_lensa', 'merk_lensa', 'type', 'stok', 'harga_beli_lensa']);
+                ->get(['id', 'kode_lensa', 'merk_lensa', 'type', 'stok', 'harga_beli_lensa', 'harga_jual_lensa'])
+                ->map(function ($product) {
+                    $product->transfer_price = $this->resolveTransferUnitPrice($product);
+                    return $product;
+                });
         }
 
         return response()->json($products);
+    }
+
+    private function resolveTransferUnitPrice($product): float
+    {
+        if ($product instanceof Frame) {
+            $hargaBeli = (float) ($product->harga_beli_frame ?? 0);
+            if ($hargaBeli > 0) {
+                return $hargaBeli;
+            }
+
+            $hargaJual = (float) ($product->harga_jual_frame ?? 0);
+            return $hargaJual > 0 ? $hargaJual : 0;
+        }
+
+        if ($product instanceof Lensa) {
+            $hargaBeli = (float) ($product->harga_beli_lensa ?? 0);
+            if ($hargaBeli > 0) {
+                return $hargaBeli;
+            }
+
+            $hargaJual = (float) ($product->harga_jual_lensa ?? 0);
+            return $hargaJual > 0 ? $hargaJual : 0;
+        }
+
+        return 0;
     }
 
     /**

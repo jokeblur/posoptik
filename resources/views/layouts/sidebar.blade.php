@@ -80,6 +80,9 @@
                           <li class="header" style="padding: 8px 15px; margin: 8px 0 0 0; background-color: #a4193d; color: #fff; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">LAPORAN</li>
                           <li style="margin: 0;"><a href="{{ route('laporan.pos') }}" style="padding: 8px 15px;"><i class="fa fa-file-text"></i> <span>Laporan POS</span></a></li>
                           <li style="margin: 0;"><a href="{{ route('laporan.bpjs') }}" style="padding: 8px 15px;"><i class="fa fa-file-text"></i> <span>Laporan BPJS</span></a></li>
+                          @if(auth()->user()->isSuperAdmin())
+                          <li style="margin: 0;"><a href="{{ route('laporan.profit-loss') }}" style="padding: 8px 15px;"><i class="fa fa-line-chart"></i> <span>Laporan Laba Rugi</span></a></li>
+                          @endif
                           @endif
                           
                           @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())

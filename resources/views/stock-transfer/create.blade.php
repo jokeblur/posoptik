@@ -24,6 +24,18 @@
                         </div>
                     @endif
 
+                    @if($errors->any())
+                        <div class="alert alert-danger alert-dismissible">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                            <strong>Gagal menyimpan permintaan transfer:</strong>
+                            <ul class="mb-0">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -166,7 +178,7 @@ function loadProducts(type) {
             products.forEach(function(product) {
                 const code = product.kode_frame || product.kode_lensa;
                 const name = product.merk_frame || product.merk_lensa;
-                options += `<option value="${product.id}" data-stok="${product.stok}" data-price="${product.harga_beli_frame || product.harga_beli_lensa}">${code} - ${name}</option>`;
+                options += `<option value="${product.id}" data-stok="${product.stok}" data-price="${product.transfer_price || 0}">${code} - ${name}</option>`;
             });
             $('#product_id').html(options);
         })
@@ -202,6 +214,11 @@ function addProduct() {
     const name = selectedOption.text().split(' - ')[1];
     const maxStock = parseInt(selectedOption.data('stok'));
     const price = parseFloat(selectedOption.data('price')) || 0;
+
+    if (price <= 0) {
+        alert('Harga produk masih 0. Silakan isi harga beli/jual produk terlebih dahulu.');
+        return;
+    }
     
     if (quantity > maxStock) {
         alert(`Jumlah transfer tidak boleh melebihi stok tersedia (${maxStock})`);
@@ -273,15 +290,20 @@ function updateSubmitButton() {
 
 // Form validation
 $('#transferForm').submit(function(e) {
+    const $form = $(this);
+
     if (selectedProducts.length === 0) {
         e.preventDefault();
         alert('Silakan tambahkan minimal satu produk untuk ditransfer');
         return false;
     }
+
+    // Bersihkan input items sebelumnya agar tidak duplikat saat submit ulang.
+    $form.find('input[name^="items["]').remove();
     
     // Add hidden inputs for products
     selectedProducts.forEach(function(product, index) {
-        $(this).append(`
+        $form.append(`
             <input type="hidden" name="items[${index}][itemable_type]" value="${product.itemable_type}">
             <input type="hidden" name="items[${index}][itemable_id]" value="${product.itemable_id}">
             <input type="hidden" name="items[${index}][quantity]" value="${product.quantity}">

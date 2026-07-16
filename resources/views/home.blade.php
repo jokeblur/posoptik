@@ -749,6 +749,167 @@
 
     {{-- Konten lain dashboard --}}
 </div>
+
+<!-- Modal Detail Frame Admin -->
+<div class="modal fade" id="modal-frame-admin" tabindex="-1" role="dialog" aria-labelledby="modal-frame-admin-label">
+    <div class="modal-dialog modal-lg" role="document" style="width: 90%; max-width: 1000px;">
+        <div class="modal-content">
+            <div class="modal-header bg-aqua">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="modal-frame-admin-label"><i class="fa fa-glasses"></i> Detail Frame</h4>
+            </div>
+            <div class="modal-body" style="max-height: 600px; overflow-y: auto; padding: 0;">
+                <table class="table table-bordered table-striped table-hover" id="table-detail-frame-admin" style="margin-bottom: 0;">
+                    <thead style="background-color: #f4f4f4; position: sticky; top: 0;">
+                        <tr>
+                            <th width="5%">No</th>
+                            <th>Kode Frame</th>
+                            <th>Merk Frame</th>
+                            <th>Jenis Frame</th>
+                            <th>Harga Jual</th>
+                            <th>Stok</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detail Lensa Admin -->
+<div class="modal fade" id="modal-lensa-admin" tabindex="-1" role="dialog" aria-labelledby="modal-lensa-admin-label">
+    <div class="modal-dialog modal-lg" role="document" style="width: 90%; max-width: 1000px;">
+        <div class="modal-content">
+            <div class="modal-header bg-green">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="modal-lensa-admin-label"><i class="fa fa-tablets"></i> Detail Lensa</h4>
+            </div>
+            <div class="modal-body" style="max-height: 600px; overflow-y: auto; padding: 0;">
+                <table class="table table-bordered table-striped table-hover" id="table-detail-lensa-admin" style="margin-bottom: 0;">
+                    <thead style="background-color: #f4f4f4; position: sticky; top: 0;">
+                        <tr>
+                            <th width="5%">No</th>
+                            <th>Kode Lensa</th>
+                            <th>Tipe Lensa</th>
+                            <th>Brand</th>
+                            <th>Harga Jual</th>
+                            <th>Stok</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detail Pasien Admin -->
+<div class="modal fade" id="modal-pasien-admin" tabindex="-1" role="dialog" aria-labelledby="modal-pasien-admin-label">
+    <div class="modal-dialog modal-lg" role="document" style="width: 90%; max-width: 1000px;">
+        <div class="modal-content">
+            <div class="modal-header bg-red">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="modal-pasien-admin-label"><i class="fa fa-user"></i> Detail Pasien</h4>
+            </div>
+            <div class="modal-body" style="max-height: 600px; overflow-y: auto; padding: 0;">
+                <table class="table table-bordered table-striped table-hover" id="table-detail-pasien-admin" style="margin-bottom: 0;">
+                    <thead style="background-color: #f4f4f4; position: sticky; top: 0;">
+                        <tr>
+                            <th width="5%">No</th>
+                            <th>Nama Pasien</th>
+                            <th>No HP</th>
+                            <th>Service Type</th>
+                            <th>Tanggal Daftar</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detail Aksesoris Admin -->
+<div class="modal fade" id="modal-aksesoris-admin" tabindex="-1" role="dialog" aria-labelledby="modal-aksesoris-admin-label">
+    <div class="modal-dialog modal-lg" role="document" style="width: 90%; max-width: 1000px;">
+        <div class="modal-content">
+            <div class="modal-header bg-purple">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="modal-aksesoris-admin-label"><i class="fa fa-cube"></i> Detail Aksesoris</h4>
+            </div>
+            <div class="modal-body" style="max-height: 600px; overflow-y: auto; padding: 0;">
+                <table class="table table-bordered table-striped table-hover" id="table-detail-aksesoris-admin" style="margin-bottom: 0;">
+                    <thead style="background-color: #f4f4f4; position: sticky; top: 0;">
+                        <tr>
+                            <th width="5%">No</th>
+                            <th>Kode Aksesoris</th>
+                            <th>Nama Aksesoris</th>
+                            <th>Harga Jual</th>
+                            <th>Stok</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detail Transaksi Aktif Admin -->
+<div class="modal fade" id="modal-transaksi-aktif-admin" tabindex="-1" role="dialog" aria-labelledby="modal-transaksi-aktif-admin-label">
+    <div class="modal-dialog modal-lg" role="document" style="width: 90%; max-width: 1200px;">
+        <div class="modal-content">
+            <div class="modal-header bg-purple">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="modal-transaksi-aktif-admin-label"><i class="fa fa-shopping-cart"></i> Transaksi Aktif Hari Ini</h4>
+            </div>
+            <div class="modal-body" style="max-height: 600px; overflow-y: auto; padding: 0;">
+                <table class="table table-bordered table-striped table-hover" id="table-transaksi-aktif-admin" style="margin-bottom: 0;">
+                    <thead style="background-color: #f4f4f4; position: sticky; top: 0;">
+                        <tr>
+                            <th width="5%">No</th>
+                            <th>Kode Penjualan</th>
+                            <th>Nama Pasien</th>
+                            <th>Service Type</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Dokter</th>
+                            <th>Tanggal</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 <style>
@@ -840,12 +1001,29 @@
 
 /* Ensure backdrop is removed properly */
 body.modal-open {
-  overflow: hidden;
+  overflow: hidden !important;
+  position: fixed;
+  width: 100%;
 }
 
 body:not(.modal-open) {
   overflow: auto;
+  position: relative;
 }
+
+/* Additional modal styling */
+.modal.fade.show {
+  z-index: 10550 !important;
+}
+
+.modal-open .navbar {
+  z-index: 10540 !important;
+}
+
+.modal-open .sidebar {
+  z-index: 10540 !important;
+}
+
 </style>
 
 @push('scripts')
@@ -1256,72 +1434,12 @@ $(document).ready(function() {
     
 
     
-    // Fix modal close buttons for admin dashboard
+    // Unified modal close button handler
     $(document).on('click', '.modal .close, .modal [data-dismiss="modal"]', function(e) {
-        e.preventDefault();
-        console.log('Modal close button clicked');
-        var modal = $(this).closest('.modal');
-        modal.modal('hide');
-        // Remove backdrop if stuck
-        setTimeout(function() {
-            $('.modal-backdrop').remove();
-            $('body').removeClass('modal-open');
-        }, 300);
+        var $modal = $(this).closest('.modal');
+        $modal.modal('hide');
     });
     
-    // Alternative close button handler
-    $(document).on('click', '.modal-header .close', function(e) {
-        e.preventDefault();
-        console.log('Modal header close clicked');
-        var modal = $(this).closest('.modal');
-        modal.modal('hide');
-        // Remove backdrop if stuck
-        setTimeout(function() {
-            $('.modal-backdrop').remove();
-            $('body').removeClass('modal-open');
-        }, 300);
-    });
-    
-    // Specific handlers for admin modals
-    $(document).on('click', '#modal-frame-admin .close', function(e) {
-        e.preventDefault();
-        console.log('Frame modal close clicked');
-        $('#modal-frame-admin').modal('hide');
-        setTimeout(function() {
-            $('.modal-backdrop').remove();
-            $('body').removeClass('modal-open');
-        }, 300);
-    });
-    
-    $(document).on('click', '#modal-lensa-admin .close', function(e) {
-        e.preventDefault();
-        console.log('Lensa modal close clicked');
-        $('#modal-lensa-admin').modal('hide');
-        setTimeout(function() {
-            $('.modal-backdrop').remove();
-            $('body').removeClass('modal-open');
-        }, 300);
-    });
-    
-    $(document).on('click', '#modal-pasien-admin .close', function(e) {
-        e.preventDefault();
-        console.log('Pasien modal close clicked');
-        $('#modal-pasien-admin').modal('hide');
-        setTimeout(function() {
-            $('.modal-backdrop').remove();
-            $('body').removeClass('modal-open');
-        }, 300);
-    });
-    
-    $(document).on('click', '#modal-transaksi-aktif-admin .close', function(e) {
-        e.preventDefault();
-        console.log('Transaksi modal close clicked');
-        $('#modal-transaksi-aktif-admin').modal('hide');
-        setTimeout(function() {
-            $('.modal-backdrop').remove();
-            $('body').removeClass('modal-open');
-        }, 300);
-    });
     
     // Modal open handlers for admin dashboard
     $(document).on('click', 'a[href="#modal-frame-admin"]', function(e) {
@@ -1356,25 +1474,45 @@ $(document).ready(function() {
         }, 100);
     });
     
-    // Fix modal backdrop issues
-    $(document).on('hidden.bs.modal', '.modal', function() {
-        console.log('Modal hidden event triggered');
-        $('.modal-backdrop').remove();
-        $('body').removeClass('modal-open');
-    });
-    
+    // Fix modal backdrop issues dan prevent body scroll
     $(document).on('show.bs.modal', '.modal', function() {
         console.log('Modal show event triggered');
+        // Add modal-open class to body to prevent scroll
+        $('body').addClass('modal-open');
         // Remove any existing backdrops
         $('.modal-backdrop').remove();
+    });
+    
+    $(document).on('shown.bs.modal', '.modal', function() {
+        console.log('Modal shown event triggered');
+        // Ensure body has modal-open class
+        $('body').addClass('modal-open');
+    });
+    
+    $(document).on('hide.bs.modal', '.modal', function() {
+        console.log('Modal hide event triggered');
+        // Check if there are other open modals
+        var openModals = $('.modal.in, .modal.show').length;
+        if (openModals <= 1) {
+            // No more modals open, remove modal-open class
+            $('body').removeClass('modal-open');
+        }
+    });
+    
+    $(document).on('hidden.bs.modal', '.modal', function() {
+        console.log('Modal hidden event triggered');
+        // Remove backdrop
+        $('.modal-backdrop').remove();
+        // Final check: remove modal-open if no modals are open
+        if ($('.modal.in, .modal.show').length === 0) {
+            $('body').removeClass('modal-open');
+        }
     });
     
     // Click outside modal to close
     $(document).on('click', '.modal-backdrop', function() {
         console.log('Backdrop clicked');
         $('.modal').modal('hide');
-        $('.modal-backdrop').remove();
-        $('body').removeClass('modal-open');
     });
     
 
@@ -1728,5 +1866,177 @@ $(function() {
     }
 });
 @endif
+
+// ===== SCRIPT UNTUK POPULATE MODAL DETAIL DATA ADMIN =====
+@if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+$(function() {
+    // Data dari controller
+    const detailFrame = {!! json_encode($detailFrame ?? []) !!};
+    const detailLensa = {!! json_encode($detailLensa ?? []) !!};
+    const detailPasien = {!! json_encode($detailPasien ?? []) !!};
+    const detailAksesoris = {!! json_encode($detailAksesoris ?? []) !!};
+    const detailTransaksiAktif = {!! json_encode($detailTransaksiAktif ?? []) !!};
+    
+    // Populate Frame Table
+    function populateFrameTable() {
+        const tbody = $('#table-detail-frame-admin tbody');
+        tbody.empty();
+        
+        if (!detailFrame || detailFrame.length === 0) {
+            tbody.html('<tr><td colspan="6" class="text-center"><em>Tidak ada data frame</em></td></tr>');
+            return;
+        }
+        
+        detailFrame.forEach((item, index) => {
+            const row = `<tr>
+                <td>${index + 1}</td>
+                <td><strong>${item.kode_frame || '-'}</strong></td>
+                <td>${item.merk_frame || '-'}</td>
+                <td>${item.jenis_frame || '-'}</td>
+                <td class="text-right">Rp ${parseInt(item.harga_jual || 0).toLocaleString('id-ID')}</td>
+                <td><span class="badge ${parseInt(item.stok || 0) <= 2 ? 'bg-red' : 'bg-green'}">${item.stok || 0}</span></td>
+            </tr>`;
+            tbody.append(row);
+        });
+    }
+    
+    // Populate Lensa Table
+    function populateLensaTable() {
+        const tbody = $('#table-detail-lensa-admin tbody');
+        tbody.empty();
+        
+        if (!detailLensa || detailLensa.length === 0) {
+            tbody.html('<tr><td colspan="6" class="text-center"><em>Tidak ada data lensa</em></td></tr>');
+            return;
+        }
+        
+        detailLensa.forEach((item, index) => {
+            const row = `<tr>
+                <td>${index + 1}</td>
+                <td><strong>${item.kode_lensa || '-'}</strong></td>
+                <td>${item.tipe_lensa || '-'}</td>
+                <td>${item.brand || '-'}</td>
+                <td class="text-right">Rp ${parseInt(item.harga_jual || 0).toLocaleString('id-ID')}</td>
+                <td><span class="badge ${parseInt(item.stok || 0) <= 2 ? 'bg-red' : 'bg-green'}">${item.stok || 0}</span></td>
+            </tr>`;
+            tbody.append(row);
+        });
+    }
+    
+    // Populate Pasien Table
+    function populatePasienTable() {
+        const tbody = $('#table-detail-pasien-admin tbody');
+        tbody.empty();
+        
+        if (!detailPasien || detailPasien.length === 0) {
+            tbody.html('<tr><td colspan="5" class="text-center"><em>Tidak ada data pasien</em></td></tr>');
+            return;
+        }
+        
+        detailPasien.forEach((item, index) => {
+            const createdAt = item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID', {year: 'numeric', month: '2-digit', day: '2-digit'}) : '-';
+            const serviceTypeClass = {
+                'BPJS I': 'label-info',
+                'BPJS II': 'label-info',
+                'BPJS III': 'label-info',
+                'UMUM': 'label-default'
+            };
+            
+            const row = `<tr>
+                <td>${index + 1}</td>
+                <td><strong>${item.nama_pasien || '-'}</strong></td>
+                <td>${item.nohp || '-'}</td>
+                <td><span class="label ${serviceTypeClass[item.service_type || 'UMUM'] || 'label-default'}">${item.service_type || 'UMUM'}</span></td>
+                <td>${createdAt}</td>
+            </tr>`;
+            tbody.append(row);
+        });
+    }
+    
+    // Populate Aksesoris Table
+    function populateAksesorisTable() {
+        const tbody = $('#table-detail-aksesoris-admin tbody');
+        tbody.empty();
+        
+        if (!detailAksesoris || detailAksesoris.length === 0) {
+            tbody.html('<tr><td colspan="5" class="text-center"><em>Tidak ada data aksesoris</em></td></tr>');
+            return;
+        }
+        
+        detailAksesoris.forEach((item, index) => {
+            const row = `<tr>
+                <td>${index + 1}</td>
+                <td><strong>${item.kode_aksesoris || '-'}</strong></td>
+                <td>${item.nama_produk || item.nama_aksesoris || '-'}</td>
+                <td class="text-right">Rp ${parseInt(item.harga_jual || 0).toLocaleString('id-ID')}</td>
+                <td><span class="badge ${parseInt(item.stok || 0) <= 2 ? 'bg-red' : 'bg-green'}">${item.stok || 0}</span></td>
+            </tr>`;
+            tbody.append(row);
+        });
+    }
+    
+    // Populate Transaksi Aktif Table
+    function populateTransaksiAktifTable() {
+        const tbody = $('#table-transaksi-aktif-admin tbody');
+        tbody.empty();
+        
+        if (!detailTransaksiAktif || detailTransaksiAktif.length === 0) {
+            tbody.html('<tr><td colspan="8" class="text-center"><em>Tidak ada transaksi aktif hari ini</em></td></tr>');
+            return;
+        }
+        
+        detailTransaksiAktif.forEach((item, index) => {
+            const createdAt = item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID', {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'}) : '-';
+            const serviceType = item.pasien?.service_type || 'UMUM';
+            const statusClass = item.status_pengerjaan === 'Sudah Diambil' ? 'label-success' : 'label-warning';
+            
+            const row = `<tr>
+                <td>${index + 1}</td>
+                <td><strong>${item.kode_penjualan || '-'}</strong></td>
+                <td>${item.pasien?.nama_pasien || item.nama_pasien_manual || '-'}</td>
+                <td><span class="label label-${serviceType.includes('BPJS') ? 'info' : 'default'}">${serviceType}</span></td>
+                <td class="text-right">Rp ${parseInt(item.total || 0).toLocaleString('id-ID')}</td>
+                <td><span class="label ${statusClass}">${item.status_pengerjaan || '-'}</span></td>
+                <td>${item.dokter?.nama || item.dokter_manual || '-'}</td>
+                <td>${createdAt}</td>
+            </tr>`;
+            tbody.append(row);
+        });
+    }
+    
+    // Handle modal frame show
+    $('#modal-frame-admin').on('show.bs.modal', function() {
+        populateFrameTable();
+    });
+    
+    // Handle modal lensa show
+    $('#modal-lensa-admin').on('show.bs.modal', function() {
+        populateLensaTable();
+    });
+    
+    // Handle modal pasien show
+    $('#modal-pasien-admin').on('show.bs.modal', function() {
+        populatePasienTable();
+    });
+    
+    // Handle modal aksesoris show
+    $('#modal-aksesoris-admin').on('show.bs.modal', function() {
+        populateAksesorisTable();
+    });
+    
+    // Handle modal transaksi show
+    $('#modal-transaksi-aktif-admin').on('show.bs.modal', function() {
+        populateTransaksiAktifTable();
+    });
+    
+    // Initial population when page loads
+    populateFrameTable();
+    populateLensaTable();
+    populatePasienTable();
+    populateAksesorisTable();
+    populateTransaksiAktifTable();
+});
+@endif
+
 </script>
 @endpush

@@ -61,21 +61,34 @@
             },
             columns: columns
         });
+        
+        // Handler untuk form modal (simpan/update)
         $('#modal-form').validator().on('submit', function (e) {
             if (!e.preventDefault()) {
-                var form = $('#modal-form form');
+                var form = $('#modal-form form.form-modal-aksesoris');
                 var url = form.attr('action');
                 var method = form.find('[name=_method]').val() === 'put' ? 'PUT' : 'POST';
+                
                 $.ajax({
                     url: url,
                     type: method,
                     data: form.serialize(),
                     success: function(response) {
-                        $('#modal-form').modal('hide');
-                        table.ajax.reload();
+                        if (response.success) {
+                            $('#modal-form').modal('hide');
+                            table.ajax.reload();
+                            // Show success message
+                            alert(response.message || 'Data berhasil disimpan');
+                        } else {
+                            alert(response.message || 'Gagal menyimpan data');
+                        }
                     },
-                    error: function(errors) {
-                        alert('Tidak dapat menyimpan data');
+                    error: function(xhr, status, error) {
+                        var message = 'Tidak dapat menyimpan data';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        alert(message);
                     }
                 });
             }
@@ -96,17 +109,19 @@
                 $('#modal-form [name=harga_beli]').val(data.harga_beli);
                 $('#modal-form [name=harga_jual]').val(data.harga_jual);
                 $('#modal-form [name=stok]').val(data.stok);
+                $('#modal-form [name=branch_id]').val(data.branch_id);
             });
         });
 
-        // Delete aksesoris
-        $(document).on('submit', 'form[action*="aksesoris"]', function(e) {
+        // Delete aksesoris - PERBAIKAN: gunakan selector yang lebih spesifik
+        $(document).on('click', 'form[action*="aksesoris"] .btn-danger', function (e) {
             e.preventDefault();
+            var form = $(this).closest('form');
             if (confirm('Yakin hapus data ini?')) {
                 $.ajax({
-                    url: $(this).attr('action'),
+                    url: form.attr('action'),
                     type: 'POST',
-                    data: $(this).serialize(),
+                    data: form.serialize(),
                     success: function() {
                         table.ajax.reload();
                     },
@@ -117,6 +132,7 @@
             }
         });
     });
+    
     function addform(url) {
         $('#modal-form').modal('show');
         $('#modal-form .modal-title').text('Tambah Aksesoris');

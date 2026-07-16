@@ -22,10 +22,10 @@ class LensaController extends Controller
         $branches = \App\Models\Branch::all()->pluck('name', 'id');
         $sales = \App\Models\Sales::where('keterangan', 'like', '%lensa%')->pluck('nama_sales', 'id_sales');
         
-        // Get low stock lensa (stok < 5)
-        $batasStok = 5;
+        // Get low stock lensa (stok <= 2) 
+        $batasStok = 2;
         $lowStockLensa = Lensa::accessibleByUser($user)
-            ->where('stok', '<', $batasStok)
+            ->where('stok', '<=', $batasStok)
             ->with('branch')
             ->get();
             

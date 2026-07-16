@@ -133,17 +133,37 @@ class SalesController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:xlsx,xls'
+            'file' => 'required|mimes:xlsx,xls,csv'
+        ], [
+            'file.required' => 'File wajib dipilih',
+            'file.mimes' => 'Format file harus Excel (.xlsx, .xls) atau CSV'
         ]);
 
         try {
-            Excel::import(new SalesImport, $request->file('file'));
+            $import = new SalesImport();
+            Excel::import($import, $request->file('file'));
             
             return response()->json([
                 'success' => true,
                 'message' => 'Data sales berhasil diimport!'
             ]);
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            // Handle validation errors from Excel import
+            $failures = $e->failures();
+            $errorDetails = [];
+            foreach (array_slice($failures, 0, 5) as $failure) {
+                $errorDetails[] = 'Baris ' . $failure->row() . ': ' . implode(', ', $failure->errors());
+            }
+            $message = 'Validasi gagal: ' . implode(' | ', $errorDetails);
+            if (count($failures) > 5) {
+                $message .= ' ... dan ' . (count($failures) - 5) . ' error lainnya';
+            }
+            return response()->json([
+                'success' => false,
+                'message' => $message
+            ], 422);
         } catch (\Exception $e) {
+            \Log::error('Sales Import Error: ' . $e->getMessage() . '\n' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal import data: ' . $e->getMessage()

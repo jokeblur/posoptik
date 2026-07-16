@@ -10,6 +10,7 @@ use App\Http\Controllers\PenjualanController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\AksesorisController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OpenDayController;
 use App\Http\Controllers\LaporanPosController;
 use App\Http\Controllers\StockTransferController;
@@ -85,6 +86,11 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
+    // Profile routes
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    
     // Open/Close Day routes (baru)
     Route::post('/open-day', [OpenDayController::class, 'openDay'])->name('open.day');
     Route::post('/close-day', [OpenDayController::class, 'closeDay'])->name('close.day');

@@ -82,17 +82,14 @@
                         <!-- Menu Footer-->
                         <li class="user-footer">
                             <div class="pull-left">
-                                <a href="#" class="btn btn-default btn-flat">Profile</a>
+                                <a href="{{ route('profile.show') }}" class="btn btn-default btn-flat">
+                                    <i class="fa fa-user"></i> Profile
+                                </a>
                             </div>
                             <div class="pull-right">
-                                <a href="#" class="btn btn-default btn-flat" onclick="confirmLogout(); return false;">Keluar</a>
-                                <!-- Alternative logout button -->
-                                <form action="{{ route('logout') }}" method="POST" style="display: inline;">
-                                    @csrf
-                                    <button type="submit" class="btn btn-default btn-flat" style="background: none; border: none; color: inherit; padding: 6px 12px;">
-                                        Logout Direct
-                                    </button>
-                                </form>
+                                <a href="#" class="btn btn-default btn-flat" onclick="confirmLogout(); return false;">
+                                    <i class="fa fa-sign-out"></i> Keluar
+                                </a>
                             </div>
                         </li>
                     </ul>

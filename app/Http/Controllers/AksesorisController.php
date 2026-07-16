@@ -45,32 +45,47 @@ class AksesorisController extends Controller
 
     public function store(Request $request)
     {
-        $user = auth()->user();
-        $data = $request->all();
-        if (!$user->isSuperAdmin() && !$user->isAdmin()) {
-            $data['branch_id'] = $user->branch_id;
+        try {
+            $user = auth()->user();
+            $data = $request->all();
+            if (!$user->isSuperAdmin() && !$user->isAdmin()) {
+                $data['branch_id'] = $user->branch_id;
+            }
+            Aksesoris::create($data);
+            return response()->json(['success' => true, 'message' => 'Aksesoris berhasil ditambahkan']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
-        Aksesoris::create($data);
-        return response()->json(['success' => true, 'message' => 'Aksesoris berhasil ditambahkan']);
     }
 
     public function update(Request $request, $id)
     {
-        $user = auth()->user();
-        $aksesoris = Aksesoris::find($id);
-        $data = $request->all();
-        if (!$user->isSuperAdmin() && !$user->isAdmin()) {
-            $data['branch_id'] = $user->branch_id;
+        try {
+            $user = auth()->user();
+            $aksesoris = Aksesoris::find($id);
+            if (!$aksesoris) {
+                return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
+            }
+            $data = $request->all();
+            if (!$user->isSuperAdmin() && !$user->isAdmin()) {
+                $data['branch_id'] = $user->branch_id;
+            }
+            $aksesoris->update($data);
+            return response()->json(['success' => true, 'message' => 'Aksesoris berhasil diupdate']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
-        $aksesoris->update($data);
-        return response()->json(['success' => true, 'message' => 'Aksesoris berhasil diupdate']);
     }
 
     public function destroy($id)
     {
-        $aksesoris = Aksesoris::findOrFail($id);
-        $aksesoris->delete();
-        return response()->json(['success' => true]);
+        try {
+            $aksesoris = Aksesoris::findOrFail($id);
+            $aksesoris->delete();
+            return response()->json(['success' => true, 'message' => 'Aksesoris berhasil dihapus']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
     }
 
     public function show($id)

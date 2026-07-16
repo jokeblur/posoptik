@@ -235,8 +235,10 @@
                         <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-frames">Cari Frame</button>
                        </div>
                     <div class="btn-group">                        
-                        <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-lenses">Cari Lensa</button>
-                        
+                        <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-lenses">Cari Lensa Stok</button>
+                    </div>
+                    <div class="btn-group">                        
+                        <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-lenses-gosok">Cari Lensa Gosok</button>
                     </div>
                     <div class="btn-group">                        
                        
@@ -346,6 +348,7 @@
 
 @include('penjualan.modal_frame')
 @include('penjualan.modal_lensa')
+@include('penjualan.modal_lensa_gosok')
 @include('penjualan.modal_aksesoris')
 @include('penjualan.modal_pasien')
 @include('penjualan.modal_webcam')
@@ -1791,6 +1794,72 @@ $(function() {
             text: 'Form lensa gosok telah direset.',
             timer: 1500,
             showConfirmButton: false
+        });
+    });
+});
+</script>
+
+<script>
+// Handler untuk Lensa Gosok Modal
+$(function() {
+    // Reset form lensa gosok
+    $(document).on('click', '#btn-reset-gosok-modal', function() {
+        $('#form-lensa-gosok-modal')[0].reset();
+    });
+    
+    // Tambah lensa gosok ke keranjang
+    $(document).on('click', '#btn-add-gosok-modal', function() {
+        const form = $('#form-lensa-gosok-modal');
+        
+        // Validate form
+        if (!form[0].checkValidity()) {
+            form[0].reportValidity();
+            return;
+        }
+        
+        // Get form data dengan suffix _modal
+        const merk = $('#gosok_merk_modal').val();
+        const type = $('#gosok_type_modal').val() || '-';
+        const index = $('#gosok_index_modal').val() || '-';
+        const coating = $('#gosok_coating_modal').val() || '-';
+        const cly = $('#gosok_cly_modal').val() || '-';
+        const harga = parseInt($('#gosok_harga_modal').val());
+        const quantity = parseInt($('#gosok_quantity_modal').val());
+        const catatan = $('#gosok_catatan_modal').val() || '';
+        
+        // Generate unique ID untuk lensa gosok (timestamp + random)
+        const uniqueId = 'gosok_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        
+        // Create product object
+        const product = {
+            id: uniqueId,
+            type: 'lensa_gosok',
+            name: `Lensa Gosok - ${merk} (${type}, Index: ${index}, ${coating}, ${cly}mm)`,
+            price: harga,
+            quantity: quantity,
+            catatan: catatan,
+            merk: merk,
+            lensaType: type,
+            index: index,
+            coating: coating,
+            cly: cly
+        };
+        
+        // Add to cart using existing function
+        addToCart(product);
+        
+        // Reset form dan close modal
+        form[0].reset();
+        $('#modal-lenses-gosok').modal('hide');
+        
+        // Show success message
+        Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: `${product.name} ditambahkan ke keranjang`,
+            timer: 2000,
+            toast: true,
+            position: 'top-end'
         });
     });
 });

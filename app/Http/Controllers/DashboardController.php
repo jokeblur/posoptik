@@ -202,18 +202,18 @@ class DashboardController extends Controller
             ->whereDate('created_at', now())
             ->count();
 
-        // Low stock data (stok < 5)
-        $batasStok = 5;
+        // Low stock data (stok <= 2)
+        $batasStok = 2;
         $lowStockLensa = \App\Models\Lensa::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
-            ->where('stok', '<', $batasStok)
+            ->where('stok', '<=', $batasStok)
             ->with('branch')
             ->get();
         $lowStockFrame = \App\Models\Frame::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
-            ->where('stok', '<', $batasStok)
+            ->where('stok', '<=', $batasStok)
             ->with('branch')
             ->get();
         $lowStockAksesoris = \App\Models\Aksesoris::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
-            ->where('stok', '<', $batasStok)
+            ->where('stok', '<=', $batasStok)
             ->with('branch')
             ->get();
 

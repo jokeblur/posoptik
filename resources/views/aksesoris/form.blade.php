@@ -1,7 +1,7 @@
 <!-- Modal -->
 <div class="modal fade" id="modal-form" tabindex="-1" aria-labelledby="modal-form" aria-hidden="true">
     <div class="modal-dialog">
-        <form action="" method="post" class="form-horizontal" data-toggle="validator">
+        <form action="" method="post" class="form-horizontal form-modal-aksesoris" data-toggle="validator">
             @csrf
             <input type="hidden" name="_method" value="post">
             <div class="modal-content">

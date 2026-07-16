@@ -20,10 +20,16 @@ class SalesImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnErr
      */
     public function model(array $row)
     {
+        // Clean phone number: remove spaces, dashes, and other non-numeric characters
+        $nohp = null;
+        if (isset($row['nohp']) && !empty($row['nohp'])) {
+            $nohp = (int) preg_replace('/[^0-9]/', '', (string) $row['nohp']);
+        }
+        
         return new Sales([
             'nama_sales' => $row['nama_sales'],
             'alamat' => $row['alamat'] ?? null,
-            'nohp' => $row['nohp'] ?? null,
+            'nohp' => $nohp,
             'keterangan' => $row['keterangan'] ?? null,
         ]);
     }
@@ -36,7 +42,7 @@ class SalesImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnErr
         return [
             'nama_sales' => 'required|string|max:255',
             'alamat' => 'nullable|string|max:500',
-            'nohp' => 'nullable|integer',
+            'nohp' => 'nullable|string|max:20',
             'keterangan' => 'nullable|string|max:500',
         ];
     }
@@ -51,7 +57,7 @@ class SalesImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnErr
             'nama_sales.string' => 'Nama sales harus berupa teks',
             'nama_sales.max' => 'Nama sales maksimal 255 karakter',
             'alamat.max' => 'Alamat maksimal 500 karakter',
-            'nohp.integer' => 'Nomor HP harus berupa angka',
+            'nohp.max' => 'Nomor HP maksimal 20 karakter',
             'keterangan.max' => 'Keterangan maksimal 500 karakter',
         ];
     }

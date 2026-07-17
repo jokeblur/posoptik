@@ -202,9 +202,10 @@ class DashboardController extends Controller
             ->whereDate('created_at', now())
             ->count();
 
-        // Low stock data (stok <= 2)
+        // Low stock data (stok <= 2), exclude custom order lensa
         $batasStok = 2;
         $lowStockLensa = \App\Models\Lensa::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
+            ->where('is_custom_order', false)
             ->where('stok', '<=', $batasStok)
             ->with('branch')
             ->get();

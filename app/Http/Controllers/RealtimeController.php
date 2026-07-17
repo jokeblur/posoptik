@@ -474,11 +474,14 @@ class RealtimeController extends Controller
                 ];
             });
             
-        // Check for lensa stock updates
+        // Check for lensa stock updates (exclude custom order from low stock alerts)
         $lensaUpdates = \App\Models\Lensa::when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId))
             ->where('updated_at', '>', $since)
             ->get()
             ->map(function($lensa) {
+                $alertLevel = $lensa->is_custom_order
+                    ? 'normal'
+                    : ($lensa->stok <= 5 ? 'low' : ($lensa->stok <= 10 ? 'medium' : 'normal'));
                 return [
                     'type' => 'lensa_stock_update',
                     'product_type' => 'Lensa',
@@ -488,7 +491,7 @@ class RealtimeController extends Controller
                     'kode' => $lensa->kode_lensa,
                     'branch_name' => $lensa->branch?->name ?? '-',
                     'updated_at' => $lensa->updated_at->toISOString(),
-                    'alert_level' => $lensa->stok <= 5 ? 'low' : ($lensa->stok <= 10 ? 'medium' : 'normal')
+                    'alert_level' => $alertLevel
                 ];
             });
             

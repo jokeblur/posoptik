@@ -343,17 +343,9 @@ class PenjualanController extends Controller
         $openDay = OpenDay::where('branch_id', $branch_id)->where('tanggal', $today)->first();
         
         if (!$openDay || !$openDay->is_open) {
-            $branches = \App\Models\Branch::all();
-            return view('penjualan.create', [
-                'error_message' => 'Transaksi tidak dapat dilakukan. Kasir cabang ini sudah tutup atau belum dibuka. Silakan hubungi admin untuk open day.',
-                'branches' => $branches,
-                'pasiens' => collect(),
-                'dokters' => collect(),
-                'frames' => collect(),
-                'lenses' => collect(),
-                'aksesoris' => collect(),
-                'selected_pasien' => null
-            ]);
+            $branchName = \App\Models\Branch::find($branch_id)->name ?? 'Cabang ini';
+            return redirect()->route('penjualan.index')
+                ->with('error', "{$branchName} belum dibuka hari ini. Silakan hubungi admin untuk melakukan Open Day terlebih dahulu.");
         }
         
         $pasiens = \App\Models\Pasien::all();

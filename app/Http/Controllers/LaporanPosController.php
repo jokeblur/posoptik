@@ -179,6 +179,7 @@ class LaporanPosController extends Controller
 
     /**
      * Laporan laba/rugi khusus super admin.
+     * Menghitung dari transaksi penjualan nyata + beban operasional.
      */
     public function profitLoss(Request $request)
     {
@@ -187,87 +188,145 @@ class LaporanPosController extends Controller
             abort(403, 'Halaman ini hanya untuk super admin.');
         }
 
-        $branches = Branch::active()->get();
+        $branches         = Branch::active()->get();
         $selectedBranchId = $request->input('branch_id');
+        $bulan            = (int) $request->input('bulan', date('n'));
+        $tahun            = (int) $request->input('tahun', date('Y'));
 
+        // ============================================================
+        // 1. PENDAPATAN — total penjualan pada periode
+        // ============================================================
+        $pendapatanQuery = DB::table('penjualan')
+            ->whereMonth('created_at', $bulan)
+            ->whereYear('created_at', $tahun)
+            ->when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId));
+
+        $pendapatan      = (float) $pendapatanQuery->sum('total');
+        $jumlahTransaksi = (int)   $pendapatanQuery->count();
+
+        // ============================================================
+        // 2. HPP — harga beli item yang terjual
+        //    penjualan_detail JOIN frames / lensa untuk ambil harga_beli
+        // ============================================================
+        $baseDetailQuery = DB::table('penjualan_detail as pd')
+            ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+            ->whereMonth('p.created_at', $bulan)
+            ->whereYear('p.created_at', $tahun)
+            ->when($selectedBranchId, fn($q) => $q->where('p.branch_id', $selectedBranchId));
+
+        // HPP Frame
+        $hppFrame = (float) (clone $baseDetailQuery)
+            ->where('pd.itemable_type', 'App\\Models\\Frame')
+            ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
+            ->selectRaw('COALESCE(SUM(pd.quantity * COALESCE(f.harga_beli_frame, 0)), 0) as hpp')
+            ->value('hpp');
+
+        // HPP Lensa
+        $hppLensa = (float) (clone $baseDetailQuery)
+            ->where('pd.itemable_type', 'App\\Models\\Lensa')
+            ->join('lensa as l', 'l.id', '=', 'pd.itemable_id')
+            ->selectRaw('COALESCE(SUM(pd.quantity * COALESCE(l.harga_beli_lensa, 0)), 0) as hpp')
+            ->value('hpp');
+
+        // HPP Aksesoris
+        $hppAksesoris = (float) (clone $baseDetailQuery)
+            ->where('pd.itemable_type', 'App\\Models\\Aksesoris')
+            ->join('aksesoris as a', 'a.id', '=', 'pd.itemable_id')
+            ->selectRaw('COALESCE(SUM(pd.quantity * COALESCE(a.harga_beli, 0)), 0) as hpp')
+            ->value('hpp');
+
+        $totalHpp   = $hppFrame + $hppLensa + $hppAksesoris;
+        $labaKotor  = $pendapatan - $totalHpp;
+
+        // ============================================================
+        // 3. BEBAN OPERASIONAL
+        // ============================================================
+
+        // 3a. Beban gaji karyawan
+        $bebanGajiQuery = DB::table('gaji_karyawans as gk')
+            ->join('karyawans as k', 'k.id', '=', 'gk.karyawan_id')
+            ->where('gk.bulan', $bulan)
+            ->where('gk.tahun', $tahun);
+        if ($selectedBranchId) {
+            $bebanGajiQuery->where('k.branch_id', $selectedBranchId);
+        }
+        $bebanGaji = (float) $bebanGajiQuery->sum('gk.total_gaji');
+
+        // 3b. Pengeluaran dari tabel keuangan
+        $bebanKeuanganQuery = DB::table('keuangans')
+            ->where('jenis', 'pengeluaran')
+            ->whereMonth('tanggal', $bulan)
+            ->whereYear('tanggal', $tahun)
+            ->when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId));
+        $bebanKeuangan = (float) $bebanKeuanganQuery->sum('jumlah');
+
+        // 3c. Pemasukan non-penjualan (dari tabel keuangan)
+        $pemasukanLain = (float) DB::table('keuangans')
+            ->where('jenis', 'pemasukan')
+            ->whereMonth('tanggal', $bulan)
+            ->whereYear('tanggal', $tahun)
+            ->when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId))
+            ->sum('jumlah');
+
+        $totalBeban = $bebanGaji + $bebanKeuangan;
+        $labaBersih = $labaKotor + $pemasukanLain - $totalBeban;
+
+        // ============================================================
+        // 4. RINCIAN BEBAN GAJI PER KARYAWAN (periode ini)
+        // ============================================================
+        $detailGaji = DB::table('gaji_karyawans as gk')
+            ->join('karyawans as k', 'k.id', '=', 'gk.karyawan_id')
+            ->leftJoin('branches as b', 'b.id', '=', 'k.branch_id')
+            ->where('gk.bulan', $bulan)
+            ->where('gk.tahun', $tahun)
+            ->when($selectedBranchId, fn($q) => $q->where('k.branch_id', $selectedBranchId))
+            ->select('k.nama', 'k.jabatan', 'b.name as cabang',
+                'gk.gaji_pokok', 'gk.bonus', 'gk.tunjangan', 'gk.potongan', 'gk.total_gaji')
+            ->get();
+
+        // ============================================================
+        // 5. RINCIAN PENGELUARAN PER KATEGORI (periode ini)
+        // ============================================================
+        $detailPengeluaran = DB::table('keuangans')
+            ->where('jenis', 'pengeluaran')
+            ->whereMonth('tanggal', $bulan)
+            ->whereYear('tanggal', $tahun)
+            ->when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId))
+            ->selectRaw('kategori, SUM(jumlah) as total')
+            ->groupBy('kategori')
+            ->orderByDesc('total')
+            ->get();
+
+        // ============================================================
+        // 6. DATA STOK (tetap ditampilkan sebagai info)
+        // ============================================================
         $frameStats = DB::table('frames')
             ->where('stok', '>', 0)
-            ->when($selectedBranchId, function ($query) use ($selectedBranchId) {
-                return $query->where('branch_id', $selectedBranchId);
-            })
-            ->selectRaw('COUNT(*) as total_item')
-            ->selectRaw('COALESCE(SUM(stok), 0) as total_qty')
-            ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_jual_frame, 0)), 0) as total_jual')
-            ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_beli_frame, 0)), 0) as total_beli')
+            ->when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId))
+            ->selectRaw('COUNT(*) as total_item, COALESCE(SUM(stok),0) as total_qty,
+                COALESCE(SUM(stok * COALESCE(harga_jual_frame,0)),0) as total_jual,
+                COALESCE(SUM(stok * COALESCE(harga_beli_frame,0)),0) as total_beli')
             ->first();
 
         $lensaStats = DB::table('lensa')
             ->where('stok', '>', 0)
-            ->when($selectedBranchId, function ($query) use ($selectedBranchId) {
-                return $query->where('branch_id', $selectedBranchId);
-            })
-            ->selectRaw('COUNT(*) as total_item')
-            ->selectRaw('COALESCE(SUM(stok), 0) as total_qty')
-            ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_jual_lensa, 0)), 0) as total_jual')
-            ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_beli_lensa, 0)), 0) as total_beli')
+            ->when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId))
+            ->selectRaw('COUNT(*) as total_item, COALESCE(SUM(stok),0) as total_qty,
+                COALESCE(SUM(stok * COALESCE(harga_jual_lensa,0)),0) as total_jual,
+                COALESCE(SUM(stok * COALESCE(harga_beli_lensa,0)),0) as total_beli')
             ->first();
 
-        $totalItem = (float) $frameStats->total_item + (float) $lensaStats->total_item;
-        $totalQty = (float) $frameStats->total_qty + (float) $lensaStats->total_qty;
-        $totalJual = (float) $frameStats->total_jual + (float) $lensaStats->total_jual;
-        $totalBeli = (float) $frameStats->total_beli + (float) $lensaStats->total_beli;
-        $totalSelisih = $totalJual - $totalBeli;
-
-        $branchList = Branch::active()
-            ->when($selectedBranchId, function ($query) use ($selectedBranchId) {
-                return $query->where('id', $selectedBranchId);
-            })
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        $summaryPerBranch = $branchList->map(function ($branch) {
-            $frame = DB::table('frames')
-                ->where('branch_id', $branch->id)
-                ->where('stok', '>', 0)
-                ->selectRaw('COUNT(*) as total_item')
-                ->selectRaw('COALESCE(SUM(stok), 0) as total_qty')
-                ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_jual_frame, 0)), 0) as total_jual')
-                ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_beli_frame, 0)), 0) as total_beli')
-                ->first();
-
-            $lensa = DB::table('lensa')
-                ->where('branch_id', $branch->id)
-                ->where('stok', '>', 0)
-                ->selectRaw('COUNT(*) as total_item')
-                ->selectRaw('COALESCE(SUM(stok), 0) as total_qty')
-                ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_jual_lensa, 0)), 0) as total_jual')
-                ->selectRaw('COALESCE(SUM(stok * COALESCE(harga_beli_lensa, 0)), 0) as total_beli')
-                ->first();
-
-            return (object) [
-                'branch_name' => $branch->name,
-                'frame_item' => (float) $frame->total_item,
-                'frame_qty' => (float) $frame->total_qty,
-                'lensa_item' => (float) $lensa->total_item,
-                'lensa_qty' => (float) $lensa->total_qty,
-                'total_qty' => (float) $frame->total_qty + (float) $lensa->total_qty,
-                'total_jual' => (float) $frame->total_jual + (float) $lensa->total_jual,
-                'total_beli' => (float) $frame->total_beli + (float) $lensa->total_beli,
-                'selisih' => ((float) $frame->total_jual + (float) $lensa->total_jual) - ((float) $frame->total_beli + (float) $lensa->total_beli),
-            ];
-        });
-
         return view('laporan.profit-loss', compact(
-            'branches',
-            'selectedBranchId',
-            'frameStats',
-            'lensaStats',
-            'totalItem',
-            'totalQty',
-            'totalJual',
-            'totalBeli',
-            'totalSelisih',
-            'summaryPerBranch'
+            'branches', 'selectedBranchId', 'bulan', 'tahun',
+            // P&L data
+            'pendapatan', 'jumlahTransaksi',
+            'hppFrame', 'hppLensa', 'hppAksesoris', 'totalHpp',
+            'labaKotor',
+            'bebanGaji', 'bebanKeuangan', 'pemasukanLain', 'totalBeban',
+            'labaBersih',
+            'detailGaji', 'detailPengeluaran',
+            // Stock info
+            'frameStats', 'lensaStats'
         ));
     }
 } 

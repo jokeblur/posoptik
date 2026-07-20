@@ -33,7 +33,7 @@ Aplikasi Point of Sale (POS) untuk manajemen toko optik, mencakup penjualan, inv
 > | Role | Akses |
 > |---|---|
 > | Super Admin | Semua menu |
-> | Admin | Semua menu kecuali Laporan Laba Rugi |
+> | Admin | Semua menu kecuali Laporan Laba Rugi, Manajemen Karyawan, dan Manajemen Keuangan |
 > | Kasir | Transaksi & Transfer Stok |
 > | Passet Bantu | Pengerjaan & Scan QR Code |
 
@@ -340,7 +340,7 @@ LABA / RUGI BERSIH = Laba Kotor - Total Beban
 
 ## 9. MANAJEMEN KARYAWAN
 
-**Akses:** Admin, Super Admin  
+**Akses:** Super Admin saja  
 **Menu:** Manajemen → Manajemen Karyawan
 
 ### 9.1 Tambah Karyawan
@@ -372,7 +372,7 @@ Riwayat gaji semua periode tersimpan dan dapat dilihat di bawah form input.
 
 ## 10. MANAJEMEN KEUANGAN
 
-**Akses:** Admin, Super Admin  
+**Akses:** Super Admin saja  
 **Menu:** Manajemen → Manajemen Keuangan
 
 Catat semua pemasukan dan pengeluaran operasional di luar penjualan.
@@ -435,8 +435,8 @@ Kelola dan cetak barcode untuk nota transaksi.
 | Laporan POS | ✅ | ✅ | ❌ | ❌ |
 | Laporan BPJS | ✅ | ✅ | ❌ | ❌ |
 | Laporan Laba Rugi | ✅ | ❌ | ❌ | ❌ |
-| Manajemen Karyawan | ✅ | ✅ | ❌ | ❌ |
-| Manajemen Keuangan | ✅ | ✅ | ❌ | ❌ |
+| Manajemen Karyawan | ✅ | ❌ | ❌ | ❌ |
+| Manajemen Keuangan | ✅ | ❌ | ❌ | ❌ |
 | Settings | ✅ | ✅ | ❌ | ❌ |
 
 ---

@@ -50,16 +50,9 @@
                                 <label for="gosok_index_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
                                     Index
                                 </label>
-                                <select class="form-control" id="gosok_index_modal" name="index" style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
-                                    <option value="">Pilih Index</option>
-                                    <option value="1.50">1.50</option>
-                                    <option value="1.56">1.56</option>
-                                    <option value="1.59">1.59</option>
-                                    <option value="1.60">1.60</option>
-                                    <option value="1.67">1.67</option>
-                                    <option value="1.70">1.70</option>
-                                    <option value="1.74">1.74</option>
-                                </select>
+                                <input type="text" class="form-control" id="gosok_index_modal" name="index" 
+                                       placeholder="Contoh: 1.50, 1.56, 1.67" 
+                                       style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
                                 <small class="help-block text-muted" style="font-size: 11px; margin-top: 2px;">Index refraksi lensa</small>
                             </div>
                         </div>

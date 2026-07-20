@@ -253,8 +253,8 @@ Route::group(['middleware' => 'auth'], function() {
 
     Route::resource('/aksesoris', App\Http\Controllers\AksesorisController::class);
 
-    // Karyawan Management (admin & super admin only)
-    Route::middleware('role:admin,super admin')->group(function () {
+    // Karyawan Management (super admin only)
+    Route::middleware('role:super admin')->group(function () {
         Route::get('/karyawan/data', [\App\Http\Controllers\KaryawanController::class, 'data'])->name('karyawan.data');
         Route::get('/karyawan/{karyawan}/gaji/data', [\App\Http\Controllers\KaryawanController::class, 'gajiData'])->name('karyawan.gaji.data');
         Route::post('/karyawan/{karyawan}/gaji', [\App\Http\Controllers\KaryawanController::class, 'gajiStore'])->name('karyawan.gaji.store');
@@ -262,8 +262,8 @@ Route::group(['middleware' => 'auth'], function() {
         Route::resource('/karyawan', \App\Http\Controllers\KaryawanController::class);
     });
 
-    // Keuangan Management (admin & super admin only)
-    Route::middleware('role:admin,super admin')->group(function () {
+    // Keuangan Management (super admin only)
+    Route::middleware('role:super admin')->group(function () {
         Route::get('/keuangan/data', [\App\Http\Controllers\KeuanganController::class, 'data'])->name('keuangan.data');
         Route::get('/keuangan/summary', [\App\Http\Controllers\KeuanganController::class, 'summary'])->name('keuangan.summary');
         Route::resource('/keuangan', \App\Http\Controllers\KeuanganController::class);

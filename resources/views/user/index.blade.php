@@ -43,9 +43,17 @@
                 {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {data: 'name', name: 'name'},
                 {data: 'email', name: 'email'},
-                {data: 'role', name: 'role'},
+                {data: 'role_badge', name: 'role', orderable: false},
                 {data: 'branch_name', name: 'branch_name'},
                 {data: 'aksi', name: 'aksi', orderable: false, searchable: false},
+            ],
+            columnDefs: [
+                {
+                    targets: 3,
+                    render: function(data) {
+                        return data;
+                    }
+                }
             ]
         });
 

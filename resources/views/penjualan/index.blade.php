@@ -289,8 +289,7 @@
                     type: 'POST',
                     data: {
                         '_token': '{{ csrf_token() }}',
-                        'status_pengerjaan': status,
-                        'passet_by': '{{ auth()->user()->name }}'
+                        'status_pengerjaan': status
                     },
                     success: function(response) {
                         Swal.fire('Berhasil!', response.message, 'success')

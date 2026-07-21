@@ -14,13 +14,28 @@ class UserController extends Controller
     public function index()
     {
         $branches = Branch::all();
-        $roles = ['admin', 'kasir', 'passet bantu'];
+        $user = auth()->user();
+        
+        // Super admin bisa add super admin, admin hanya bisa add kasir dan passet bantu
+        if ($user->isSuperAdmin()) {
+            $roles = ['super admin', 'admin', 'kasir', 'passet bantu'];
+        } else {
+            $roles = ['admin', 'kasir', 'passet bantu'];
+        }
+        
         return view('user.index', compact('branches', 'roles'));
     }
 
     public function data()
     {
-        $users = User::with('branch')->where('role', '!=', 'super admin')->latest()->get();
+        $user = auth()->user();
+        
+        // Super admin bisa lihat semua user, admin hanya bisa lihat yang bukan super admin
+        if ($user->isSuperAdmin()) {
+            $users = User::with('branch')->latest()->get();
+        } else {
+            $users = User::with('branch')->where('role', '!=', 'super admin')->latest()->get();
+        }
 
         return datatables()
             ->of($users)
@@ -28,15 +43,30 @@ class UserController extends Controller
             ->addColumn('branch_name', function ($user) {
                 return $user->branch->name ?? 'N/A';
             })
+            ->addColumn('role_badge', function ($user) {
+                $color = [
+                    'super admin' => 'badge-danger',
+                    'admin' => 'badge-warning',
+                    'kasir' => 'badge-info',
+                    'passet bantu' => 'badge-success',
+                ];
+                return '<span class="badge ' . ($color[$user->role] ?? 'badge-secondary') . '">' . ucfirst($user->role) . '</span>';
+            })
             ->addColumn('aksi', function ($user) {
+                $currentUser = auth()->user();
+                $canDelete = $currentUser->isSuperAdmin() && $user->role !== 'super admin';
+                
+                $editBtn = '<button onclick="editForm(`'. route('user.show', $user->id) .'`, `'. route('user.update', $user->id) .'`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-edit"></i> Edit</button>';
+                $deleteBtn = $canDelete ? '<button onclick="deleteData(`'. route('user.destroy', $user->id) .'`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i> Hapus</button>' : '';
+                
                 return '
                 <div class="btn-group">
-                    <button onclick="editForm(`'. route('user.show', $user->id) .'`, `'. route('user.update', $user->id) .'`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-edit"></i> Edit</button>
-                    <button onclick="deleteData(`'. route('user.destroy', $user->id) .'`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i> Hapus</button>
+                    '. $editBtn .'
+                    '. $deleteBtn .'
                 </div>
                 ';
             })
-            ->rawColumns(['aksi'])
+            ->rawColumns(['aksi', 'role_badge'])
             ->make(true);
     }
 
@@ -47,15 +77,28 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $currentUser = auth()->user();
+        
+        // Validasi role berdasarkan user yang login
+        $allowedRoles = ['admin', 'kasir', 'passet bantu'];
+        if ($currentUser->isSuperAdmin()) {
+            $allowedRoles[] = 'super admin';
+        }
+        
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
-            'role' => ['required', Rule::in(['admin', 'kasir', 'passet bantu'])],
+            'role' => ['required', Rule::in($allowedRoles)],
             'branch_id' => 'required|exists:branches,id',
         ]);
 
-        $user = User::create([
+        // Jika super admin akan dibuat, hanya super admin yang bisa
+        if ($request->role === 'super admin' && !$currentUser->isSuperAdmin()) {
+            return response()->json(['message' => 'Hanya Super Admin yang bisa membuat Super Admin baru.'], 403);
+        }
+
+        $newUser = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
@@ -63,18 +106,31 @@ class UserController extends Controller
             'branch_id' => $request->branch_id,
         ]);
 
-        return response()->json(['message' => 'User berhasil ditambahkan.', 'data' => $user]);
+        return response()->json(['message' => 'User berhasil ditambahkan.', 'data' => $newUser]);
     }
 
     public function update(Request $request, User $user)
     {
+        $currentUser = auth()->user();
+        
+        // Validasi role berdasarkan user yang login
+        $allowedRoles = ['admin', 'kasir', 'passet bantu'];
+        if ($currentUser->isSuperAdmin()) {
+            $allowedRoles[] = 'super admin';
+        }
+        
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|string|min:8',
-            'role' => ['required', Rule::in(['admin', 'kasir', 'passet bantu'])],
+            'role' => ['required', Rule::in($allowedRoles)],
             'branch_id' => 'required|exists:branches,id',
         ]);
+
+        // Jika akan di-ubah ke super admin, hanya super admin yang bisa
+        if ($request->role === 'super admin' && !$currentUser->isSuperAdmin()) {
+            return response()->json(['message' => 'Hanya Super Admin yang bisa mengubah user menjadi Super Admin.'], 403);
+        }
 
         $userData = $request->except('password');
         if ($request->filled('password')) {

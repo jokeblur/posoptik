@@ -876,15 +876,14 @@ class PenjualanController extends Controller
     {
         try {
             $request->validate([
-                'status_pengerjaan' => 'required|in:Menunggu Pengerjaan,Sedang Dikerjakan,Selesai Dikerjakan,Sudah Diambil',
-                'passet_by' => 'required|string|max:255'
+                'status_pengerjaan' => 'required|in:Menunggu Pengerjaan,Sedang Dikerjakan,Selesai Dikerjakan,Sudah Diambil'
             ]);
 
             $penjualan = Penjualan::findOrFail($id);
             
             $updateData = [
                 'status_pengerjaan' => $request->status_pengerjaan,
-                'passet_by' => $request->passet_by
+                'passet_by_user_id' => auth()->id()
             ];
 
             // Set waktu selesai dikerjakan jika status berubah ke "Selesai Dikerjakan"
@@ -899,7 +898,7 @@ class PenjualanController extends Controller
                 'message' => 'Status pengerjaan berhasil diperbarui',
                 'data' => [
                     'status_pengerjaan' => $penjualan->status_pengerjaan,
-                    'passet_by' => $penjualan->passet_by,
+                    'passet_by_user_id' => $penjualan->passet_by_user_id,
                     'waktu_selesai_dikerjakan' => $penjualan->waktu_selesai_dikerjakan
                 ]
             ]);

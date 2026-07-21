@@ -197,7 +197,6 @@ Route::group(['middleware' => 'auth'], function() {
 
     Route::get('/lensa/data', [LensaController::class, 'data'])->name('lensa.data');
     Route::get('/lensa/data/{branch}', [LensaController::class, 'dataByBranch'])->name('lensa.data.branch');
-    Route::post('/lensa/store', [LensaController::class, 'store'])->name('lensa.store');
     Route::post('/lensa/bulk-delete', [LensaController::class, 'bulkDelete'])->name('lensa.bulk-delete');
     Route::post('/lensa/import', [LensaController::class, 'import'])->name('lensa.import');
     Route::get('/lensa/export', [LensaController::class, 'export'])->name('lensa.export');
@@ -236,7 +235,6 @@ Route::group(['middleware' => 'auth'], function() {
     });
     
     // Route::post('/lensa/store', [LensaController::class, 'store'])->name('lensa.store');
-    Route::post('/frame/store', [FrameController::class, 'store'])->name('frame.store');
     Route::post('/frame/import', [FrameController::class, 'import'])->name('frame.import');
     Route::get('/frame/export', [FrameController::class, 'export'])->name('frame.export');
     Route::get('/frame/export-full', [FrameController::class, 'exportFull'])->name('frame.export-full');

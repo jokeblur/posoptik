@@ -55,7 +55,7 @@ class FrameController extends Controller
         if ($request->filled('jenis_frame')) {
             $query->where('jenis_frame', $request->jenis_frame);
         }
-        $frame = $query->get();
+        $frame = $query;
         return datatables()
             ->of($frame)
             ->addColumn('checkbox', function ($frame) {

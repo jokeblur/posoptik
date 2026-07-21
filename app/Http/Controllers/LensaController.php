@@ -54,7 +54,7 @@ class LensaController extends Controller
             $batasStok = $request->filled('batas_stok') ? (int) $request->batas_stok : 2;
             $query->readyStock()->where('stok', '<=', $batasStok);
         }
-        $lensa = $query->get();
+        $lensa = $query;
         return datatables()->of($lensa)
             ->addColumn('select_all', function ($lensa) {
                 return '<input type="checkbox" name="selected_lensa[]" value="' . $lensa->id . '">';

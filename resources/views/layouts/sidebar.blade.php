@@ -87,8 +87,12 @@
                           
                           @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
                           <li class="header" style="padding: 8px 15px; margin: 8px 0 0 0; background-color: #a4193d; color: #fff; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">MANAJEMEN</li>
+                          @if(auth()->user()->isSuperAdmin())
                           <li style="margin: 0;"><a href="{{ route('karyawan.index') }}" style="padding: 8px 15px;"><i class="fa fa-users"></i> <span>Manajemen Karyawan</span></a></li>
+                          @endif
+                          @if(auth()->user()->isSuperAdmin())
                           <li style="margin: 0;"><a href="{{ route('keuangan.index') }}" style="padding: 8px 15px;"><i class="fa fa-book"></i> <span>Manajemen Keuangan</span></a></li>
+                          @endif
                           @endif
 
                           @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())

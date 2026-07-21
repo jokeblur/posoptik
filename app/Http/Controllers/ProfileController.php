@@ -29,8 +29,10 @@ class ProfileController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
-            'current_password' => 'nullable|current_password',
+            'current_password' => 'required_with:password|nullable|current_password',
             'password' => 'nullable|confirmed|min:8',
+        ], [
+            'current_password.required_with' => 'Kata sandi saat ini wajib diisi untuk mengubah kata sandi.',
         ]);
 
         $user->name = $validated['name'];

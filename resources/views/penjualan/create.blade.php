@@ -581,7 +581,13 @@ $(function() {
             price: parseFloat($(this).data('price')), 
             type: $(this).data('type'), 
             quantity: 1,
-            jenis_frame: $(this).data('jenis-frame') || ''
+            jenis_frame: $(this).data('jenis-frame') || '',
+            lensaType: $(this).data('lensa-jenis') || '',
+            index: $(this).data('index') || '',
+            coating: $(this).data('coating') || '',
+            cly: $(this).data('cly') || '',
+            axis: $(this).data('axis') || '',
+            add: $(this).data('add') || ''
         };
         
         // Validasi untuk BPJS: hanya boleh ada 1 frame dan 1 lensa
@@ -688,6 +694,23 @@ $(function() {
         $('#bpjs-summary').show();
     }
 
+    // Bangun teks info ukuran lensa (type, index, coating, cly, axis, add) untuk ditampilkan di keranjang
+    function getUkuranInfo(item) {
+        if (item.type !== 'lensa' && item.type !== 'lensa_gosok') {
+            return '';
+        }
+
+        let parts = [];
+        if (item.lensaType && item.lensaType !== '-') parts.push(item.lensaType);
+        if (item.index && item.index !== '-') parts.push('Index: ' + item.index);
+        if (item.coating && item.coating !== '-') parts.push(item.coating);
+        if (item.cly && item.cly !== '-') parts.push('CLY: ' + item.cly);
+        if (item.axis && item.axis !== '-') parts.push('Axis: ' + item.axis);
+        if (item.add && item.add !== '-') parts.push('ADD: ' + item.add);
+
+        return parts.length ? 'Ukuran: ' + parts.join(', ') : '';
+    }
+
     function renderCartAndTotals() {
         let cartTable = $('#cart-table');
         cartTable.empty();
@@ -719,7 +742,9 @@ $(function() {
             cart.forEach((item, index) => {
                 let itemSubtotal = item.price * item.quantity;
                 subtotal += itemSubtotal;
-                let row = `<tr><td>${item.name}</td><td><input type="number" class="form-control quantity-input" value="${item.quantity}" data-index="${index}" min="1" style="width: 70px;"></td><td>Rp ${item.price.toLocaleString('id-ID')}</td><td>Rp ${itemSubtotal.toLocaleString('id-ID')}</td><td><button class="btn btn-danger btn-sm remove-item" data-index="${index}">&times;</button></td></tr>`;
+                let ukuranInfo = getUkuranInfo(item);
+                let namaProduk = item.name + (ukuranInfo ? `<br><small class="text-muted">${ukuranInfo}</small>` : '');
+                let row = `<tr><td>${namaProduk}</td><td><input type="number" class="form-control quantity-input" value="${item.quantity}" data-index="${index}" min="1" style="width: 70px;"></td><td>Rp ${item.price.toLocaleString('id-ID')}</td><td>Rp ${itemSubtotal.toLocaleString('id-ID')}</td><td><button class="btn btn-danger btn-sm remove-item" data-index="${index}">&times;</button></td></tr>`;
                 cartTable.append(row);
             });
 
@@ -1654,7 +1679,13 @@ $(function() {
                                'data-name="' + row.merk_lensa + '" ' +
                                'data-price="' + row.harga_jual_lensa + '" ' +
                                'data-type="lensa" ' +
-                               'data-lensa-type="stok">' +
+                               'data-lensa-type="stok" ' +
+                               'data-lensa-jenis="' + (row.type || '') + '" ' +
+                               'data-index="' + (row.index || '') + '" ' +
+                               'data-coating="' + (row.coating || '') + '" ' +
+                               'data-cly="' + (row.cly || '') + '" ' +
+                               'data-axis="' + (row.axis || '') + '" ' +
+                               'data-add="' + (row.add || '') + '">' +
                                '<i class="fa fa-plus"></i></a>';
                     }
                 }
@@ -1729,6 +1760,8 @@ $(function() {
         const indexValue = $('#gosok_index_modal').val() || '-';
         const coating = $('#gosok_coating_modal').val() || '-';
         const cly = $('#gosok_cly_modal').val() || '-';
+        const axis = $('#gosok_axis_modal').val() || '-';
+        const add = $('#gosok_add_modal').val() || '-';
         const harga = parseInt($('#gosok_harga_modal').val(), 10) || 0;
         const quantity = parseInt($('#gosok_quantity_modal').val(), 10) || 1;
         const catatan = $('#gosok_catatan_modal').val() || '';
@@ -1745,7 +1778,7 @@ $(function() {
         const product = {
             id: 'gosok_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
             type: 'lensa_gosok',
-            name: `Lensa Gosok - ${merk} (${lensaType}, Index: ${indexValue}, ${coating}, ${cly})`,
+            name: `Lensa Gosok - ${merk}`,
             price: harga,
             quantity: quantity,
             catatan: catatan,
@@ -1753,7 +1786,9 @@ $(function() {
             lensaType: lensaType,
             index: indexValue,
             coating: coating,
-            cly: cly
+            cly: cly,
+            axis: axis,
+            add: add
         };
 
         addToCart(product);

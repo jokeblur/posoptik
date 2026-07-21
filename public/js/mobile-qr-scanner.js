@@ -37,7 +37,9 @@ class MobileQRScanner {
         return !!(
             window.isSecureContext ||
             location.hostname === 'localhost' ||
-            location.hostname === '127.0.0.1'
+            location.hostname === '127.0.0.1' ||
+            location.protocol === 'https:' ||
+            location.hostname.endsWith('.local')
         );
     }
 
@@ -183,6 +185,7 @@ class MobileQRScanner {
 
     async tryStartWithoutCameraId() {
         const configs = [
+            // Config 1: Prefer back camera, high quality
             {
                 fps: 10,
                 qrbox: {
@@ -196,6 +199,7 @@ class MobileQRScanner {
                     height: { ideal: 720, max: 1080 }
                 }
             },
+            // Config 2: Back camera, medium quality
             {
                 fps: 10,
                 qrbox: {
@@ -204,7 +208,22 @@ class MobileQRScanner {
                 },
                 aspectRatio: 1.0,
                 videoConstraints: {
-                    facingMode: { ideal: 'environment' }
+                    facingMode: 'environment',
+                    width: { ideal: 640, max: 1280 },
+                    height: { ideal: 480, max: 720 }
+                }
+            },
+            // Config 3: Any camera, fallback
+            {
+                fps: 10,
+                qrbox: {
+                    width: Math.min(200, window.innerWidth * 0.5),
+                    height: Math.min(200, window.innerWidth * 0.5)
+                },
+                aspectRatio: 1.0,
+                videoConstraints: {
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
                 }
             }
         ];
@@ -393,9 +412,6 @@ class MobileQRScanner {
     onScanSuccess(decodedText, decodedResult) {
         console.log('QR Code detected:', decodedText);
         
-        // Stop scanning temporarily
-        this.stopScanning();
-        
         // Process the scanned result
         this.processScannedCode(decodedText);
         
@@ -540,30 +556,61 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('reader')) {
         console.log('Initializing Mobile QR Scanner...');
         
-        // Wait for Html5Qrcode library to load
+        // Wait for Html5Qrcode library to load with longer timeout
+        let attempts = 0;
+        const maxAttempts = 100; // 10 seconds max
+        
         const checkLibrary = setInterval(() => {
+            attempts++;
+            console.log(`Checking for Html5Qrcode library... attempt ${attempts}`);
+            
             if (typeof Html5Qrcode !== 'undefined') {
                 clearInterval(checkLibrary);
+                console.log('Html5Qrcode library loaded successfully');
                 
                 // Initialize scanner
                 window.mobileQRScanner = new MobileQRScanner();
+                console.log('Mobile QR Scanner initialized');
                 
-                // Setup button event listeners
-                document.getElementById('startScan')?.addEventListener('click', () => {
-                    window.mobileQRScanner.startScanning();
-                });
+                // Setup button event listeners - only if not already set by jQuery
+                const startBtn = document.getElementById('startScan');
+                const stopBtn = document.getElementById('stopScan');
+                const switchBtn = document.getElementById('switchCamera');
                 
-                document.getElementById('stopScan')?.addEventListener('click', () => {
-                    window.mobileQRScanner.stopScanning();
-                });
+                if (startBtn && !startBtn.hasListener) {
+                    startBtn.addEventListener('click', () => {
+                        console.log('Start scan clicked');
+                        window.mobileQRScanner.startScanning();
+                    });
+                    startBtn.hasListener = true;
+                    console.log('Start button listener attached');
+                }
                 
-                document.getElementById('switchCamera')?.addEventListener('click', () => {
-                    window.mobileQRScanner.switchCamera();
-                });
+                if (stopBtn && !stopBtn.hasListener) {
+                    stopBtn.addEventListener('click', () => {
+                        console.log('Stop scan clicked');
+                        window.mobileQRScanner.stopScanning();
+                    });
+                    stopBtn.hasListener = true;
+                    console.log('Stop button listener attached');
+                }
                 
-            } else if (typeof Html5Qrcode === 'undefined' && document.readyState === 'complete') {
+                if (switchBtn && !switchBtn.hasListener) {
+                    switchBtn.addEventListener('click', () => {
+                        console.log('Switch camera clicked');
+                        window.mobileQRScanner.switchCamera();
+                    });
+                    switchBtn.hasListener = true;
+                    console.log('Switch button listener attached');
+                }
+                
+            } else if (attempts >= maxAttempts) {
                 clearInterval(checkLibrary);
-                console.error('Html5Qrcode library not loaded');
+                console.error('Html5Qrcode library failed to load after 10 seconds');
+                const debugStatus = document.getElementById('debugStatus');
+                if (debugStatus) {
+                    debugStatus.textContent = 'Error: Library tidak berhasil dimuat';
+                }
             }
         }, 100);
     }

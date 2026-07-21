@@ -21,10 +21,19 @@ class LensaController extends Controller
         $branches = \App\Models\Branch::all()->pluck('name', 'id');
         $sales = \App\Models\Sales::where('keterangan', 'like', '%lensa%')->pluck('nama_sales', 'id_sales');
 
-        // Batas stok untuk kategori "Stok Menipis" (ditampilkan via DataTable ajax)
+        // Batas stok untuk kategori "Stok Menipis"
         $batasStok = 2;
 
-        return view('lensa.index', compact('branches', 'sales', 'batasStok'));
+        // Ambil data lensa dengan stok rendah
+        $user = auth()->user();
+        $lowStockLensa = Lensa::with(['branch', 'sales'])
+            ->accessibleByUser($user)
+            ->where('is_custom_order', false)
+            ->where('stok', '<=', $batasStok)
+            ->orderBy('stok', 'asc')
+            ->get();
+
+        return view('lensa.index', compact('branches', 'sales', 'batasStok', 'lowStockLensa'));
     }
 
     public function data(Request $request)

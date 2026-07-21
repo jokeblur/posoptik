@@ -40,7 +40,6 @@
                 </h3>
             </div>
             <div class="box-body">
-<<<<<<< HEAD
                 @if($lowStockLensa->count() > 0)
                     <div class="table-responsive table-wrapper-with-loading">
                         <div class="table-loading-overlay"><i class="fa fa-spinner fa-spin"></i> Memuat data...</div>
@@ -54,6 +53,8 @@
                                     @endif
                                     <th>Type</th>
                                     <th>Index</th>
+                                    <th>ADD</th>
+                                    <th>CYL</th>
                                     <th>Stok</th>
                                     <th>Aksi</th>
                                 </tr>
@@ -68,6 +69,8 @@
                                     @endif
                                     <td>{{ $item->type ?? '-' }}</td>
                                     <td>{{ $item->index ?? '-' }}</td>
+                                    <td>{{ $item->add ?? '-' }}</td>
+                                    <td>{{ $item->cly ?? '-' }}</td>
                                     <td><span class="badge bg-red">{{ $item->stok }}</span></td>
                                     <td>
                                         <button onclick="editform('{{ route('lensa.update', $item->id) }}')" class="btn btn-xs btn-info btn-flat">
@@ -85,26 +88,6 @@
                         <p>Tidak ada lensa dengan stok di bawah {{ $batasStok }}</p>
                     </div>
                 @endif
-=======
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped" id="table-lensa-stok-menipis" style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>Kode</th>
-                                <th>Merk</th>
-                                @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
-                                <th>Cabang</th>
-                                @endif
-                                <th>Type</th>
-                                <th>Index</th>
-                                <th>Stok</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
->>>>>>> b838483b9d6628fb0d1baaa6656eed66044c780d
             </div>
         </div>
     </div>

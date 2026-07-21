@@ -250,6 +250,66 @@
         });
     }
 
+    function updateStatusPengerjaan(id) {
+        Swal.fire({
+            title: 'Update Status Pengerjaan',
+            html: `
+                <div class="form-group text-left">
+                    <label for="status_select">Pilih Status Baru:</label>
+                    <select id="status_select" class="form-control">
+                        <option value="">-- Pilih Status --</option>
+                        <option value="Menunggu Pengerjaan">Menunggu Pengerjaan</option>
+                        <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
+                        <option value="Selesai Dikerjakan">Selesai Dikerjakan</option>
+                    </select>
+                </div>
+            `,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Update',
+            cancelButtonText: 'Batal',
+            didOpen: () => {
+                // Focus ke select
+                document.getElementById('status_select').focus();
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const status = document.getElementById('status_select').value;
+                
+                if (!status) {
+                    Swal.fire('Peringatan!', 'Pilih status terlebih dahulu', 'warning');
+                    return;
+                }
+
+                // Update status dengan AJAX
+                $.ajax({
+                    url: '{{ route("penjualan.update_status_pengerjaan", ":id") }}'.replace(':id', id),
+                    type: 'POST',
+                    data: {
+                        '_token': '{{ csrf_token() }}',
+                        'status_pengerjaan': status,
+                        'passet_by': '{{ auth()->user()->name }}'
+                    },
+                    success: function(response) {
+                        Swal.fire('Berhasil!', response.message, 'success')
+                            .then(() => {
+                                table.ajax.reload(); // Reload tabel
+                            });
+                    },
+                    error: function(xhr) {
+                        let message = 'Tidak dapat mengubah status.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        Swal.fire('Gagal!', message, 'error');
+                    }
+                });
+            }
+        });
+    }
+
 
 </script>
 @endpush 

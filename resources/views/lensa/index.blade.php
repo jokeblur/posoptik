@@ -41,8 +41,7 @@
             </div>
             <div class="box-body">
                 @if($lowStockLensa->count() > 0)
-                    <div class="table-responsive table-wrapper-with-loading">
-                        <div class="table-loading-overlay"><i class="fa fa-spinner fa-spin"></i> Memuat data...</div>
+                    <div class="table-responsive">
                         <table class="table table-bordered table-striped" id="table-low-stock-lensa">
                             <thead>
                                 <tr>
@@ -200,35 +199,8 @@
     .low-stock-row .badge {
         background-color: #d9534f !important;
     }
-    .table-wrapper-with-loading {
-        position: relative;
-        min-height: 220px;
-    }
-    .table-loading-overlay {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(255,255,255,0.95);
-        z-index: 25;
-        font-weight: 700;
-        color: #a94442;
-        border-radius: 4px;
-    }
     .dataTables_processing {
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        z-index: 20;
-        background: rgba(255,255,255,0.95) !important;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        padding: 12px 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        color: #333;
-        font-weight: 600;
+        display: none !important;
     }
 </style>
 @endpush
@@ -270,7 +242,6 @@
         );
 
         var $lowStockLensaTable = $('#table-low-stock-lensa');
-        var $lowStockLensaOverlay = $lowStockLensaTable.closest('.table-wrapper-with-loading').find('.table-loading-overlay');
 
         $lowStockLensaTable.DataTable({
             responsive: true,
@@ -282,18 +253,11 @@
             ordering: true,
             searching: true,
             info: true,
-            initComplete: function () {
-                $lowStockLensaOverlay.fadeOut(120);
-            },
             language: {
                 emptyTable: 'Tidak ada data stok menipis',
                 zeroRecords: 'Tidak ada hasil yang cocok'
             }
         });
-
-        setTimeout(function () {
-            $lowStockLensaOverlay.fadeOut(120);
-        }, 400);
 
         table = $('#table-lensa').DataTable({
             responsive: true,

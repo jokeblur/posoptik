@@ -30,9 +30,18 @@ class FrameController extends Controller
      */
     public function index()
     {
+        $user = auth()->user();
         $sales = Sales::all()->pluck('nama_sales', 'id_sales');
         $branches = \App\Models\Branch::all()->pluck('name', 'id');
-        return view('frame.index', compact('sales', 'branches'));
+        $batasStok = 2;
+        $lowStockFrame = Frame::accessibleByUser($user)
+            ->where('stok', '<=', $batasStok)
+            ->with('branch')
+            ->orderBy('stok', 'asc')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return view('frame.index', compact('sales', 'branches', 'lowStockFrame', 'batasStok'));
     }
 
     public function data(Request $request)

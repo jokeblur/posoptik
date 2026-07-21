@@ -15,11 +15,19 @@ $(document).ready(function() {
 });
 
 /**
+ * Build a URL relative to the application base path.
+ */
+function buildAppUrl(path) {
+    const baseUrl = (window.APP_BASE_URL || '').replace(/\/$/, '');
+    return baseUrl ? `${baseUrl}${path}` : path;
+}
+
+/**
  * Refresh dashboard statistics via AJAX
  */
 function refreshStats() {
     $.ajax({
-        url: '/stock-transfer/stats',
+        url: buildAppUrl('/stock-transfer/stats'),
         method: 'GET',
         dataType: 'json',
         success: function(data) {
@@ -59,12 +67,12 @@ function confirmTransferAction(action, transferId, message) {
     if (confirm(message)) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = `{{ url('stock-transfer') }}/${transferId}/${action}`;
+        form.action = buildAppUrl(`/stock-transfer/${transferId}/${action}`);
         
         const csrfToken = document.createElement('input');
         csrfToken.type = 'hidden';
         csrfToken.name = '_token';
-        csrfToken.value = '{{ csrf_token() }}';
+        csrfToken.value = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         
         form.appendChild(csrfToken);
         document.body.appendChild(form);
@@ -77,7 +85,7 @@ function confirmTransferAction(action, transferId, message) {
  */
 function showTransferDetails(transferId) {
     $.ajax({
-        url: `/stock-transfer/${transferId}`,
+        url: buildAppUrl(`/stock-transfer/${transferId}`),
         method: 'GET',
         success: function(response) {
             // Extract the content from the response
@@ -116,7 +124,7 @@ function exportTransfers() {
     const status = currentUrl.searchParams.get('status');
     const branch = currentUrl.searchParams.get('branch');
     
-    let exportUrl = '/stock-transfer/export?';
+    let exportUrl = buildAppUrl('/stock-transfer/export?');
     
     if (status) {
         exportUrl += `status=${status}&`;

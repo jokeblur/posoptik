@@ -53,6 +53,62 @@
         </div>
     </div>
 </div>
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="box box-danger">
+            <div class="box-header with-border">
+                <h3 class="box-title">
+                    <i class="fa fa-exclamation-triangle"></i>
+                    Stok Menipis (Stok ≤ {{ $batasStok ?? 2 }})
+                </h3>
+            </div>
+            <div class="box-body">
+                @if($lowStockFrame->count() > 0)
+                    <div class="table-responsive table-wrapper-with-loading">
+                        <div class="table-loading-overlay"><i class="fa fa-spinner fa-spin"></i> Memuat data...</div>
+                        <table class="table table-bordered table-striped" id="table-low-stock-frame">
+                            <thead>
+                                <tr>
+                                    <th>Kode</th>
+                                    <th>Merk</th>
+                                    <th>Jenis</th>
+                                    @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                                    <th>Cabang</th>
+                                    @endif
+                                    <th>Stok</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($lowStockFrame as $item)
+                                <tr class="low-stock-row">
+                                    <td>{{ $item->kode_frame }}</td>
+                                    <td>{{ $item->merk_frame }}</td>
+                                    <td>{{ $item->jenis_frame }}</td>
+                                    @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                                    <td><span class="label label-warning">{{ $item->branch->name ?? '-' }}</span></td>
+                                    @endif
+                                    <td><span class="badge bg-red">{{ $item->stok }}</span></td>
+                                    <td>
+                                        <button onclick="editform('{{ route('frame.update', $item->id) }}')" class="btn btn-xs btn-info btn-flat">
+                                            <i class="fa fa-pencil"></i> Edit
+                                        </button>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-center">
+                        <h4><i class="fa fa-check-circle text-success"></i> Stok Aman</h4>
+                        <p>Tidak ada frame dengan stok di bawah {{ $batasStok ?? 2 }}</p>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
 <div class="row">
     <div class="col-md-12">
         <div class="box">
@@ -135,6 +191,49 @@
 </div>
 @endsection
 
+@push('styles')
+<style>
+    .low-stock-row,
+    .low-stock-row > td {
+        background-color: #f2dede !important;
+        color: #a94442 !important;
+    }
+    .low-stock-row .badge {
+        background-color: #d9534f !important;
+    }
+    .table-wrapper-with-loading {
+        position: relative;
+        min-height: 220px;
+    }
+    .table-loading-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255,255,255,0.95);
+        z-index: 25;
+        font-weight: 700;
+        color: #a94442;
+        border-radius: 4px;
+    }
+    .dataTables_processing {
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        z-index: 20;
+        background: rgba(255,255,255,0.95) !important;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 12px 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        color: #333;
+        font-weight: 600;
+    }
+</style>
+@endpush
+
 @push('scripts')
 <script>
     let table;
@@ -156,11 +255,43 @@
             {data: 'branch_name'},
             {data: 'aksi', searchable: false, orderable: false},
         ];
+        var $lowStockFrameTable = $('#table-low-stock-frame');
+        var $lowStockFrameOverlay = $lowStockFrameTable.closest('.table-wrapper-with-loading').find('.table-loading-overlay');
+
+        $lowStockFrameTable.DataTable({
+            responsive: true,
+            pageLength: 5,
+            lengthMenu: [[5, 10, 25, -1], [5, 10, 25, 'Semua']],
+            autoWidth: false,
+            processing: false,
+            deferRender: true,
+            ordering: true,
+            searching: true,
+            info: true,
+            initComplete: function () {
+                $lowStockFrameOverlay.fadeOut(120);
+            },
+            language: {
+                emptyTable: 'Tidak ada data stok menipis',
+                zeroRecords: 'Tidak ada hasil yang cocok'
+            }
+        });
+
+        setTimeout(function () {
+            $lowStockFrameOverlay.fadeOut(120);
+        }, 400);
+
         table = $('#table-frame').DataTable({
             responsive: true,
             processing: true,
             serverSide: true,
             autoWidth: false,
+            deferRender: true,
+            language: {
+                processing: 'Memuat data...',
+                emptyTable: 'Tidak ada data',
+                zeroRecords: 'Tidak ada hasil yang cocok'
+            },
             ajax: {
                 url: '{{ route('frame.data') }}',
                 data: function(d) {

@@ -1027,10 +1027,6 @@ body:not(.modal-open) {
 </style>
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- Bootstrap 3 CDN as fallback -->
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 <script>
 // Fallback modal function
 if (typeof $.fn.modal === 'undefined') {
@@ -1044,10 +1040,6 @@ if (typeof $.fn.modal === 'undefined') {
     };
 }
 </script>
-<!-- DataTables Bootstrap 3 compatible -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap.min.css">
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap.min.js"></script>
 <script src="{{ asset('js/realtime.js') }}"></script>
 <script>
 window.APP_BASE_URL = '{{ url('/') }}';

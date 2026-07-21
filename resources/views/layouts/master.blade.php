@@ -19,6 +19,31 @@
     <link href="https://fonts.googleapis.com/css?family=Poppins" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile-responsive-tables.css') }}">
+    <style>
+        .btn-icon-only {
+            padding: 6px 8px !important;
+            min-width: 32px;
+            min-height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            border-radius: 4px;
+        }
+
+        .btn-icon-only > i,
+        .btn-icon-only > svg,
+        .btn-icon-only > img {
+            margin: 0 !important;
+        }
+
+        .btn-icon-only .fa,
+        .btn-icon-only .fas,
+        .btn-icon-only .far,
+        .btn-icon-only .fab {
+            font-size: 14px;
+        }
+    </style>
     <link rel="stylesheet" href="{{ asset('AdminLTE2/dist/css/skins/_all-skins.min.css') }}">
     <!-- Morris chart -->
     <link rel="stylesheet" href="{{ asset('AdminLTE2/bower_components/morris.js/morris.css') }}">
@@ -237,6 +262,28 @@
     }
 
     $(function() {
+        $('button, a').each(function() {
+            const $el = $(this);
+            const hasIcon = $el.find('i, svg, img').length > 0;
+
+            if (!hasIcon) {
+                return;
+            }
+
+            const text = $el.clone().children().remove().end().text().replace(/\s+/g, ' ').trim();
+            const excluded = /^(Tambah|Import|Export|Simpan|Batal|Tutup|Cari|Pilih|Filter|Reset|Kembali|Cetak|Bayar|Lanjut|Jepret|Gunakan|Refresh)$/i;
+
+            if (!text || excluded.test(text)) {
+                return;
+            }
+
+            const label = $el.attr('data-action-label') || $el.attr('aria-label') || text;
+            $el.addClass('btn-icon-only').attr('title', label).attr('aria-label', label);
+            $el.contents().filter(function() {
+                return this.nodeType === 3;
+            }).remove();
+        });
+
         // Branch selector logic for Super Admin
         @if(auth()->user()->canAccessAllBranches())
             const branchSelector = $('#branch-selector');
@@ -284,40 +331,17 @@
 
 <!-- Mobile Sidebar Debug Script -->
 <script>
-// Debug mobile sidebar
+// Mobile sidebar helpers kept lightweight to avoid debug loops.
 window.debugMobileSidebar = function() {
-    console.log('=== MOBILE SIDEBAR DEBUG ===');
-    console.log('Window width:', window.innerWidth);
-    console.log('Hamburger element exists:', !!document.querySelector('.mobile-hamburger-fixed'));
-    console.log('Hamburger visible:', window.getComputedStyle(document.querySelector('.mobile-hamburger-fixed') || {}).display);
-    console.log('Sidebar element exists:', !!document.querySelector('.main-sidebar'));
-    console.log('Sidebar position:', window.getComputedStyle(document.querySelector('.main-sidebar') || {}).left);
-    console.log('Sidebar has mobile-active:', document.querySelector('.main-sidebar')?.classList.contains('mobile-active'));
-    console.log('Overlay element exists:', !!document.querySelector('.sidebar-overlay'));
-    console.log('=== END DEBUG ===');
+    // Disabled to prevent repeated logging and CPU overhead.
 };
 
-// Test hamburger button directly
 window.testHamburger = function() {
-    console.log('Testing hamburger button...');
     const btn = document.querySelector('.mobile-hamburger-btn');
     if (btn) {
-        console.log('Button found, triggering click...');
         btn.click();
-    } else {
-        console.log('Button not found!');
     }
 };
-
-$(document).ready(function() {
-    console.log('Debug script loaded');
-    
-    // Auto debug every 3 seconds
-    setInterval(window.debugMobileSidebar, 3000);
-    
-    // Initial debug
-    setTimeout(window.debugMobileSidebar, 1000);
-});
 </script>
 
 <!-- Logout confirmation script -->
@@ -330,13 +354,18 @@ function confirmLogout() {
 </script>
 
 <!-- Real-time Stock Indicator Script -->
+<script>
+    window.APP_BASE_URL = '{{ url('/') }}';
+</script>
 <script src="{{ asset('js/realtime.js') }}"></script>
 <script src="{{ asset('js/stock-transfer-dashboard.js') }}"></script>
 <script>
 // Global real-time stock monitoring
 $(document).ready(function() {
     // Initialize global variables
-    window.APP_BASE_URL = '{{ url('/') }}';
+    if (!window.APP_BASE_URL) {
+        window.APP_BASE_URL = '{{ url('/') }}';
+    }
     
     // Setup global real-time stock monitoring if user is authenticated
     @auth

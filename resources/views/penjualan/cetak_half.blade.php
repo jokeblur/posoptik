@@ -376,6 +376,7 @@
             </div>
             @endif
             @endif
+            @if(!($penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii'])))
             <div class="info-row">
                 <span class="info-label">Status Bayar:</span>
                 <span class="info-value">
@@ -384,6 +385,7 @@
                     </span>
                 </span>
             </div>
+            @endif
             <!-- <div class="info-row">
                 <span class="info-label">Status Kerja:</span>
                 <span class="info-value">
@@ -424,10 +426,10 @@
                 <span class="info-value">{{ $penjualan->pasien->alamat }}</span>
             </div>
             @endif
-            @if($penjualan->pasien->kontak)
+            @if($penjualan->pasien->nohp)
             <div class="info-row">
-                <span class="info-label">Kontak:</span>
-                <span class="info-value">{{ $penjualan->pasien->kontak }}</span>
+                <span class="info-label">No. HP:</span>
+                <span class="info-value">{{ $penjualan->pasien->nohp }}</span>
             </div>
             @endif
         </div>

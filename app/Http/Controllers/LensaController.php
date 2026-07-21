@@ -18,19 +18,13 @@ class LensaController extends Controller
      */
     public function index()
     {
-        $user = auth()->user();
         $branches = \App\Models\Branch::all()->pluck('name', 'id');
         $sales = \App\Models\Sales::where('keterangan', 'like', '%lensa%')->pluck('nama_sales', 'id_sales');
-        
-        // Get low stock lensa (stok <= 2), exclude custom order
+
+        // Batas stok untuk kategori "Stok Menipis" (ditampilkan via DataTable ajax)
         $batasStok = 2;
-        $lowStockLensa = Lensa::accessibleByUser($user)
-            ->readyStock()
-            ->where('stok', '<=', $batasStok)
-            ->with('branch')
-            ->get();
-            
-        return view('lensa.index', compact('branches', 'sales', 'lowStockLensa', 'batasStok'));
+
+        return view('lensa.index', compact('branches', 'sales', 'batasStok'));
     }
 
     public function data(Request $request)
@@ -46,6 +40,10 @@ class LensaController extends Controller
             } elseif ($request->stock_type === 'custom') {
                 $query->customOrder();
             }
+        }
+        if ($request->filled('low_stock')) {
+            $batasStok = $request->filled('batas_stok') ? (int) $request->batas_stok : 2;
+            $query->readyStock()->where('stok', '<=', $batasStok);
         }
         $lensa = $query->get();
         return datatables()->of($lensa)

@@ -86,7 +86,33 @@
                         </div>
                     </div>
                     
-                    <!-- Row 3: Harga & Jumlah -->
+                    <!-- Row 3: Axis & ADD -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group" style="margin-bottom: 12px;">
+                                <label for="gosok_axis_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
+                                    Axis
+                                </label>
+                                <input type="number" class="form-control" id="gosok_axis_modal" name="axis" 
+                                       placeholder="Contoh: 90, 180" min="0" max="180"
+                                       style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
+                                <small class="help-block text-muted" style="font-size: 11px; margin-top: 2px;">Ukuran axis lensa (0-180)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group" style="margin-bottom: 12px;">
+                                <label for="gosok_add_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
+                                    ADD
+                                </label>
+                                <input type="text" class="form-control" id="gosok_add_modal" name="add" 
+                                       placeholder="Contoh: +1.00, +2.00" 
+                                       style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
+                                <small class="help-block text-muted" style="font-size: 11px; margin-top: 2px;">Ukuran ADD lensa</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Row 4: Harga & Jumlah -->
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group" style="margin-bottom: 12px;">
@@ -118,12 +144,12 @@
                         </div>
                     </div>
                     
-                    <!-- Row 4: Catatan -->
+                    <!-- Row 5: Catatan -->
                     <div class="row">
                         <div class="col-md-12">
                             <div class="form-group" style="margin-bottom: 15px;">
                                 <label for="gosok_catatan_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
-                                    Catatan (ADD)
+                                    Catatan
                                 </label>
                                 <textarea class="form-control" id="gosok_catatan_modal" name="catatan" rows="2" 
                                           placeholder="Catatan tambahan untuk lensa gosok (resep dokter, spesifikasi khusus, dll)"

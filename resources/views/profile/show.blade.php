@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.master')
 
 @section('content')
 <div class="content-header">
@@ -131,9 +131,9 @@
 
                             <!-- Current Password (for verification) -->
                             <div class="form-group">
-                                <label for="current_password">Kata Sandi Saat Ini <small>(Opsional, hanya untuk perubahan data)</small></label>
+                                <label for="current_password">Kata Sandi Saat Ini <small>(Wajib diisi jika ingin mengubah kata sandi)</small></label>
                                 <input type="password" class="form-control @error('current_password') is-invalid @enderror" 
-                                       id="current_password" name="current_password" placeholder="Kosongkan jika tidak mengubah password">
+                                       id="current_password" name="current_password" placeholder="Isi jika ingin mengubah kata sandi">
                                 @error('current_password')
                                     <span class="invalid-feedback">{{ $message }}</span>
                                 @enderror

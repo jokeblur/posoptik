@@ -87,9 +87,10 @@ Route::middleware([
 ])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
-    // Profile routes
-    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
-    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    // Profile routes - Handled by Jetstream Livewire, removed to avoid conflict
+    // If you need custom profile endpoints, use different route names
+    // Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    // Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     
     // Open/Close Day routes (baru)
     Route::post('/open-day', [OpenDayController::class, 'openDay'])->name('open.day');

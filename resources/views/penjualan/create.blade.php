@@ -596,7 +596,7 @@ $(function() {
         
         if (isBPJS) {
             let existingFrame = cart.find(item => item.type === 'frame');
-            let existingLensa = cart.filter(item => item.type === 'lensa');
+            let totalLensQuantity = getTotalLensQuantity();
             
             if (product.type === 'frame' && existingFrame) {
                 Swal.fire({
@@ -607,7 +607,7 @@ $(function() {
                 return;
             }
             
-            if (product.type === 'lensa' && existingLensa.length >= 2) {
+            if (isLensItem(product) && totalLensQuantity >= 2) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Peringatan!',
@@ -635,6 +635,47 @@ $(function() {
         $('#bayar').data('user-has-changed', false); // Reset
         renderCartAndTotals();
     }
+
+    function isLensItem(item) {
+        return item && (item.type === 'lensa' || item.type === 'lensa_gosok');
+    }
+
+    function getLensItems(items = cart) {
+        return items.filter(isLensItem);
+    }
+
+    function getTotalLensQuantity(items = cart) {
+        return getLensItems(items).reduce((totalQty, item) => {
+            return totalQty + (parseInt(item.quantity, 10) || 0);
+        }, 0);
+    }
+
+    function limitBPJSLensItems(maxQuantity) {
+        let remainingQuantity = maxQuantity;
+        let preservedLensItems = [];
+
+        getLensItems().forEach(item => {
+            if (remainingQuantity <= 0) {
+                return;
+            }
+
+            let itemQuantity = parseInt(item.quantity, 10) || 0;
+            if (itemQuantity <= remainingQuantity) {
+                preservedLensItems.push(item);
+                remainingQuantity -= itemQuantity;
+                return;
+            }
+
+            preservedLensItems.push({
+                ...item,
+                quantity: remainingQuantity
+            });
+            remainingQuantity = 0;
+        });
+
+        cart = cart.filter(item => !isLensItem(item));
+        preservedLensItems.forEach(item => cart.push(item));
+    }
     
     function validateBPJSCart() {
         let serviceType = $('#detail-jenis_layanan').text().toLowerCase();
@@ -642,7 +683,8 @@ $(function() {
         
         if (isBPJS) {
             let frameItems = cart.filter(item => item.type === 'frame');
-            let lensaItems = cart.filter(item => item.type === 'lensa');
+            let lensaItems = getLensItems();
+            let totalLensQuantity = getTotalLensQuantity();
             
             // Tampilkan peringatan jika ada terlalu banyak frame
             if (frameItems.length > 1) {
@@ -658,16 +700,13 @@ $(function() {
             }
             
             // Tampilkan peringatan jika ada terlalu banyak lensa (maksimal 2)
-            if (lensaItems.length > 2) {
+            if (totalLensQuantity > 2) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Peringatan!',
                     text: 'Pasien BPJS hanya boleh memilih maksimal 2 lensa. Lensa tambahan akan dihapus.',
                 });
-                // Hapus lensa tambahan, sisakan 2 yang pertama
-                let firstTwoLensa = lensaItems.slice(0, 2);
-                cart = cart.filter(item => item.type !== 'lensa');
-                firstTwoLensa.forEach(lensa => cart.push(lensa));
+                limitBPJSLensItems(2);
             }
         }
     }
@@ -751,7 +790,7 @@ $(function() {
             // Terapkan logika pricing BPJS menggunakan API
             if (isBPJS && bpjsLevel) {
                 let frameItems = cart.filter(item => item.type === 'frame');
-                let lensaItems = cart.filter(item => item.type === 'lensa');
+                let lensaItems = getLensItems();
                 let aksesorisItems = cart.filter(item => item.type === 'aksesoris');
                 
                 // Default harga berdasarkan level BPJS
@@ -1083,9 +1122,9 @@ $(function() {
         
         if (isBPJS) {
             let frameItems = cart.filter(item => item.type === 'frame');
-            let lensaItems = cart.filter(item => item.type === 'lensa');
+            let totalLensQuantity = getTotalLensQuantity();
             
-            if (frameItems.length === 0 || lensaItems.length === 0) {
+            if (frameItems.length === 0 || totalLensQuantity === 0) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error!',

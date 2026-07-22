@@ -20,7 +20,7 @@
                         <i class="fa fa-qrcode"></i> Generate Barcode Massal
                     </button>
                     <button type="button" class="btn btn-info btn-sm" onclick="window.location.href='{{ route('barcode.scan') }}'">
-                        <i class="fa fa-search"></i> Scan Barcode
+                        <i class="fa fa-search"></i> Scan QR Code
                     </button>
                 </div>
             </div>
@@ -32,7 +32,7 @@
                             <p>Halaman ini digunakan untuk mengelola barcode transaksi:</p>
                             <ul>
                                 <li><strong>Generate Barcode Massal:</strong> Membuat barcode untuk semua transaksi yang belum memiliki barcode</li>
-                                <li><strong>Scan Barcode:</strong> Halaman untuk melakukan scan barcode dan melihat detail transaksi</li>
+                                <li><strong>Scan QR Code:</strong> Halaman untuk melakukan scan QR code dan melihat detail transaksi</li>
                             </ul>
                         </div>
                     </div>

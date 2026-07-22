@@ -341,15 +341,47 @@ class LaporanPosController extends Controller
         $tahun            = (int) $request->input('tahun', date('Y'));
 
         // ============================================================
-        // 1. PENDAPATAN — total penjualan pada periode
+        // 1. PENDAPATAN — umum + BPJS (BPJS wajib pakai harga default layanan)
         // ============================================================
-        $pendapatanQuery = DB::table('penjualan')
+        $bpjsTypes = ['BPJS I', 'BPJS II', 'BPJS III'];
+
+        $pendapatanTransactions = Penjualan::with('pasien:id_pasien,service_type')
             ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
-            ->when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId));
+            ->when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId))
+            ->get(['id', 'pasien_id', 'total', 'bpjs_default_price', 'pasien_service_type']);
 
-        $pendapatan      = (float) $pendapatanQuery->sum('total');
-        $jumlahTransaksi = (int)   $pendapatanQuery->count();
+        $jumlahTransaksi = (int) $pendapatanTransactions->count();
+
+        $pendapatanBpjs = (float) $pendapatanTransactions->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+
+            if (!in_array($serviceType, $bpjsTypes)) {
+                return 0;
+            }
+
+            if ((float) $trx->bpjs_default_price > 0) {
+                return (float) $trx->bpjs_default_price;
+            }
+
+            switch ($serviceType) {
+                case 'BPJS I':
+                    return BpjsPricingService::BPJS_I_PRICE;
+                case 'BPJS II':
+                    return BpjsPricingService::BPJS_II_PRICE;
+                case 'BPJS III':
+                    return BpjsPricingService::BPJS_III_PRICE;
+                default:
+                    return 0;
+            }
+        });
+
+        $pendapatanUmum = (float) $pendapatanTransactions->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            return in_array($serviceType, $bpjsTypes) ? 0 : (float) $trx->total;
+        });
+
+        $pendapatan = $pendapatanUmum + $pendapatanBpjs;
 
         // ============================================================
         // 2. HPP — harga beli item yang terjual
@@ -466,7 +498,7 @@ class LaporanPosController extends Controller
         return view('laporan.profit-loss', compact(
             'branches', 'selectedBranchId', 'bulan', 'tahun',
             // P&L data
-            'pendapatan', 'jumlahTransaksi',
+            'pendapatan', 'pendapatanUmum', 'pendapatanBpjs', 'jumlahTransaksi',
             'hppFrame', 'hppLensa', 'hppAksesoris', 'totalHpp',
             'labaKotor',
             'bebanGaji', 'bebanKeuangan', 'pemasukanLain', 'totalBeban',

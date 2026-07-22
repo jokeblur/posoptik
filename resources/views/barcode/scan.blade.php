@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Scan Barcode Transaksi')
+@section('title', 'Scan QR Code Transaksi')
 
 @section('content')
 <div class="container-fluid">
@@ -8,7 +8,7 @@
         <div class="col-md-12">
             <div class="box box-primary">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Scan Barcode Transaksi</h3>
+                    <h3 class="box-title">Scan QR Code Transaksi</h3>
                 </div>
                 <div class="box-body">
                     <div class="row">
@@ -20,6 +20,17 @@
                             </div>
                             <div class="box-body text-center">
                                 <div id="reader" style="width: 100%; max-width: 500px; margin: 0 auto;"></div>
+                                <div class="mt-3">
+                                    <button type="button" id="startScanBtn" class="btn btn-success">
+                                        <i class="fa fa-play"></i> Mulai Kamera
+                                    </button>
+                                    <button type="button" id="stopScanBtn" class="btn btn-danger" style="display:none;">
+                                        <i class="fa fa-stop"></i> Hentikan Kamera
+                                    </button>
+                                    <button type="button" id="switchCameraBtn" class="btn btn-info" style="display:none;">
+                                        <i class="fa fa-refresh"></i> Ganti Kamera
+                                    </button>
+                                </div>
                                 <div id="cameraInfo" class="mt-2" style="display: none;">
                                     <small class="text-muted">
                                         <i class="fa fa-camera"></i> <span id="cameraLabel">Kamera: -</span>
@@ -351,18 +362,15 @@
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 let currentTransaksi = null;
-let scannerUi = null;
+let html5QrCode = null;
+let availableCameras = [];
+let currentCameraIndex = 0;
+let isScanning = false;
+let lastScannedText = null;
+let lastScannedAt = 0;
 
 $(document).ready(function() {
     console.log('Document ready, starting scanner initialization');
-
-    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-        || window.innerWidth <= 768;
-
-    if (isMobileDevice) {
-        window.location.href = '{{ route("barcode.scan.mobile") }}';
-        return;
-    }
     
     // Check if SweetAlert is available
     if (typeof Swal === 'undefined') {
@@ -370,11 +378,24 @@ $(document).ready(function() {
     }
 
     initializeScannerUi();
+
+    $('#startScanBtn').on('click', function() {
+        startScanner();
+    });
+
+    $('#stopScanBtn').on('click', function() {
+        stopScanner();
+    });
+
+    $('#switchCameraBtn').on('click', function() {
+        switchCamera();
+    });
     
     // Form submission
     $('#searchForm').on('submit', function(e) {
         e.preventDefault();
-        searchTransaksi($('#barcodeInput').val());
+        const keyword = ($('#barcodeInput').val() || '').trim();
+        searchTransaksiForModal(keyword);
     });
     
     // Update status
@@ -402,28 +423,175 @@ $(document).ready(function() {
 });
 
 function initializeScannerUi() {
-    if (typeof Html5QrcodeScanner === 'undefined') {
+    if (typeof Html5Qrcode === 'undefined') {
         $('#debugStatus').text('Library scanner gagal dimuat');
         return;
     }
 
-    $('#debugStatus').text('Menyiapkan scanner kamera...');
+    html5QrCode = new Html5Qrcode('reader');
+    $('#debugStatus').text('Scanner siap. Klik "Mulai Kamera" untuk mulai scan.');
 
-    const config = {
+    loadAvailableCameras();
+}
+
+function isSecureOrLocalhost() {
+    return window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+}
+
+function getScanConfig() {
+    const size = Math.max(180, Math.min(280, Math.floor(window.innerWidth * 0.45)));
+
+    return {
         fps: 10,
-        qrbox: function(viewfinderWidth, viewfinderHeight) {
-            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const boxSize = Math.max(180, Math.floor(minEdge * 0.68));
-            return { width: boxSize, height: boxSize };
-        },
+        qrbox: { width: size, height: size },
+        aspectRatio: 1.0,
         rememberLastUsedCamera: true,
-        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+        disableFlip: false
     };
+}
 
-    scannerUi = new Html5QrcodeScanner('reader', config, false);
-    scannerUi.render(onScanSuccess, onScanFailure);
+function pickBestCameraIndex(cameras) {
+    if (!cameras || cameras.length === 0) {
+        return 0;
+    }
 
-    $('#debugStatus').text('Scanner siap. Pilih kamera lalu klik start.');
+    const backCameraIndex = cameras.findIndex(function(cam) {
+        const label = (cam.label || '').toLowerCase();
+        return label.includes('back') || label.includes('rear') || label.includes('environment');
+    });
+
+    if (backCameraIndex !== -1) {
+        return backCameraIndex;
+    }
+
+    return cameras.length - 1;
+}
+
+async function loadAvailableCameras() {
+    if (typeof Html5Qrcode === 'undefined') {
+        return [];
+    }
+
+    try {
+        availableCameras = await Html5Qrcode.getCameras();
+
+        if (!availableCameras || availableCameras.length === 0) {
+            $('#cameraInfo').hide();
+            $('#switchCameraBtn').hide();
+            return [];
+        }
+
+        currentCameraIndex = pickBestCameraIndex(availableCameras);
+        const active = availableCameras[currentCameraIndex];
+        $('#cameraLabel').text('Kamera: ' + (active.label || ('Camera #' + (currentCameraIndex + 1))));
+        $('#cameraInfo').show();
+        $('#switchCameraBtn').toggle(availableCameras.length > 1 && isScanning);
+
+        return availableCameras;
+    } catch (error) {
+        console.error('Get cameras error:', error);
+        return [];
+    }
+}
+
+function toggleScanButtons(running) {
+    $('#startScanBtn').toggle(!running);
+    $('#stopScanBtn').toggle(running);
+    $('#switchCameraBtn').toggle(running && availableCameras.length > 1);
+}
+
+async function startScanner(deviceId) {
+    if (isScanning || !html5QrCode) {
+        return;
+    }
+
+    if (!isSecureOrLocalhost()) {
+        $('#debugStatus').text('Kamera butuh HTTPS. Jika akses dari HP, gunakan URL HTTPS/domain aman.');
+    }
+
+    $('#debugStatus').text('Memulai kamera...');
+
+    try {
+        let cameraConfig = deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' };
+
+        await html5QrCode.start(
+            cameraConfig,
+            getScanConfig(),
+            onScanSuccess,
+            onScanFailure
+        );
+
+        isScanning = true;
+        toggleScanButtons(true);
+
+        await loadAvailableCameras();
+        $('#debugStatus').text('Kamera aktif, arahkan ke QR Code.');
+    } catch (error) {
+        console.error('Start scanner error:', error);
+
+        // Fallback ke deviceId jika facingMode gagal
+        try {
+            const cameras = await loadAvailableCameras();
+
+            if (cameras.length > 0) {
+                const fallbackCamera = cameras[currentCameraIndex] || cameras[0];
+                await html5QrCode.start(
+                    { deviceId: { exact: fallbackCamera.id } },
+                    getScanConfig(),
+                    onScanSuccess,
+                    onScanFailure
+                );
+
+                isScanning = true;
+                toggleScanButtons(true);
+                $('#debugStatus').text('Kamera aktif, arahkan ke QR Code.');
+                return;
+            }
+        } catch (fallbackError) {
+            console.error('Fallback scanner error:', fallbackError);
+        }
+
+        $('#debugStatus').text('Gagal membuka kamera. Izinkan permission kamera di browser.');
+        Swal.fire('Error', 'Kamera tidak bisa dibuka. Pastikan permission diizinkan dan tidak dipakai aplikasi lain.', 'error');
+    }
+}
+
+async function stopScanner() {
+    if (!isScanning || !html5QrCode) {
+        return;
+    }
+
+    try {
+        await html5QrCode.stop();
+        await html5QrCode.clear();
+    } catch (error) {
+        console.error('Stop scanner error:', error);
+    } finally {
+        isScanning = false;
+        toggleScanButtons(false);
+        $('#debugStatus').text('Kamera dihentikan.');
+    }
+}
+
+async function switchCamera() {
+    if (!isScanning || availableCameras.length < 2) {
+        return;
+    }
+
+    try {
+        await html5QrCode.stop();
+        await html5QrCode.clear();
+
+        isScanning = false;
+        currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+        const nextCamera = availableCameras[currentCameraIndex];
+
+        $('#cameraLabel').text('Kamera: ' + (nextCamera.label || ('Camera #' + (currentCameraIndex + 1))));
+        await startScanner(nextCamera.id);
+    } catch (error) {
+        console.error('Switch camera error:', error);
+        $('#debugStatus').text('Gagal ganti kamera.');
+    }
 }
 
 window.onQRCodeScanned = function(decodedText) {
@@ -449,6 +617,14 @@ window.onQRCodeScanned = function(decodedText) {
 };
 
 function onScanSuccess(decodedText) {
+    const now = Date.now();
+    if (decodedText === lastScannedText && (now - lastScannedAt) < 2000) {
+        return;
+    }
+
+    lastScannedText = decodedText;
+    lastScannedAt = now;
+
     playBeep();
     $('#debugStatus').text('QR Code berhasil discan');
 
@@ -472,33 +648,8 @@ function playBeep() {
 }
 
 function searchTransaksi(barcode) {
-    if (!barcode) {
-        Swal.fire('Error', 'Kode QR code tidak boleh kosong', 'error');
-        return;
-    }
-    
-    $.ajax({
-        url: '{{ route("barcode.search") }}',
-        method: 'POST',
-        data: {
-            barcode: barcode,
-            _token: '{{ csrf_token() }}'
-        },
-        success: function(response) {
-            if (response.success && response.transaction) {
-                displayTransaksi(response.transaction);
-            } else {
-                Swal.fire('Error', response.message || 'Transaksi tidak ditemukan', 'error');
-            }
-        },
-        error: function(xhr) {
-            let message = 'Terjadi kesalahan saat mencari transaksi';
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                message = xhr.responseJSON.message;
-            }
-            Swal.fire('Error', message, 'error');
-        }
-    });
+    // Kompatibilitas: semua jalur pencarian diarahkan ke tampilan modal.
+    searchTransaksiForModal((barcode || '').trim());
 }
 
 function displayTransaksi(transaksi) {

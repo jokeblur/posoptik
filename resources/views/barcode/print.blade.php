@@ -131,7 +131,7 @@
     </table>
 
     <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-        <p>Scan barcode ini untuk melihat detail transaksi dan update status</p>
+        <p>Scan QR code ini untuk melihat detail transaksi dan update status</p>
         <p>Dicetak pada: {{ \Carbon\Carbon::now()->format('d/m/Y H:i:s') }}</p>
     </div>
 </body>

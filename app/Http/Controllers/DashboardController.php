@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\OpenDay;
 use App\Models\Branch;
+use App\Models\Frame;
 use App\Services\BpjsPricingService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -302,10 +304,30 @@ class DashboardController extends Controller
             'selected_branch_id' => $selectedBranchId
         ]);
 
-        // Data untuk grafik penjualan (hanya untuk super admin)
+        // Data untuk grafik penjualan (admin & super admin)
         $chartData = null;
-        if ($user->isSuperAdmin()) {
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
             $chartData = $this->getChartDataPrivate($selectedBranchId);
+        }
+
+        // Analisa super admin: top merk frame paling banyak terjual (30 hari terakhir)
+        $topFrameBrands = collect();
+        if ($user->isSuperAdmin()) {
+            $topFrameBrands = DB::table('penjualan_detail as pd')
+                ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+                ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
+                ->where('pd.itemable_type', Frame::class)
+                ->when($selectedBranchId, function ($query) use ($selectedBranchId) {
+                    return $query->where('p.branch_id', $selectedBranchId);
+                })
+                ->whereBetween('p.created_at', [now()->subDays(30)->startOfDay(), now()->endOfDay()])
+                ->selectRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') as merk_frame")
+                ->selectRaw('SUM(pd.quantity) as total_qty')
+                ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+                ->groupBy('merk_frame')
+                ->orderByDesc('total_qty')
+                ->limit(10)
+                ->get();
         }
 
         return view('home', compact(
@@ -313,6 +335,7 @@ class DashboardController extends Controller
             'jumlahFrame', 'jumlahLensa', 'jumlahAksesoris', 'jumlahPasien', 'jumlahTransaksiAktif',
             'detailFrame', 'detailLensa', 'detailAksesoris', 'detailPasien', 'detailTransaksiAktif',
             'rekapOmset', 'omsetKasir', 'omsetBpjs', 'omsetUmum', 'transaksiKasir', 'chartData',
+            'topFrameBrands',
             'lowStockLensa', 'lowStockFrame', 'lowStockAksesoris', 'batasStok',
             'transaksiMenungguPengerjaan', 'transaksiSelesaiBulanIni',
             'selectedOmsetDate', 'isOmsetToday', 'omsetPeriodeLabel'

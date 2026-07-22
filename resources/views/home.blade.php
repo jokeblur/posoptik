@@ -103,8 +103,8 @@
                         <i class="fa fa-line-chart"></i> Grafik Penjualan 7 Hari Terakhir
                     </h3>
                 </div>
-                <div class="box-body">
-                    <canvas id="salesChartAdmin" style="height: 300px;"></canvas>
+                <div class="box-body chart-panel-body chart-panel-body-lg">
+                    <canvas id="salesChartAdmin"></canvas>
                 </div>
             </div>
         </div>
@@ -115,8 +115,8 @@
                         <i class="fa fa-pie-chart"></i> Perbandingan BPJS vs Umum
                     </h3>
                 </div>
-                <div class="box-body">
-                    <canvas id="bpjsVsUmumChartAdmin" style="height: 300px;"></canvas>
+                <div class="box-body chart-panel-body chart-panel-body-md">
+                    <canvas id="bpjsVsUmumChartAdmin"></canvas>
                 </div>
             </div>
         </div>
@@ -150,6 +150,57 @@
         </div>
         @endif
     </div>
+
+    @if(auth()->user()->isSuperAdmin())
+    <div class="row" style="margin-bottom: 32px;">
+        <div class="col-md-12">
+            <div class="box box-danger">
+                <div class="box-header with-border">
+                    <h3 class="box-title">
+                        <i class="fa fa-trophy"></i> Analisa Frame Paling Banyak Terjual (30 Hari Terakhir)
+                    </h3>
+                </div>
+                <div class="box-body">
+                    <div class="row">
+                        <div class="col-md-7">
+                            <div class="chart-panel-body chart-panel-body-lg">
+                                <canvas id="topFrameBrandChartAdmin"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 50px;">#</th>
+                                            <th>Merk Frame</th>
+                                            <th class="text-right">Qty Terjual</th>
+                                            <th class="text-right">Transaksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse(($topFrameBrands ?? collect()) as $index => $brand)
+                                            <tr>
+                                                <td>{{ $index + 1 }}</td>
+                                                <td>{{ $brand->merk_frame }}</td>
+                                                <td class="text-right">{{ number_format($brand->total_qty, 0, ',', '.') }}</td>
+                                                <td class="text-right">{{ number_format($brand->total_transaksi, 0, ',', '.') }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted">Belum ada penjualan frame dalam 30 hari terakhir.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
     @endif
     
     @includeIf('partials.dashboard_modals')
@@ -342,7 +393,7 @@
     @endif
     
     {{-- Grafik Penjualan untuk Super Admin --}}
-    @if(auth()->user()->isSuperAdmin() && $chartData)
+    @if(false && auth()->user()->isSuperAdmin() && $chartData)
     <div class="row" style="margin-bottom: 32px;">
         <div class="col-md-8">
             <div class="box box-primary">
@@ -1021,14 +1072,11 @@
 
 /* Ensure backdrop is removed properly */
 body.modal-open {
-  overflow: hidden !important;
-  position: fixed;
-  width: 100%;
+    overflow: hidden !important;
 }
 
 body:not(.modal-open) {
-  overflow: auto;
-  position: relative;
+    overflow: auto;
 }
 
 /* Additional modal styling */
@@ -1042,6 +1090,33 @@ body:not(.modal-open) {
 
 .modal-open .sidebar {
   z-index: 10540 !important;
+}
+
+.chart-panel-body {
+    position: relative;
+    width: 100%;
+    overflow: visible;
+}
+
+.chart-panel-body-lg {
+    min-height: 360px;
+}
+
+.chart-panel-body-md {
+    min-height: 360px;
+}
+
+#salesChartAdmin,
+#bpjsVsUmumChartAdmin {
+    display: block;
+    width: 100% !important;
+}
+
+@media (max-width: 768px) {
+    .chart-panel-body-lg,
+    .chart-panel-body-md {
+        min-height: 320px;
+    }
 }
 
 </style>
@@ -1191,193 +1266,236 @@ function showRealtimeNotification(notification) {
 
 @endif
 
-@if(auth()->user()->isSuperAdmin() && isset($chartData))
+@if((auth()->user()->isSuperAdmin() || auth()->user()->isAdmin()) && isset($chartData))
 // Data untuk grafik
 var chartData = @json($chartData);
+function getCanvasByIds(ids) {
+    for (var i = 0; i < ids.length; i++) {
+        var canvas = document.getElementById(ids[i]);
+        if (canvas) {
+            return canvas;
+        }
+    }
+    return null;
+}
 
-// Grafik Penjualan 7 Hari Terakhir
-var salesCtx = document.getElementById('salesChart').getContext('2d');
-var salesChart = new Chart(salesCtx, {
-    type: 'line',
-    data: {
-        labels: chartData.last_7_days.map(function(date) {
-            return new Date(date).toLocaleDateString('id-ID', {day: '2-digit', month: 'short'});
-        }),
-        datasets: [{
-            label: 'Total Penjualan (Rp)',
-            data: chartData.last_7_days.map(function(date) {
-                return chartData.daily_sales[date] ? chartData.daily_sales[date].total_sales : 0;
-            }),
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            tension: 0.1
-        }, {
-            label: 'Jumlah Transaksi',
-            data: chartData.last_7_days.map(function(date) {
-                return chartData.daily_sales[date] ? chartData.daily_sales[date].total_transactions : 0;
-            }),
-            borderColor: 'rgb(255, 99, 132)',
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-            tension: 0.1,
-            yAxisID: 'y1'
-        }]
-    },
-    options: {
-        responsive: true,
-        interaction: {
-            mode: 'index',
-            intersect: false,
-        },
-        scales: {
-            y: {
-                type: 'linear',
-                display: true,
-                position: 'left',
-                title: {
-                    display: true,
-                    text: 'Total Penjualan (Rp)'
-                }
+function prepareCanvasSize(canvas, targetHeight) {
+    if (!canvas) return;
+
+    var parent = canvas.parentElement;
+    var parentWidth = parent ? parent.clientWidth : canvas.clientWidth;
+    var width = Math.max(280, (parentWidth || 0) - 12);
+    var height = Math.max(260, targetHeight || 320);
+
+    canvas.width = width;
+    canvas.height = height;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+}
+
+function createSalesChartV1() {
+    var canvas = getCanvasByIds(['salesChartAdmin', 'salesChart']);
+    if (!canvas) return;
+
+    prepareCanvasSize(canvas, 340);
+
+    var labels = chartData.last_7_days.map(function(date) {
+        return new Date(date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+    });
+
+    var totalSales = chartData.last_7_days.map(function(date) {
+        return chartData.daily_sales[date] ? Number(chartData.daily_sales[date].total_sales) : 0;
+    });
+
+    var totalTransactions = chartData.last_7_days.map(function(date) {
+        return chartData.daily_sales[date] ? Number(chartData.daily_sales[date].total_transactions) : 0;
+    });
+
+    var data = {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Total Penjualan (Rp)',
+                fillColor: 'rgba(75, 192, 192, 0.2)',
+                strokeColor: 'rgba(75, 192, 192, 1)',
+                pointColor: 'rgba(75, 192, 192, 1)',
+                pointStrokeColor: '#fff',
+                pointHighlightFill: '#fff',
+                pointHighlightStroke: 'rgba(75, 192, 192, 1)',
+                data: totalSales
             },
-            y1: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                title: {
-                    display: true,
-                    text: 'Jumlah Transaksi'
-                },
-                grid: {
-                    drawOnChartArea: false,
-                },
+            {
+                label: 'Jumlah Transaksi',
+                fillColor: 'rgba(255, 99, 132, 0.2)',
+                strokeColor: 'rgba(255, 99, 132, 1)',
+                pointColor: 'rgba(255, 99, 132, 1)',
+                pointStrokeColor: '#fff',
+                pointHighlightFill: '#fff',
+                pointHighlightStroke: 'rgba(255, 99, 132, 1)',
+                data: totalTransactions
             }
-        }
-    }
-});
+        ]
+    };
 
-// Grafik BPJS vs Umum
-var bpjsVsUmumCtx = document.getElementById('bpjsVsUmumChart').getContext('2d');
-var bpjsVsUmumChart = new Chart(bpjsVsUmumCtx, {
-    type: 'doughnut',
-    data: {
-        labels: chartData.bpjs_vs_umum.map(function(item) {
-            return item.transaction_type;
-        }),
-        datasets: [{
-            data: chartData.bpjs_vs_umum.map(function(item) {
-                return item.total_sales;
-            }),
-            backgroundColor: [
-                'rgba(54, 162, 235, 0.8)',
-                'rgba(255, 206, 86, 0.8)'
-            ],
-            borderColor: [
-                'rgba(54, 162, 235, 1)',
-                'rgba(255, 206, 86, 1)'
-            ],
-            borderWidth: 1
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                position: 'bottom',
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        var label = context.label || '';
-                        var value = context.parsed;
-                        var total = context.dataset.data.reduce((a, b) => a + b, 0);
-                        var percentage = ((value / total) * 100).toFixed(1);
-                        return label + ': Rp ' + value.toLocaleString('id-ID') + ' (' + percentage + '%)';
-                    }
-                }
-            }
-        }
-    }
-});
+    new Chart(canvas.getContext('2d')).Line(data, {
+        responsive: false,
+        maintainAspectRatio: false,
+        bezierCurve: false,
+        datasetFill: true,
+        scaleBeginAtZero: true
+    });
+}
 
-// Grafik Status Transaksi BPJS
-var bpjsStatusCtx = document.getElementById('bpjsStatusChart').getContext('2d');
-var bpjsStatusChart = new Chart(bpjsStatusCtx, {
-    type: 'bar',
-    data: {
-        labels: chartData.bpjs_status.map(function(item) {
-            return item.transaction_status || 'Normal';
-        }),
+function createBpjsVsUmumChartV1() {
+    var canvas = getCanvasByIds(['bpjsVsUmumChartAdmin', 'bpjsVsUmumChart']);
+    if (!canvas) return;
+
+    prepareCanvasSize(canvas, 340);
+
+    var items = chartData.bpjs_vs_umum || [];
+    if (!items.length) {
+        items = [
+            { transaction_type: 'BPJS', total_sales: 0 },
+            { transaction_type: 'Umum', total_sales: 0 }
+        ];
+    }
+
+    var colors = ['#36a2eb', '#ffce56', '#4bc0c0', '#9966ff'];
+    var pieData = items.map(function(item, idx) {
+        var color = colors[idx % colors.length];
+        return {
+            value: Number(item.total_sales || 0),
+            color: color,
+            highlight: color,
+            label: item.transaction_type || 'Unknown'
+        };
+    });
+
+    new Chart(canvas.getContext('2d')).Doughnut(pieData, {
+        responsive: false,
+        maintainAspectRatio: false,
+        percentageInnerCutout: 40,
+        tooltipTemplate: '<%=label%>: Rp <%=value%>'
+    });
+}
+
+function createBpjsStatusChartV1() {
+    var canvas = getCanvasByIds(['bpjsStatusChartAdmin', 'bpjsStatusChart']);
+    if (!canvas) return;
+
+    var labels = [];
+    var values = [];
+    (chartData.bpjs_status || []).forEach(function(item) {
+        labels.push(item.transaction_status || 'Normal');
+        values.push(Number(item.total_transactions || 0));
+    });
+
+    if (!labels.length) {
+        labels = ['Belum Ada Data'];
+        values = [0];
+    }
+
+    var data = {
+        labels: labels,
         datasets: [{
             label: 'Jumlah Transaksi',
-            data: chartData.bpjs_status.map(function(item) {
-                return item.total_transactions;
-            }),
-            backgroundColor: [
-                'rgba(75, 192, 192, 0.8)',
-                'rgba(255, 159, 64, 0.8)'
-            ],
-            borderColor: [
-                'rgba(75, 192, 192, 1)',
-                'rgba(255, 159, 64, 1)'
-            ],
-            borderWidth: 1
+            fillColor: 'rgba(75, 192, 192, 0.8)',
+            strokeColor: 'rgba(75, 192, 192, 1)',
+            highlightFill: 'rgba(75, 192, 192, 1)',
+            highlightStroke: 'rgba(75, 192, 192, 1)',
+            data: values
         }]
-    },
-    options: {
-        responsive: true,
-        scales: {
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Jumlah Transaksi'
-                }
-            }
-        }
-    }
-});
+    };
 
-@if($chartData['branch_sales'])
-// Grafik Penjualan per Cabang
-var branchSalesCtx = document.getElementById('branchSalesChart').getContext('2d');
-var branchSalesChart = new Chart(branchSalesCtx, {
-    type: 'bar',
-    data: {
+    new Chart(canvas.getContext('2d')).Bar(data, {
+        responsive: true,
+        maintainAspectRatio: false,
+        scaleBeginAtZero: true
+    });
+}
+
+function createBranchSalesChartV1() {
+    var canvas = getCanvasByIds(['branchSalesChartAdmin', 'branchSalesChart']);
+    if (!canvas || !chartData.branch_sales || !chartData.branch_sales.length) return;
+
+    var data = {
         labels: chartData.branch_sales.map(function(item) {
             return item.branch_name;
         }),
         datasets: [{
             label: 'Total Penjualan (Rp)',
+            fillColor: 'rgba(153, 102, 255, 0.8)',
+            strokeColor: 'rgba(153, 102, 255, 1)',
+            highlightFill: 'rgba(153, 102, 255, 1)',
+            highlightStroke: 'rgba(153, 102, 255, 1)',
             data: chartData.branch_sales.map(function(item) {
-                return item.total_sales;
-            }),
-            backgroundColor: 'rgba(153, 102, 255, 0.8)',
-            borderColor: 'rgba(153, 102, 255, 1)',
-            borderWidth: 1
+                return Number(item.total_sales || 0);
+            })
         }]
-    },
-    options: {
+    };
+
+    new Chart(canvas.getContext('2d')).Bar(data, {
         responsive: true,
-        scales: {
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Total Penjualan (Rp)'
-                }
-            }
-        },
-        plugins: {
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return 'Total: Rp ' + context.parsed.y.toLocaleString('id-ID');
-                    }
-                }
-            }
-        }
-    }
-});
+        maintainAspectRatio: false,
+        scaleBeginAtZero: true
+    });
+}
+
+if (typeof Chart !== 'undefined') {
+    createSalesChartV1();
+    createBpjsVsUmumChartV1();
+    createBpjsStatusChartV1();
+    createBranchSalesChartV1();
+} else {
+    console.error('Chart.js tidak termuat');
+}
 @endif
+
+@if(auth()->user()->isSuperAdmin())
+var topFrameBrands = @json($topFrameBrands ?? []);
+
+function createTopFrameBrandChartV1() {
+    if (typeof Chart === 'undefined') return;
+
+    var canvas = document.getElementById('topFrameBrandChartAdmin');
+    if (!canvas) return;
+
+    prepareCanvasSize(canvas, 340);
+
+    var labels = [];
+    var values = [];
+
+    (topFrameBrands || []).forEach(function(item) {
+        labels.push(item.merk_frame || 'Tanpa Merk');
+        values.push(Number(item.total_qty || 0));
+    });
+
+    if (!labels.length) {
+        labels = ['Belum Ada Data'];
+        values = [0];
+    }
+
+    var data = {
+        labels: labels,
+        datasets: [{
+            label: 'Qty Terjual',
+            fillColor: 'rgba(221, 75, 57, 0.75)',
+            strokeColor: 'rgba(221, 75, 57, 1)',
+            highlightFill: 'rgba(221, 75, 57, 1)',
+            highlightStroke: 'rgba(221, 75, 57, 1)',
+            data: values
+        }]
+    };
+
+    new Chart(canvas.getContext('2d')).Bar(data, {
+        responsive: false,
+        maintainAspectRatio: false,
+        scaleBeginAtZero: true,
+        barValueSpacing: 8
+    });
+}
+
+createTopFrameBrandChartV1();
 @endif
 
 $(document).ready(function() {
@@ -1489,46 +1607,7 @@ $(document).ready(function() {
         }, 100);
     });
     
-    // Fix modal backdrop issues dan prevent body scroll
-    $(document).on('show.bs.modal', '.modal', function() {
-        console.log('Modal show event triggered');
-        // Add modal-open class to body to prevent scroll
-        $('body').addClass('modal-open');
-        // Remove any existing backdrops
-        $('.modal-backdrop').remove();
-    });
-    
-    $(document).on('shown.bs.modal', '.modal', function() {
-        console.log('Modal shown event triggered');
-        // Ensure body has modal-open class
-        $('body').addClass('modal-open');
-    });
-    
-    $(document).on('hide.bs.modal', '.modal', function() {
-        console.log('Modal hide event triggered');
-        // Check if there are other open modals
-        var openModals = $('.modal.in, .modal.show').length;
-        if (openModals <= 1) {
-            // No more modals open, remove modal-open class
-            $('body').removeClass('modal-open');
-        }
-    });
-    
-    $(document).on('hidden.bs.modal', '.modal', function() {
-        console.log('Modal hidden event triggered');
-        // Remove backdrop
-        $('.modal-backdrop').remove();
-        // Final check: remove modal-open if no modals are open
-        if ($('.modal.in, .modal.show').length === 0) {
-            $('body').removeClass('modal-open');
-        }
-    });
-    
-    // Click outside modal to close
-    $(document).on('click', '.modal-backdrop', function() {
-        console.log('Backdrop clicked');
-        $('.modal').modal('hide');
-    });
+    // Serahkan lifecycle modal ke Bootstrap bawaan untuk menghindari layout kepotong.
     
 
     

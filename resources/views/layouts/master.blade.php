@@ -252,7 +252,6 @@
 <script src="{{ asset('AdminLTE2/dist/js/pages/dashboard.js') }}"></script>
 <script src="{{ asset('AdminLTE2/dist/js/demo.js') }}"></script>
 <script src="{{ asset('AdminLTE2/bower_components/chart.js/Chart.js') }}"></script>
-<script src="{{ asset('AdminLTE2/dist/js/pages/dashboard2.js') }}"></script>
 <script src="{{ asset('js/validator.min.js') }}"></script>
 <script src="{{ asset('js/sweetalert-config.js') }}"></script>
 

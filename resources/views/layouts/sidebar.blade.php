@@ -72,7 +72,7 @@
                           @if(auth()->user()->isKasir() || auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
                           <li style="margin: 0;"><a href="{{ route('pasien.index') }}" style="padding: 8px 15px;"><i class="fa fa-user-plus"></i> <span>Data Pasien</span></a></li>
                           <li style="margin: 0;"><a href="{{ route('penjualan.index') }}" style="padding: 8px 15px;"><i class="fa fa-upload"></i> <span>Data Penjualan</span></a></li>
-                          <li style="margin: 0;"><a href="{{ route('barcode.scan') }}" style="padding: 8px 15px;"><i class="fa fa-qrcode"></i> <span>Scan Barcode</span></a></li>
+                          <li style="margin: 0;"><a href="{{ route('barcode.scan') }}" style="padding: 8px 15px;"><i class="fa fa-qrcode"></i> <span>Scan QR Code</span></a></li>
                           @endif
                           @endif
                           

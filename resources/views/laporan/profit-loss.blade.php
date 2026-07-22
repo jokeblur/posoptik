@@ -71,6 +71,8 @@
                 <span class="info-box-text">Pendapatan Penjualan</span>
                 <span class="info-box-number">Rp {{ number_format($pendapatan, 0, ',', '.') }}</span>
                 <span class="progress-description">{{ $jumlahTransaksi }} transaksi</span>
+                <small>Umum: Rp {{ number_format($pendapatanUmum, 0, ',', '.') }}</small><br>
+                <small>BPJS (Default): Rp {{ number_format($pendapatanBpjs, 0, ',', '.') }}</small>
             </div>
         </div>
     </div>
@@ -117,6 +119,8 @@
                 <table class="table table-condensed table-bordered">
                     <thead><tr class="bg-gray-light"><th colspan="2" style="font-size:13px;text-transform:uppercase;letter-spacing:.5px;">A. PENDAPATAN</th></tr></thead>
                     <tbody>
+                        <tr><td>Pendapatan Penjualan Umum</td><td class="text-right">Rp {{ number_format($pendapatanUmum, 0, ',', '.') }}</td></tr>
+                        <tr><td>Pendapatan Penjualan BPJS (Nilai Default Layanan)</td><td class="text-right">Rp {{ number_format($pendapatanBpjs, 0, ',', '.') }}</td></tr>
                         <tr><td>Omset Penjualan ({{ $jumlahTransaksi }} transaksi)</td><td class="text-right">Rp {{ number_format($pendapatan, 0, ',', '.') }}</td></tr>
                         <tr><td>Pemasukan Lain-lain (non-penjualan)</td><td class="text-right">Rp {{ number_format($pemasukanLain, 0, ',', '.') }}</td></tr>
                         <tr class="bg-green-light"><th>Total Pendapatan</th><th class="text-right">Rp {{ number_format($pendapatan + $pemasukanLain, 0, ',', '.') }}</th></tr>

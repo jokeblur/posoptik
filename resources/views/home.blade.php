@@ -174,6 +174,7 @@
                                         <tr>
                                             <th style="width: 50px;">#</th>
                                             <th>Merk Frame</th>
+                                            <th>Jenis Frame</th>
                                             <th class="text-right">Qty Terjual</th>
                                             <th class="text-right">Transaksi</th>
                                         </tr>
@@ -183,12 +184,13 @@
                                             <tr>
                                                 <td>{{ $index + 1 }}</td>
                                                 <td>{{ $brand->merk_frame }}</td>
+                                                <td>{{ $brand->jenis_frame }}</td>
                                                 <td class="text-right">{{ number_format($brand->total_qty, 0, ',', '.') }}</td>
                                                 <td class="text-right">{{ number_format($brand->total_transaksi, 0, ',', '.') }}</td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="4" class="text-center text-muted">Belum ada penjualan frame dalam 30 hari terakhir.</td>
+                                                <td colspan="5" class="text-center text-muted">Belum ada penjualan frame dalam 30 hari terakhir.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>

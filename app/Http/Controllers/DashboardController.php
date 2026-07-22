@@ -322,9 +322,10 @@ class DashboardController extends Controller
                 })
                 ->whereBetween('p.created_at', [now()->subDays(30)->startOfDay(), now()->endOfDay()])
                 ->selectRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') as merk_frame")
+                ->selectRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') as jenis_frame")
                 ->selectRaw('SUM(pd.quantity) as total_qty')
                 ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
-                ->groupBy('merk_frame')
+                ->groupBy('merk_frame', 'jenis_frame')
                 ->orderByDesc('total_qty')
                 ->limit(10)
                 ->get();

@@ -438,6 +438,89 @@ function isSecureOrLocalhost() {
     return window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 }
 
+function getPreferredCameraConstraints() {
+    return {
+        video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+        },
+        audio: false
+    };
+}
+
+function getHttpsUrlSuggestion() {
+    if (location.protocol === 'https:') {
+        return null;
+    }
+
+    return 'https://' + location.host + location.pathname + location.search + location.hash;
+}
+
+function getCameraErrorMessage(error) {
+    if (!error) {
+        return 'Kamera tidak bisa dibuka. Pastikan permission diizinkan dan tidak dipakai aplikasi lain.';
+    }
+
+    const errorName = error.name || '';
+    const errorMessage = (error.message || '').toLowerCase();
+
+    if (!isSecureOrLocalhost()) {
+        const httpsUrl = getHttpsUrlSuggestion();
+        return httpsUrl
+            ? 'Browser memblokir kamera karena halaman masih HTTP. Buka aplikasi lewat HTTPS: ' + httpsUrl
+            : 'Browser memblokir kamera karena halaman masih HTTP. Kamera hanya bisa dipakai di HTTPS atau localhost.';
+    }
+
+    if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
+        return 'Izin kamera ditolak. Klik ikon gembok di browser lalu ubah permission kamera menjadi Allow.';
+    }
+
+    if (errorName === 'NotFoundError' || errorName === 'DevicesNotFoundError') {
+        return 'Kamera tidak ditemukan. Pastikan webcam/kamera handphone tersedia dan terhubung.';
+    }
+
+    if (errorName === 'NotReadableError' || errorName === 'TrackStartError') {
+        return 'Kamera sedang dipakai aplikasi lain. Tutup Zoom, Meet, kamera bawaan, atau tab browser lain lalu coba lagi.';
+    }
+
+    if (errorName === 'OverconstrainedError' || errorName === 'ConstraintNotSatisfiedError') {
+        return 'Konfigurasi kamera tidak cocok dengan perangkat ini. Coba lagi, lalu gunakan tombol Ganti Kamera jika tersedia.';
+    }
+
+    if (errorName === 'SecurityError') {
+        return 'Akses kamera diblokir oleh browser karena halaman tidak aman atau permission dibatasi.';
+    }
+
+    if (errorName === 'AbortError') {
+        return 'Proses membuka kamera terhenti. Coba klik Mulai Kamera sekali lagi.';
+    }
+
+    if (errorMessage.includes('permission') || errorMessage.includes('denied')) {
+        return 'Izin kamera ditolak. Pastikan browser sudah diizinkan mengakses kamera.';
+    }
+
+    if (errorMessage.includes('secure context') || errorMessage.includes('https')) {
+        const httpsUrl = getHttpsUrlSuggestion();
+        return httpsUrl
+            ? 'Kamera membutuhkan HTTPS. Buka halaman ini lewat: ' + httpsUrl
+            : 'Kamera membutuhkan HTTPS atau localhost.';
+    }
+
+    return 'Kamera tidak bisa dibuka. ' + (error.message || 'Pastikan permission diizinkan dan kamera tidak dipakai aplikasi lain.');
+}
+
+async function primeCameraPermission() {
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+        throw new Error('Browser ini tidak mendukung akses kamera. Gunakan Chrome, Edge, atau Safari terbaru.');
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia(getPreferredCameraConstraints());
+    stream.getTracks().forEach(function(track) {
+        track.stop();
+    });
+}
+
 function getScanConfig() {
     const size = Math.max(180, Math.min(280, Math.floor(window.innerWidth * 0.45)));
 
@@ -506,20 +589,56 @@ async function startScanner(deviceId) {
     }
 
     if (!isSecureOrLocalhost()) {
-        $('#debugStatus').text('Kamera butuh HTTPS. Jika akses dari HP, gunakan URL HTTPS/domain aman.');
+        const insecureMessage = getCameraErrorMessage({ name: 'SecurityError' });
+        $('#debugStatus').text(insecureMessage);
+        Swal.fire('Error', insecureMessage, 'error');
+        return;
     }
 
     $('#debugStatus').text('Memulai kamera...');
 
     try {
-        let cameraConfig = deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' };
+        await primeCameraPermission();
 
-        await html5QrCode.start(
-            cameraConfig,
-            getScanConfig(),
-            onScanSuccess,
-            onScanFailure
-        );
+        const cameras = await loadAvailableCameras();
+        const preferredCamera = deviceId
+            ? deviceId
+            : ((cameras[currentCameraIndex] && cameras[currentCameraIndex].id) || null);
+
+        const cameraConfigs = [];
+
+        if (preferredCamera) {
+            cameraConfigs.push({ deviceId: { exact: preferredCamera } });
+        }
+
+        cameraConfigs.push({ facingMode: { ideal: 'environment' } });
+        cameraConfigs.push({ facingMode: 'environment' });
+        cameraConfigs.push({ facingMode: 'user' });
+        cameraConfigs.push({});
+
+        let started = false;
+        let lastError = null;
+
+        for (let index = 0; index < cameraConfigs.length; index++) {
+            try {
+                await html5QrCode.start(
+                    cameraConfigs[index],
+                    getScanConfig(),
+                    onScanSuccess,
+                    onScanFailure
+                );
+
+                started = true;
+                break;
+            } catch (attemptError) {
+                lastError = attemptError;
+                console.error('Scanner start attempt failed:', attemptError);
+            }
+        }
+
+        if (!started) {
+            throw lastError || new Error('Gagal memulai kamera');
+        }
 
         isScanning = true;
         toggleScanButtons(true);
@@ -529,30 +648,17 @@ async function startScanner(deviceId) {
     } catch (error) {
         console.error('Start scanner error:', error);
 
-        // Fallback ke deviceId jika facingMode gagal
         try {
-            const cameras = await loadAvailableCameras();
-
-            if (cameras.length > 0) {
-                const fallbackCamera = cameras[currentCameraIndex] || cameras[0];
-                await html5QrCode.start(
-                    { deviceId: { exact: fallbackCamera.id } },
-                    getScanConfig(),
-                    onScanSuccess,
-                    onScanFailure
-                );
-
-                isScanning = true;
-                toggleScanButtons(true);
-                $('#debugStatus').text('Kamera aktif, arahkan ke QR Code.');
-                return;
+            if (html5QrCode && html5QrCode.isScanning) {
+                await html5QrCode.stop();
             }
-        } catch (fallbackError) {
-            console.error('Fallback scanner error:', fallbackError);
+        } catch (stopError) {
+            console.error('Cleanup scanner error:', stopError);
         }
 
-        $('#debugStatus').text('Gagal membuka kamera. Izinkan permission kamera di browser.');
-        Swal.fire('Error', 'Kamera tidak bisa dibuka. Pastikan permission diizinkan dan tidak dipakai aplikasi lain.', 'error');
+        const errorMessage = getCameraErrorMessage(error);
+        $('#debugStatus').text(errorMessage);
+        Swal.fire('Error', errorMessage, 'error');
     }
 }
 
@@ -896,6 +1002,47 @@ function displayTransaksiModal(transaksi) {
         'Sudah Diambil': 'label-primary'
     };
     
+    const resep = transaksi.resep_terakhir || null;
+    const resepHtml = resep ? `
+        <div class="row" style="margin-top: 15px;">
+            <div class="col-md-12">
+                <h5><i class="fa fa-eye"></i> Ukuran Resep Terakhir${resep.tanggal ? ' (' + resep.tanggal + ')' : ''}</h5>
+                <table class="table table-bordered text-center">
+                    <thead>
+                        <tr>
+                            <th class="text-center">Mata</th>
+                            <th class="text-center">SPH</th>
+                            <th class="text-center">CYL</th>
+                            <th class="text-center">AXIS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>OD</strong></td>
+                            <td>${resep.od_sph || '-'}</td>
+                            <td>${resep.od_cyl || '-'}</td>
+                            <td>${resep.od_axis || '-'}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>OS</strong></td>
+                            <td>${resep.os_sph || '-'}</td>
+                            <td>${resep.os_cyl || '-'}</td>
+                            <td>${resep.os_axis || '-'}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="row">
+                    <div class="col-sm-6"><p><strong>ADD:</strong> ${resep.add || '-'}</p></div>
+                    <div class="col-sm-6"><p><strong>PD:</strong> ${resep.pd || '-'}</p></div>
+                </div>
+            </div>
+        </div>
+    ` : `
+        <div class="alert alert-warning" style="margin-top: 15px; margin-bottom: 0;">
+            <i class="fa fa-info-circle"></i> Ukuran resep pasien belum tersedia.
+        </div>
+    `;
+
     const html = `
         <div class="row">
             <div class="col-md-6">
@@ -915,6 +1062,14 @@ function displayTransaksiModal(transaksi) {
                     <tr>
                         <th>Pasien</th>
                         <td>${transaksi.nama_pasien || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <th>Jenis Layanan</th>
+                        <td>${transaksi.service_type || '-'}</td>
+                    </tr>
+                    <tr>
+                        <th>No. BPJS</th>
+                        <td>${transaksi.no_bpjs || '-'}</td>
                     </tr>
                 </table>
             </div>
@@ -947,6 +1102,7 @@ function displayTransaksiModal(transaksi) {
                 </table>
             </div>
         </div>
+        ${resepHtml}
         
         <div class="alert alert-info">
             <i class="fa fa-info-circle"></i> 

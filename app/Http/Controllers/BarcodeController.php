@@ -51,7 +51,7 @@ class BarcodeController extends Controller
         $barcode = $request->barcode;
         
         // Cari transaksi berdasarkan barcode atau kode_penjualan
-        $transaksi = Penjualan::with('user', 'branch', 'pasien', 'dokter', 'details.itemable')
+        $transaksi = Penjualan::with('user', 'branch', 'pasien.prescriptions', 'dokter', 'details.itemable')
             ->where(function($query) use ($barcode) {
                 $query->where('barcode', $barcode)
                       ->orWhere('kode_penjualan', 'LIKE', '%' . $barcode . '%');
@@ -65,15 +65,32 @@ class BarcodeController extends Controller
             ], 404);
         }
 
+        $latestPrescription = optional($transaksi->pasien)->prescriptions
+            ? $transaksi->pasien->prescriptions->sortBy('tanggal')->last()
+            : null;
+
         return response()->json([
             'success' => true,
             'transaction' => [
                 'id' => $transaksi->id,
                 'kode_penjualan' => $transaksi->kode_penjualan,
                 'tanggal' => tanggal_indonesia($transaksi->created_at, false),
-                'nama_pasien' => $transaksi->nama_pasien,
+                'nama_pasien' => $transaksi->pasien->nama_pasien ?? $transaksi->nama_pasien,
+                'service_type' => $transaksi->pasien->service_type ?? $transaksi->pasien_service_type ?? '-',
+                'no_bpjs' => $transaksi->pasien->no_bpjs ?? '-',
                 'status_pengerjaan' => $transaksi->status_pengerjaan,
-                'barcode' => $transaksi->barcode
+                'barcode' => $transaksi->barcode,
+                'resep_terakhir' => $latestPrescription ? [
+                    'tanggal' => tanggal_indonesia($latestPrescription->tanggal, false),
+                    'od_sph' => $latestPrescription->od_sph,
+                    'od_cyl' => $latestPrescription->od_cyl,
+                    'od_axis' => $latestPrescription->od_axis,
+                    'os_sph' => $latestPrescription->os_sph,
+                    'os_cyl' => $latestPrescription->os_cyl,
+                    'os_axis' => $latestPrescription->os_axis,
+                    'add' => $latestPrescription->add,
+                    'pd' => $latestPrescription->pd,
+                ] : null,
             ],
             'message' => 'Transaksi ditemukan'
         ]);

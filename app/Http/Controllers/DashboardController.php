@@ -14,6 +14,18 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
         $today = now()->toDateString();
+        $selectedOmsetDate = $request->get('omset_date', $today);
+
+        try {
+            $selectedOmsetDate = Carbon::parse($selectedOmsetDate)->toDateString();
+        } catch (\Exception $e) {
+            $selectedOmsetDate = $today;
+        }
+
+        $isOmsetToday = $selectedOmsetDate === $today;
+        $omsetPeriodeLabel = $isOmsetToday
+            ? 'Hari Ini'
+            : 'Tanggal ' . Carbon::parse($selectedOmsetDate)->format('d/m/Y');
 
         if ($user->isSuperAdmin()) {
             $branches = Branch::all();
@@ -88,11 +100,27 @@ class DashboardController extends Controller
                 ];
             })->values();
         } else {
+            $omsetStartKasir = Carbon::parse($selectedOmsetDate)->startOfDay();
+            $omsetEndKasir = Carbon::parse($selectedOmsetDate)->endOfDay();
+
+            if ($isOmsetToday) {
+                $openDayKasir = OpenDay::where('branch_id', $selectedBranchId)
+                    ->where('tanggal', $today)
+                    ->first();
+
+                if ($openDayKasir) {
+                    $omsetStartKasir = $openDayKasir->created_at;
+                    $omsetEndKasir = !$openDayKasir->is_open
+                        ? $openDayKasir->updated_at
+                        : now();
+                }
+            }
+
             // Ambil semua transaksi kasir dengan relasi pasien
             $kasirTransactions = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
-                ->when($omsetStart, fn($q) => $q->where('created_at', '>=', $omsetStart))
-                ->when($omsetEnd, fn($q) => $q->where('created_at', '<=', $omsetEnd))
+                ->where('created_at', '>=', $omsetStartKasir)
+                ->where('created_at', '<=', $omsetEndKasir)
                 ->with('pasien')
                 ->get();
                 
@@ -159,8 +187,8 @@ class DashboardController extends Controller
             
             $transaksiKasir = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
-                ->when($omsetStart, fn($q) => $q->where('created_at', '>=', $omsetStart))
-                ->when($omsetEnd, fn($q) => $q->where('created_at', '<=', $omsetEnd))
+                ->where('created_at', '>=', $omsetStartKasir)
+                ->where('created_at', '<=', $omsetEndKasir)
                 ->with('pasien')
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -188,8 +216,8 @@ class DashboardController extends Controller
             $jumlahTransaksiAktif = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
                 ->where('status_pengerjaan', '!=', 'Sudah Diambil')
-                ->when($omsetStart, fn($q) => $q->where('created_at', '>=', $omsetStart))
-                ->when($omsetEnd, fn($q) => $q->where('created_at', '<=', $omsetEnd))
+                ->where('created_at', '>=', $omsetStartKasir)
+                ->where('created_at', '<=', $omsetEndKasir)
                 ->count();
         }
 
@@ -286,7 +314,8 @@ class DashboardController extends Controller
             'detailFrame', 'detailLensa', 'detailAksesoris', 'detailPasien', 'detailTransaksiAktif',
             'rekapOmset', 'omsetKasir', 'omsetBpjs', 'omsetUmum', 'transaksiKasir', 'chartData',
             'lowStockLensa', 'lowStockFrame', 'lowStockAksesoris', 'batasStok',
-            'transaksiMenungguPengerjaan', 'transaksiSelesaiBulanIni'
+            'transaksiMenungguPengerjaan', 'transaksiSelesaiBulanIni',
+            'selectedOmsetDate', 'isOmsetToday', 'omsetPeriodeLabel'
         ));
     }
 

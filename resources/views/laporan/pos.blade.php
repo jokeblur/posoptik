@@ -149,6 +149,35 @@
                         </div>
                     </div>
                     <div class="col-md-4">
+                        <div class="small-box bg-aqua">
+                            <div class="inner">
+                                <h3>Rp {{ number_format($omsetHarianBpjs ?? 0,0,',','.') }}</h3>
+                                <p>Omset Hari Ini BPJS (Harga Default)</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-hospital-o"></i>
+                            </div>
+                            <span class="small-box-footer">
+                                BPJS I/II/III dihitung dari plafon kelas
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small-box bg-teal">
+                            <div class="inner">
+                                <h3>Rp {{ number_format($omsetHarianUmum ?? 0,0,',','.') }}</h3>
+                                <p>Omset Hari Ini Umum</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-user-md"></i>
+                            </div>
+                            <span class="small-box-footer">
+                                Omset non-BPJS dari total transaksi
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
                         <div class="small-box bg-success">
                             <div class="inner">
                                 <h3>Rp {{ number_format($omsetBulanan,0,',','.') }}</h3>
@@ -163,6 +192,35 @@
                         </div>
                     </div>
                     <div class="col-md-4">
+                        <div class="small-box bg-navy">
+                            <div class="inner">
+                                <h3>Rp {{ number_format($omsetBulananBpjs ?? 0,0,',','.') }}</h3>
+                                <p>Omset Bulanan BPJS (Filter Bulan)</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-medkit"></i>
+                            </div>
+                            <span class="small-box-footer">
+                                Mengikuti bulan {{ $bulan }}/{{ $tahun }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small-box bg-olive">
+                            <div class="inner">
+                                <h3>Rp {{ number_format($omsetBulananUmum ?? 0,0,',','.') }}</h3>
+                                <p>Omset Bulanan Umum (Filter Bulan)</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-users"></i>
+                            </div>
+                            <span class="small-box-footer">
+                                Mengikuti bulan {{ $bulan }}/{{ $tahun }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-12">
                         <div class="small-box bg-danger">
                             <div class="inner">
                                 <h3>Rp {{ number_format($totalPiutang,0,',','.') }}</h3>
@@ -360,6 +418,7 @@
                             @if($isSuperAdmin && !$selectedBranchId)
                             <th>Cabang</th>
                             @endif
+                            <th>Status Layanan</th>
                             <th>Harga Default Layanan BPJS</th>
                             <th>Bayar</th>
                             <th>Status</th>
@@ -375,6 +434,16 @@
                             <td><span class="label label-info">{{ $trx->branch->name ?? '-' }}</span></td>
                             @endif
                             <td>
+                                @php
+                                    $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+                                @endphp
+                                @if(in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III']))
+                                    <span class="label label-primary">BPJS</span>
+                                @else
+                                    <span class="label label-default">UMUM</span>
+                                @endif
+                            </td>
+                            <td>
                                 @if($trx->pasien && in_array($trx->pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III']))
                                     Rp {{ number_format($trx->bpjs_default_price ?? 0,0,',','.') }}
                                 @else
@@ -385,7 +454,7 @@
                             <td>{{ $trx->status }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '7' : '6' }}" class="text-center">Tidak ada data</td></tr>
+                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '8' : '7' }}" class="text-center">Tidak ada data</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -411,6 +480,7 @@
                             @if($isSuperAdmin && !$selectedBranchId)
                             <th>Cabang</th>
                             @endif
+                            <th>Status Layanan</th>
                             <th>Harga Default Layanan BPJS</th>
                             <th>Bayar</th>
                             <th>Status</th>
@@ -426,6 +496,16 @@
                             <td><span class="label label-info">{{ $trx->branch->name ?? '-' }}</span></td>
                             @endif
                             <td>
+                                @php
+                                    $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+                                @endphp
+                                @if(in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III']))
+                                    <span class="label label-primary">BPJS</span>
+                                @else
+                                    <span class="label label-default">UMUM</span>
+                                @endif
+                            </td>
+                            <td>
                                 @if($trx->pasien && in_array($trx->pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III']))
                                     Rp {{ number_format($trx->bpjs_default_price ?? 0,0,',','.') }}
                                 @else
@@ -436,7 +516,7 @@
                             <td>{{ $trx->status }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '7' : '6' }}" class="text-center">Tidak ada data</td></tr>
+                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '8' : '7' }}" class="text-center">Tidak ada data</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -447,40 +527,56 @@
 @push('scripts')
 <script>
 $(function() {
-    // DataTables untuk tabel yang ada di modal
-    $('.datatable').DataTable({
-        responsive: true,
-        pageLength: 10,
-        order: []
+    const dtLanguage = {
+        url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json'
+    };
+
+    const hasBranchColumn = @json($isSuperAdmin && !$selectedBranchId);
+
+    function initDataTable(selector, options = {}) {
+        if (!$(selector).length || $.fn.dataTable.isDataTable(selector)) {
+            return;
+        }
+
+        $(selector).DataTable($.extend(true, {
+            responsive: true,
+            pageLength: 10,
+            order: [],
+            language: dtLanguage
+        }, options));
+    }
+
+    // Detail transaksi omset harian (modal)
+    initDataTable('#table-harian', {
+        order: [[1, 'desc']]
     });
-    
-    // DataTables untuk tabel Rekap DP
-    $('#table-rekap-dp').DataTable({
-        responsive: true,
-        pageLength: 10,
-        order: [[1, 'desc']], // Sort by tanggal descending
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json'
-        },
+
+    // Modal detail lainnya
+    initDataTable('#table-bulanan', {
+        order: [[1, 'desc']]
+    });
+
+    initDataTable('#table-piutang', {
+        order: [[1, 'desc']]
+    });
+
+    // Rekap DP (Belum Lunas)
+    initDataTable('#table-rekap-dp', {
+        order: [[1, 'desc']],
         columnDefs: [
             {
-                targets: [4, 5, 6], // Kolom Total, Bayar, Kekurangan
+                targets: hasBranchColumn ? [4, 5, 6] : [3, 4, 5],
                 className: 'text-right'
             }
         ]
     });
-    
-    // DataTables untuk tabel Rekap Lunas
-    $('#table-rekap-lunas').DataTable({
-        responsive: true,
-        pageLength: 10,
-        order: [[1, 'desc']], // Sort by tanggal descending
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json'
-        },
+
+    // Rekap Lunas
+    initDataTable('#table-rekap-lunas', {
+        order: [[1, 'desc']],
         columnDefs: [
             {
-                targets: [4, 5], // Kolom Total, Bayar
+                targets: hasBranchColumn ? [4, 5] : [3, 4],
                 className: 'text-right'
             }
         ]

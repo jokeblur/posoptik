@@ -114,6 +114,7 @@ class BpjsPricingService
     {
         $totalPrice = 0;
         $totalAdditionalCost = 0;
+        $totalHargaJualProduk = 0;
         $itemDetails = [];
         $additionalCosts = [];
         $transactionStatus = 'Normal';
@@ -122,6 +123,7 @@ class BpjsPricingService
             if ($item['type'] === 'frame') {
                 $frame = Frame::find($item['id']);
                 if ($frame) {
+                    $totalHargaJualProduk += ($frame->harga_jual_frame ?? 0) * $item['quantity'];
                     $pricing = $this->calculateFramePrice($pasien, $frame);
                     $itemPrice = $pricing['price'] * $item['quantity'];
                     $totalPrice += $itemPrice;
@@ -160,7 +162,9 @@ class BpjsPricingService
                 }
 
                 if ($itemModel) {
-                    $itemPrice = ($itemModel->harga_jual_lensa ?? $itemModel->harga_jual ?? 0) * $item['quantity'];
+                    $normalPrice = $itemModel->harga_jual_lensa ?? $itemModel->harga_jual ?? 0;
+                    $totalHargaJualProduk += $normalPrice * $item['quantity'];
+                    $itemPrice = $normalPrice * $item['quantity'];
                     $totalPrice += $itemPrice;
                     
                     $itemDetails[] = [
@@ -175,6 +179,11 @@ class BpjsPricingService
                 }
             }
         }
+
+        // Rumus global biaya tambahan BPJS: total harga jual produk - plafon BPJS sesuai kelas
+        $bpjsDefaultPrice = $this->getDefaultPrice($pasien->service_type);
+        $totalAdditionalCost = max(0, $totalHargaJualProduk - $bpjsDefaultPrice);
+        $transactionStatus = $totalAdditionalCost > 0 ? 'Naik Kelas' : 'Normal';
 
         return [
             'total_price' => $totalPrice,

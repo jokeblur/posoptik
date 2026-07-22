@@ -67,7 +67,7 @@
                                     <h4 style="margin-top:0;"><i class="fa fa-user"></i> <span id="detail-nama">{{ $penjualan->pasien->nama_pasien ?? '' }}</span></h4>
                                     <p style="margin-bottom:4px;"><strong>Alamat:</strong> <span id="detail-alamat">{{ $penjualan->pasien->alamat ?? '' }}</span></p>
                                     <p style="margin-bottom:4px;"><strong>No. HP:</strong> <span id="detail-nohp">{{ $penjualan->pasien->no_hp ?? '' }}</span></p>
-                                    <p style="margin-bottom:4px;"><strong>Jenis Layanan:</strong> <span class="label label-info" id="detail-jenis_layanan">{{ $penjualan->pasien->jenis_layanan ?? '' }}</span></p>
+                                    <p style="margin-bottom:4px;"><strong>Jenis Layanan:</strong> <span class="label label-info" id="detail-jenis_layanan">{{ $penjualan->pasien->service_type ?? '' }}</span></p>
                                     <p style="margin-bottom:4px;"><strong>No. BPJS:</strong> <span id="detail-no-bpjs">{{ $penjualan->pasien->no_bpjs ?? '' }}</span></p>
                                     <p style="margin-bottom:4px;"><strong>Dokter:</strong> <span id="detail-dokter">{{ $penjualan->dokter->nama_dokter ?? $penjualan->dokter_manual ?? '' }}</span></p>
                                 </div>
@@ -225,6 +225,54 @@
         </div>
     </div>
 
+    {{-- BPJS Evidence Section --}}
+    <div class="row" id="bpjs-edit-section" style="display: none;">
+        <div class="col-md-12">
+            <div class="box box-info">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Dokumen BPJS</h3>
+                </div>
+                <div class="box-body">
+                    <div class="form-group col-md-6">
+                        <label for="photo_bpjs">Foto Bukti BPJS</label>
+                        <input type="file" name="photo_bpjs" id="photo_bpjs" class="form-control" accept="image/*">
+                        <small class="text-muted">Kosongkan jika tidak ingin mengganti foto bukti BPJS.</small>
+                        @if($penjualan->photo_bpjs)
+                            <div style="margin-top: 10px;">
+                                <a href="{{ route('penjualan.bpjs-photo', $penjualan->id) }}" target="_blank" class="btn btn-xs btn-info">
+                                    <i class="fa fa-image"></i> Lihat Foto Saat Ini
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="form-group col-md-6">
+                        <label>Tanda Tangan BPJS</label>
+                        <div style="margin-bottom: 8px;">
+                            <canvas id="signature-canvas" width="420" height="180" style="border: 1px solid #ddd; border-radius: 6px; background: #fff; width: 100%; max-width: 420px; cursor: crosshair;"></canvas>
+                            <input type="hidden" name="signature_bpjs" id="signature_bpjs" value="{{ $penjualan->signature_bpjs ?? '' }}">
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-xs btn-warning" id="btn-clear-signature">
+                                <i class="fa fa-eraser"></i> Hapus Tanda Tangan
+                            </button>
+                            <button type="button" class="btn btn-xs btn-primary" id="btn-save-signature">
+                                <i class="fa fa-save"></i> Simpan Tanda Tangan ke Form
+                            </button>
+                        </div>
+                        <small class="text-muted" style="display:block; margin-top: 6px;">Klik "Simpan Tanda Tangan ke Form" setelah tanda tangan digambar.</small>
+                        @if($penjualan->signature_bpjs)
+                            <div style="margin-top: 10px;">
+                                <img src="{{ $penjualan->signature_bpjs }}" alt="Tanda Tangan Saat Ini" style="max-width: 240px; border: 1px solid #ddd; border-radius: 5px;">
+                                <div><small class="text-muted">Tanda tangan saat ini</small></div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Action Buttons --}}
     <div class="row">
         <div class="col-md-12">
@@ -272,6 +320,81 @@ function initializeForm() {
     if ($('#pasien_id').val()) {
         $('#pasien-details-container').show();
     }
+
+    toggleBpjsEditSection();
+    initSignatureCanvas();
+}
+
+function toggleBpjsEditSection() {
+    const serviceTypeText = ($('#detail-jenis_layanan').text() || '').toLowerCase();
+    const isBpjs = serviceTypeText.includes('bpjs');
+    $('#bpjs-edit-section').toggle(isBpjs);
+}
+
+function initSignatureCanvas() {
+    const canvas = document.getElementById('signature-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    }
+
+    function start(e) {
+        drawing = true;
+        const pos = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        e.preventDefault();
+    }
+
+    function move(e) {
+        if (!drawing) return;
+        const pos = getPos(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        e.preventDefault();
+    }
+
+    function stop() {
+        drawing = false;
+    }
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', stop);
+    canvas.addEventListener('mouseleave', stop);
+
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', stop);
+
+    $('#btn-clear-signature').on('click', function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        $('#signature_bpjs').val('');
+    });
+
+    $('#btn-save-signature').on('click', function() {
+        const dataUrl = canvas.toDataURL('image/png');
+        if (!dataUrl || dataUrl.length < 100) {
+            alert('Silakan gambar tanda tangan terlebih dahulu.');
+            return;
+        }
+        $('#signature_bpjs').val(dataUrl);
+        alert('Tanda tangan berhasil disimpan ke form.');
+    });
 }
 
 function calculatePayment() {

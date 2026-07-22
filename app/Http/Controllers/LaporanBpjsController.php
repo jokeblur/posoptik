@@ -2,14 +2,54 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\LaporanBpjsFormattedExport;
 use App\Models\Penjualan;
 use App\Models\Branch;
+use App\Services\BpjsPricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Excel as ExcelFormat;
+use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 
 class LaporanBpjsController extends Controller
 {
+    private function bpjsServiceTypes(): array
+    {
+        return ['BPJS I', 'BPJS II', 'BPJS III'];
+    }
+
+    private function applyBpjsOnlyFilter($query)
+    {
+        $bpjsTypes = $this->bpjsServiceTypes();
+
+        return $query->where(function ($q) use ($bpjsTypes) {
+            $q->whereIn('pasien_service_type', $bpjsTypes)
+              ->orWhereHas('pasien', function ($pasienQuery) use ($bpjsTypes) {
+                  $pasienQuery->whereIn('service_type', $bpjsTypes);
+              });
+        });
+    }
+
+    private function resolveBpjsDefaultAmount(Penjualan $transaction): float
+    {
+        if ((float) $transaction->bpjs_default_price > 0) {
+            return (float) $transaction->bpjs_default_price;
+        }
+
+        $serviceType = $transaction->pasien_service_type ?? ($transaction->pasien->service_type ?? null);
+        switch ($serviceType) {
+            case 'BPJS I':
+                return BpjsPricingService::BPJS_I_PRICE;
+            case 'BPJS II':
+                return BpjsPricingService::BPJS_II_PRICE;
+            case 'BPJS III':
+                return BpjsPricingService::BPJS_III_PRICE;
+            default:
+                return 0;
+        }
+    }
+
     public function index()
     {
         $user = auth()->user();
@@ -37,6 +77,9 @@ class LaporanBpjsController extends Controller
             $query->where('branch_id', $branchId);
         }
 
+        // Halaman laporan BPJS hanya menampilkan transaksi layanan BPJS
+        $this->applyBpjsOnlyFilter($query);
+
         // Filter berdasarkan tanggal
         if ($request->filled('start_date')) {
             $query->whereDate('tanggal', '>=', $request->start_date);
@@ -49,18 +92,13 @@ class LaporanBpjsController extends Controller
         if ($request->filled('transaction_type')) {
             switch ($request->transaction_type) {
                 case 'bpjs_normal':
-                    $query->whereNotNull('pasien_service_type')
-                          ->where('transaction_status', 'Normal');
+                    $query->where('transaction_status', 'Normal');
                     break;
                 case 'bpjs_naik_kelas':
-                    $query->whereNotNull('pasien_service_type')
-                          ->where('transaction_status', 'Naik Kelas');
-                    break;
-                case 'umum':
-                    $query->whereNull('pasien_service_type');
+                    $query->where('transaction_status', 'Naik Kelas');
                     break;
                 case 'all_bpjs':
-                    $query->whereNotNull('pasien_service_type');
+                    // no-op, karena query dasar sudah difilter BPJS
                     break;
             }
         }
@@ -81,10 +119,11 @@ class LaporanBpjsController extends Controller
                 return $transaction->pasien->nama_pasien ?? 'N/A';
             })
             ->addColumn('jenis_layanan', function ($transaction) {
-                if ($transaction->pasien_service_type) {
-                    return '<span class="label label-info">'. $transaction->pasien_service_type .'</span>';
+                $serviceType = $transaction->pasien_service_type ?? ($transaction->pasien->service_type ?? null);
+                if ($serviceType) {
+                    return '<span class="label label-info">'. $serviceType .'</span>';
                 }
-                return '<span class="label label-default">Umum</span>';
+                return '<span class="label label-default">-</span>';
             })
             ->addColumn('status_transaksi', function ($transaction) {
                 if ($transaction->transaction_status == 'Naik Kelas') {
@@ -96,11 +135,12 @@ class LaporanBpjsController extends Controller
                 }
             })
             ->addColumn('total_harga', function ($transaction) {
-                return 'Rp. '. format_uang($transaction->total);
+                return 'Rp. '. format_uang($this->resolveBpjsDefaultAmount($transaction));
             })
             ->addColumn('harga_default_bpjs', function ($transaction) {
-                if ($transaction->bpjs_default_price > 0) {
-                    return 'Rp. '. format_uang($transaction->bpjs_default_price);
+                $defaultAmount = $this->resolveBpjsDefaultAmount($transaction);
+                if ($defaultAmount > 0) {
+                    return 'Rp. '. format_uang($defaultAmount);
                 }
                 return '-';
             })
@@ -147,6 +187,9 @@ class LaporanBpjsController extends Controller
             $query->where('branch_id', $branchId);
         }
 
+        // Halaman laporan BPJS hanya menampilkan transaksi layanan BPJS
+        $this->applyBpjsOnlyFilter($query);
+
         // Filter berdasarkan tanggal
         if ($request->filled('start_date')) {
             $query->whereDate('tanggal', '>=', $request->start_date);
@@ -159,41 +202,50 @@ class LaporanBpjsController extends Controller
         if ($request->filled('transaction_type')) {
             switch ($request->transaction_type) {
                 case 'bpjs_normal':
-                    $query->whereNotNull('pasien_service_type')
-                          ->where('transaction_status', 'Normal');
+                    $query->where('transaction_status', 'Normal');
                     break;
                 case 'bpjs_naik_kelas':
-                    $query->whereNotNull('pasien_service_type')
-                          ->where('transaction_status', 'Naik Kelas');
-                    break;
-                case 'umum':
-                    $query->whereNull('pasien_service_type');
+                    $query->where('transaction_status', 'Naik Kelas');
                     break;
                 case 'all_bpjs':
-                    $query->whereNotNull('pasien_service_type');
+                    // no-op, karena query dasar sudah difilter BPJS
                     break;
             }
         }
 
+        $allBpjsTransactions = (clone $query)->with('pasien:id_pasien,service_type')->get();
+        $bpjsNormalTransactions = (clone $query)->where('transaction_status', 'Normal')->with('pasien:id_pasien,service_type')->get();
+        $bpjsNaikKelasTransactions = (clone $query)->where('transaction_status', 'Naik Kelas')->with('pasien:id_pasien,service_type')->get();
+
         // Summary berdasarkan jenis transaksi
         $summary = [
             'total_transaksi' => $query->count(),
-            'total_pendapatan' => $query->sum('total'),
+            'total_pendapatan' => $allBpjsTransactions->sum(function ($trx) {
+                return $this->resolveBpjsDefaultAmount($trx);
+            }),
             
             // BPJS Normal
-            'bpjs_normal_count' => $query->clone()->whereNotNull('pasien_service_type')->where('transaction_status', 'Normal')->count(),
-            'bpjs_normal_total' => $query->clone()->whereNotNull('pasien_service_type')->where('transaction_status', 'Normal')->sum('total'),
-            'bpjs_normal_default_total' => $query->clone()->whereNotNull('pasien_service_type')->where('transaction_status', 'Normal')->sum('bpjs_default_price'),
+            'bpjs_normal_count' => $query->clone()->where('transaction_status', 'Normal')->count(),
+            'bpjs_normal_total' => $bpjsNormalTransactions->sum(function ($trx) {
+                return $this->resolveBpjsDefaultAmount($trx);
+            }),
+            'bpjs_normal_default_total' => $bpjsNormalTransactions->sum(function ($trx) {
+                return $this->resolveBpjsDefaultAmount($trx);
+            }),
             
             // BPJS Naik Kelas
-            'bpjs_naik_kelas_count' => $query->clone()->whereNotNull('pasien_service_type')->where('transaction_status', 'Naik Kelas')->count(),
-            'bpjs_naik_kelas_total' => $query->clone()->whereNotNull('pasien_service_type')->where('transaction_status', 'Naik Kelas')->sum('total'),
-            'bpjs_naik_kelas_default_total' => $query->clone()->whereNotNull('pasien_service_type')->where('transaction_status', 'Naik Kelas')->sum('bpjs_default_price'),
-            'bpjs_naik_kelas_additional_total' => $query->clone()->whereNotNull('pasien_service_type')->where('transaction_status', 'Naik Kelas')->sum('total_additional_cost'),
+            'bpjs_naik_kelas_count' => $query->clone()->where('transaction_status', 'Naik Kelas')->count(),
+            'bpjs_naik_kelas_total' => $bpjsNaikKelasTransactions->sum(function ($trx) {
+                return $this->resolveBpjsDefaultAmount($trx);
+            }),
+            'bpjs_naik_kelas_default_total' => $bpjsNaikKelasTransactions->sum(function ($trx) {
+                return $this->resolveBpjsDefaultAmount($trx);
+            }),
+            'bpjs_naik_kelas_additional_total' => $query->clone()->where('transaction_status', 'Naik Kelas')->sum('total_additional_cost'),
             
             // Transaksi Umum
-            'umum_count' => $query->clone()->whereNull('pasien_service_type')->count(),
-            'umum_total' => $query->clone()->whereNull('pasien_service_type')->sum('total'),
+            'umum_count' => 0,
+            'umum_total' => 0,
         ];
 
         return response()->json($summary);
@@ -202,7 +254,7 @@ class LaporanBpjsController extends Controller
     public function export(Request $request)
     {
         $user = auth()->user();
-        $query = Penjualan::with('user', 'branch', 'pasien')->latest();
+        $query = Penjualan::with(['user', 'branch', 'pasien.prescriptions.dokter', 'dokter', 'details.itemable'])->latest();
 
         $branchId = $request->input('branch_id');
         if ($user->isSuperAdmin()) {
@@ -215,6 +267,9 @@ class LaporanBpjsController extends Controller
             $query->where('branch_id', $branchId);
         }
 
+        // Halaman laporan BPJS hanya menampilkan transaksi layanan BPJS
+        $this->applyBpjsOnlyFilter($query);
+
         // Filter berdasarkan tanggal
         if ($request->filled('start_date')) {
             $query->whereDate('tanggal', '>=', $request->start_date);
@@ -227,68 +282,37 @@ class LaporanBpjsController extends Controller
         if ($request->filled('transaction_type')) {
             switch ($request->transaction_type) {
                 case 'bpjs_normal':
-                    $query->whereNotNull('pasien_service_type')
-                          ->where('transaction_status', 'Normal');
+                    $query->where('transaction_status', 'Normal');
                     break;
                 case 'bpjs_naik_kelas':
-                    $query->whereNotNull('pasien_service_type')
-                          ->where('transaction_status', 'Naik Kelas');
-                    break;
-                case 'umum':
-                    $query->whereNull('pasien_service_type');
+                    $query->where('transaction_status', 'Naik Kelas');
                     break;
                 case 'all_bpjs':
-                    $query->whereNotNull('pasien_service_type');
+                    // no-op, karena query dasar sudah difilter BPJS
                     break;
             }
         }
 
         $transactions = $query->get();
 
-        // Export ke Excel atau CSV
-        $filename = 'laporan_bpjs_' . date('Y-m-d_H-i-s') . '.csv';
-        
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ];
+        $periodLabel = 'BULAN PELAYANAN ' . strtoupper(Carbon::now()->translatedFormat('F Y'));
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $startDate = Carbon::parse($request->start_date);
+            $endDate = Carbon::parse($request->end_date);
 
-        $callback = function() use ($transactions) {
-            $file = fopen('php://output', 'w');
-            
-            // Header CSV
-            fputcsv($file, [
-                'Tanggal',
-                'Kode Penjualan',
-                'Nama Pasien',
-                'Jenis Layanan',
-                'Status Transaksi',
-                'Total Harga',
-                'Harga Default BPJS',
-                'Biaya Tambahan',
-                'Kasir',
-                'Cabang'
-            ]);
-
-            // Data
-            foreach ($transactions as $transaction) {
-                fputcsv($file, [
-                    tanggal_indonesia($transaction->tanggal, false),
-                    $transaction->kode_penjualan,
-                    $transaction->pasien->nama_pasien ?? 'N/A',
-                    $transaction->pasien_service_type ?? 'Umum',
-                    $transaction->transaction_status ?? 'Normal',
-                    $transaction->total,
-                    $transaction->bpjs_default_price,
-                    $transaction->total_additional_cost,
-                    $transaction->user->name ?? 'N/A',
-                    $transaction->branch->name ?? 'N/A'
-                ]);
+            if ($startDate->format('mY') === $endDate->format('mY')) {
+                $periodLabel = 'BULAN PELAYANAN ' . strtoupper($startDate->translatedFormat('F Y'));
+            } else {
+                $periodLabel = 'PERIODE ' . $startDate->format('d/m/Y') . ' - ' . $endDate->format('d/m/Y');
             }
+        } elseif ($request->filled('start_date')) {
+            $startDate = Carbon::parse($request->start_date);
+            $periodLabel = 'BULAN PELAYANAN ' . strtoupper($startDate->translatedFormat('F Y'));
+        }
 
-            fclose($file);
-        };
+        $filename = 'laporan_bpjs_format_' . date('Y-m-d_H-i-s') . '.xlsx';
+        $export = new LaporanBpjsFormattedExport($transactions, $periodLabel);
 
-        return response()->stream($callback, 200, $headers);
+        return Excel::download($export, $filename, ExcelFormat::XLSX);
     }
 }

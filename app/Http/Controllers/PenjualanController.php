@@ -10,6 +10,7 @@ use App\Services\BpjsPricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use App\Models\OpenDay;
 use Carbon\Carbon;
 
@@ -503,11 +504,15 @@ class PenjualanController extends Controller
                 $itemModel = null;
                 $price = $itemData['price']; // Default price dari frontend
                 $additionalCost = 0;
+                $normalUnitPrice = $itemData['price'] ?? 0;
                 
                 if ($itemData['type'] === 'frame') {
                     $itemModel = \App\Models\Frame::find($itemData['id']);
+                    if ($itemModel) {
+                        $normalUnitPrice = $itemModel->harga_jual_frame ?? $normalUnitPrice;
+                    }
                     // Jika ada pasien dengan service_type BPJS, gunakan pricing service
-                    if ($pasien && in_array($pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+                    if ($itemModel && $pasien && in_array($pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
                         $pricing = $this->bpjsPricingService->calculateFramePrice($pasien, $itemModel);
                         $price = $pricing['price'];
                         $additionalCost = $pricing['additional_cost'];
@@ -522,8 +527,12 @@ class PenjualanController extends Controller
                     }
                 } elseif ($itemData['type'] === 'lensa') {
                     $itemModel = \App\Models\Lensa::find($itemData['id']);
+                    if ($itemModel) {
+                        $normalUnitPrice = $itemModel->harga_jual_lensa ?? $normalUnitPrice;
+                    }
                 } elseif ($itemData['type'] === 'lensa_gosok') {
                     $kodeLensaGosok = 'GSK-' . now()->format('YmdHis') . '-' . strtoupper(substr(md5(uniqid((string) mt_rand(), true)), 0, 4));
+                    $normalUnitPrice = $itemData['price'] ?? 0;
 
                     $itemModel = \App\Models\Lensa::create([
                         'kode_lensa' => $kodeLensaGosok,
@@ -543,7 +552,12 @@ class PenjualanController extends Controller
                     ]);
                 } elseif ($itemData['type'] === 'aksesoris') {
                     $itemModel = \App\Models\Aksesoris::find($itemData['id']);
+                    if ($itemModel) {
+                        $normalUnitPrice = $itemModel->harga_jual ?? $normalUnitPrice;
+                    }
                 }
+
+                $totalHargaJualProduk = ($totalHargaJualProduk ?? 0) + ($normalUnitPrice * ($itemData['quantity'] ?? 0));
 
                 if ($itemModel) {
                     $penjualan->details()->create([
@@ -560,6 +574,23 @@ class PenjualanController extends Controller
                         $itemModel->decrement('stok', $itemData['quantity']);
                     }
                 }
+            }
+
+            // Rumus biaya tambahan BPJS:
+            // total biaya tambahan = total harga jual produk - plafon BPJS sesuai kelas (minimum 0)
+            if ($pasien && in_array($pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+                $totalHargaJualProduk = $totalHargaJualProduk ?? 0;
+                $totalAdditionalCost = max(0, $totalHargaJualProduk - $bpjsDefaultPrice);
+                $transactionStatus = $totalAdditionalCost > 0 ? 'Naik Kelas' : 'Normal';
+
+                \Log::info('BPJS Additional Cost Recalculated (Store):', [
+                    'penjualan_id' => $penjualan->id,
+                    'service_type' => $pasien->service_type,
+                    'bpjs_default_price' => $bpjsDefaultPrice,
+                    'total_harga_jual_produk' => $totalHargaJualProduk,
+                    'total_additional_cost' => $totalAdditionalCost,
+                    'transaction_status' => $transactionStatus,
+                ]);
             }
             
             // Update status transaksi dan informasi BPJS jika ada perubahan
@@ -585,6 +616,39 @@ class PenjualanController extends Controller
     {
         $penjualan = Penjualan::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
         return view('penjualan.show', compact('penjualan'));
+    }
+
+    public function bpjsPhoto($id)
+    {
+        $penjualan = Penjualan::findOrFail($id);
+
+        if (empty($penjualan->photo_bpjs)) {
+            abort(404, 'Foto bukti BPJS tidak tersedia.');
+        }
+
+        $relativePath = ltrim($penjualan->photo_bpjs, '/');
+        if (strpos($relativePath, 'storage/') === 0) {
+            $relativePath = substr($relativePath, strlen('storage/'));
+        }
+
+        // Prioritas 1: disk public (storage/app/public/*)
+        if (Storage::disk('public')->exists($relativePath)) {
+            return response()->file(Storage::disk('public')->path($relativePath));
+        }
+
+        // Prioritas 2: direct path di storage/app/* (fallback data lama)
+        $legacyStoragePath = storage_path('app/' . $relativePath);
+        if (file_exists($legacyStoragePath)) {
+            return response()->file($legacyStoragePath);
+        }
+
+        // Prioritas 3: direct path di public/* (fallback paling akhir)
+        $publicPath = public_path($relativePath);
+        if (file_exists($publicPath)) {
+            return response()->file($publicPath);
+        }
+
+        abort(404, 'File foto bukti BPJS tidak ditemukan di storage.');
     }
 
     public function edit($id)
@@ -627,6 +691,8 @@ class PenjualanController extends Controller
             'bayar' => 'required|numeric|min:0',
             'status' => 'required|in:Belum Lunas,Lunas',
             'status_pengerjaan' => 'required|in:Menunggu Pengerjaan,Sedang Dikerjakan,Selesai Dikerjakan,Sudah Diambil',
+            'photo_bpjs' => 'nullable|image|max:3072',
+            'signature_bpjs' => 'nullable|string',
         ]);
 
         try {
@@ -642,6 +708,18 @@ class PenjualanController extends Controller
             $penjualan->bayar = $request->bayar;
             $penjualan->status = $request->status;
             $penjualan->status_pengerjaan = $request->status_pengerjaan;
+
+            // Update bukti BPJS jika diunggah ulang
+            if ($request->hasFile('photo_bpjs')) {
+                $path = $request->file('photo_bpjs')->store('photos_bpjs', 'public');
+                $penjualan->photo_bpjs = $path;
+            }
+
+            // Update tanda tangan BPJS jika diisi dari form edit
+            if ($request->filled('signature_bpjs')) {
+                $penjualan->signature_bpjs = $request->signature_bpjs;
+                $penjualan->signature_date = now();
+            }
             
             // Calculate kekurangan
             $penjualan->kekurangan = $penjualan->total - $request->bayar;

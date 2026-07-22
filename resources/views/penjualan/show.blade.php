@@ -101,17 +101,17 @@
                             <tr>
                                 <th>Bukti BPJS</th>
                                 <td>
-                                    <a href="{{ asset('storage/' . $penjualan->photo_bpjs) }}" target="_blank" class="btn btn-sm btn-info">
+                                    <a href="{{ route('penjualan.bpjs-photo', $penjualan->id) }}" target="_blank" class="btn btn-sm btn-info">
                                         <i class="fa fa-image"></i> Lihat Foto
                                     </a>
                                     <br><br>
-                                    <img src="{{ asset('storage/' . $penjualan->photo_bpjs) }}" 
+                                    <img src="{{ route('penjualan.bpjs-photo', $penjualan->id) }}" 
                                          alt="Bukti BPJS" 
                                          style="max-width: 300px; max-height: 200px; border: 1px solid #ddd; border-radius: 5px;"
                                          onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                                     <div style="display: none; color: red; font-size: 12px;">
                                         <i class="fa fa-exclamation-triangle"></i> Foto tidak dapat dimuat. 
-                                        <a href="{{ asset('storage/' . $penjualan->photo_bpjs) }}" target="_blank">Coba buka langsung</a>
+                                        <a href="{{ route('penjualan.bpjs-photo', $penjualan->id) }}" target="_blank">Coba buka langsung</a>
                                     </div>
                                 </td>
                             </tr>

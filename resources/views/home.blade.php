@@ -492,17 +492,37 @@
         </div>
     </div>
 
+    <div class="row" style="margin-bottom: 15px;">
+        <div class="col-md-12">
+            <form method="GET" action="{{ url()->current() }}" class="form-inline" style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+                <div class="form-group">
+                    <label for="omset_date" style="display:block;">Lihat Omset Tanggal</label>
+                    <input type="date" class="form-control" id="omset_date" name="omset_date" value="{{ $selectedOmsetDate ?? now()->toDateString() }}">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa fa-filter"></i> Tampilkan
+                </button>
+                <a href="{{ url()->current() }}" class="btn btn-default">
+                    <i class="fa fa-refresh"></i> Hari Ini
+                </a>
+                @if(isset($isOmsetToday) && !$isOmsetToday)
+                <span class="label label-info" style="padding: 8px 10px;">Mode histori: realtime dimatikan</span>
+                @endif
+            </form>
+        </div>
+    </div>
+
     {{-- Box Omset untuk Kasir --}}
     <div class="row" style="margin-bottom: 32px;">
         <div class="col-md-4">
             <div class="small-box bg-success omset-total" style="cursor:pointer" onclick="$('#modalKasirOmset').modal('show')">
                 <div class="inner">
                     <h3>Rp {{ number_format($omsetKasir ?? 0, 0, ',', '.') }}</h3>
-                    <p>Omset Hari Ini</p>
+                    <p>Omset {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</p>
                 </div>
                 <div class="icon"><i class="fa fa-money"></i></div>
                 <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
-                    <span class="jumlah-transaksi-badge">{{ $transaksiKasir ? $transaksiKasir->count() : 0 }}</span> transaksi hari ini
+                    <span class="jumlah-transaksi-badge">{{ $transaksiKasir ? $transaksiKasir->count() : 0 }}</span> transaksi {{ strtolower($omsetPeriodeLabel ?? 'hari ini') }}
                 </div>
             </div>
         </div>
@@ -510,11 +530,11 @@
             <div class="small-box bg-info omset-bpjs" style="cursor:pointer" onclick="$('#modalKasirBpjs').modal('show')">
                 <div class="inner">
                     <h3>Rp {{ number_format($omsetBpjs ?? 0, 0, ',', '.') }}</h3>
-                    <p>Omset BPJS Hari Ini</p>
+                    <p>Omset BPJS {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</p>
                 </div>
                 <div class="icon"><i class="fa fa-heartbeat"></i></div>
                 <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
-                    Real-time update
+                    {{ (isset($isOmsetToday) && $isOmsetToday) ? 'Real-time update' : 'Data histori' }}
                 </div>
             </div>
         </div>
@@ -522,11 +542,11 @@
             <div class="small-box bg-warning omset-umum" style="cursor:pointer" onclick="$('#modalKasirUmum').modal('show')">
                 <div class="inner">
                     <h3>Rp {{ number_format($omsetUmum ?? 0, 0, ',', '.') }}</h3>
-                    <p>Omset Umum Hari Ini</p>
+                    <p>Omset Umum {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</p>
                 </div>
                 <div class="icon"><i class="fa fa-users"></i></div>
                 <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
-                    Auto refresh
+                    {{ (isset($isOmsetToday) && $isOmsetToday) ? 'Auto refresh' : 'Data histori' }}
                 </div>
             </div>
         </div>
@@ -538,7 +558,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-success">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title"><i class="fa fa-money"></i> Detail Omset Hari Ini</h4>
+                    <h4 class="modal-title"><i class="fa fa-money"></i> Detail Omset {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</h4>
                 </div>
                 <div class="modal-body">
                     <div class="table-responsive">
@@ -592,7 +612,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-info">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title"><i class="fa fa-heartbeat"></i> Detail Omset BPJS Hari Ini</h4>
+                    <h4 class="modal-title"><i class="fa fa-heartbeat"></i> Detail Omset BPJS {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</h4>
                 </div>
                 <div class="modal-body">
                     <div class="table-responsive">
@@ -643,7 +663,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-warning">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title"><i class="fa fa-users"></i> Detail Omset Umum Hari Ini</h4>
+                    <h4 class="modal-title"><i class="fa fa-users"></i> Detail Omset Umum {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</h4>
                 </div>
                 <div class="modal-body">
                     <div class="table-responsive">
@@ -695,7 +715,7 @@
         <div class="col-md-12">
             <div class="box box-primary">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Transaksi Hari Ini</h3>
+                    <h3 class="box-title">Transaksi {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</h3>
                 </div>
                 <div class="box-body">
                     <div class="table-responsive">
@@ -1066,6 +1086,7 @@ $(document).ready(function() {
 
 @if(auth()->user()->isKasir())
 var KASIR_BRANCH_ID = {{ auth()->user()->branch_id ?? 0 }};
+var KASIR_OMSET_IS_TODAY = @json($isOmsetToday ?? true);
 
 // Setup real-time connections with custom callbacks
 $(function() {
@@ -1083,36 +1104,38 @@ $(function() {
         }
     });
     
-    // Setup real-time omset connection
-    window.RealtimeManager.connectOmsetKasir({
-        onOpen: function() {
-            console.log('Omset real-time connection established');
-        },
-        onData: function(data) {
-            // Update omset displays
-            $('.omset-total h3').text('Rp ' + new Intl.NumberFormat('id-ID').format(data.omset_kasir || 0));
-            $('.omset-bpjs h3').text('Rp ' + new Intl.NumberFormat('id-ID').format(data.omset_bpjs || 0));
-            $('.omset-umum h3').text('Rp ' + new Intl.NumberFormat('id-ID').format(data.omset_umum || 0));
-            $('.jumlah-transaksi-badge').text(data.jumlah_transaksi || 0);
-            
-            // Update table if data available
-            if (data.transaksi_terbaru) {
-                updateTransaksiTable(data.transaksi_terbaru);
+    if (KASIR_OMSET_IS_TODAY) {
+        // Setup real-time omset connection (khusus mode hari ini)
+        window.RealtimeManager.connectOmsetKasir({
+            onOpen: function() {
+                console.log('Omset real-time connection established');
+            },
+            onData: function(data) {
+                // Update omset displays
+                $('.omset-total h3').text('Rp ' + new Intl.NumberFormat('id-ID').format(data.omset_kasir || 0));
+                $('.omset-bpjs h3').text('Rp ' + new Intl.NumberFormat('id-ID').format(data.omset_bpjs || 0));
+                $('.omset-umum h3').text('Rp ' + new Intl.NumberFormat('id-ID').format(data.omset_umum || 0));
+                $('.jumlah-transaksi-badge').text(data.jumlah_transaksi || 0);
+                
+                // Update table if data available
+                if (data.transaksi_terbaru) {
+                    updateTransaksiTable(data.transaksi_terbaru);
+                }
+                
+                // Add visual feedback
+                $('.omset-total, .omset-bpjs, .omset-umum').addClass('pulse-animation');
+                setTimeout(function() {
+                    $('.omset-total, .omset-bpjs, .omset-umum').removeClass('pulse-animation');
+                }, 1000);
+            },
+            onError: function() {
+                console.log('Omset real-time connection error');
+            },
+            onHeartbeat: function(data) {
+                console.log('Omset heartbeat received:', data.timestamp);
             }
-            
-            // Add visual feedback
-            $('.omset-total, .omset-bpjs, .omset-umum').addClass('pulse-animation');
-            setTimeout(function() {
-                $('.omset-total, .omset-bpjs, .omset-umum').removeClass('pulse-animation');
-            }, 1000);
-        },
-        onError: function() {
-            console.log('Omset real-time connection error');
-        },
-        onHeartbeat: function(data) {
-            console.log('Omset heartbeat received:', data.timestamp);
-        }
-    });
+        });
+    }
     
     // Setup notifications
     window.RealtimeManager.connectNotifications({

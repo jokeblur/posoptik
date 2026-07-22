@@ -7,6 +7,7 @@ use App\Models\Penjualan;
 use App\Models\Branch;
 use App\Models\Frame;
 use App\Models\Lensa;
+use App\Services\BpjsPricingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -28,19 +29,82 @@ class LaporanPosController extends Controller
         // Filter data berdasarkan cabang
         $branchId = $selectedBranchId;
 
-        // Omset Harian
+        // Omset Harian (dipisah BPJS vs Umum)
         $today = Carbon::today();
-        $omsetHarian = Penjualan::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $transaksiHarian = Penjualan::when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->whereDate('created_at', $today)
-            ->sum('total');
+            ->with('pasien:id_pasien,service_type')
+            ->get();
 
-        // Omset Bulanan
+        $bpjsTypes = ['BPJS I', 'BPJS II', 'BPJS III'];
+        $omsetHarianBpjs = $transaksiHarian->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+
+            if (!in_array($serviceType, $bpjsTypes)) {
+                return 0;
+            }
+
+            if ($trx->bpjs_default_price > 0) {
+                return (float) $trx->bpjs_default_price;
+            }
+
+            switch ($serviceType) {
+                case 'BPJS I':
+                    return BpjsPricingService::BPJS_I_PRICE;
+                case 'BPJS II':
+                    return BpjsPricingService::BPJS_II_PRICE;
+                case 'BPJS III':
+                    return BpjsPricingService::BPJS_III_PRICE;
+                default:
+                    return 0;
+            }
+        });
+
+        $omsetHarianUmum = $transaksiHarian->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            return in_array($serviceType, $bpjsTypes) ? 0 : (float) $trx->total;
+        });
+
+        $omsetHarian = $omsetHarianBpjs + $omsetHarianUmum;
+
+        // Omset Bulanan (dipisah BPJS vs Umum, mengikuti filter bulan/tahun)
         $bulan = $request->input('bulan', $today->format('m'));
         $tahun = $request->input('tahun', $today->format('Y'));
-        $omsetBulanan = Penjualan::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $transaksiBulanan = Penjualan::when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
-            ->sum('total');
+            ->with('pasien:id_pasien,service_type')
+            ->get();
+
+        $omsetBulananBpjs = $transaksiBulanan->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+
+            if (!in_array($serviceType, $bpjsTypes)) {
+                return 0;
+            }
+
+            if ($trx->bpjs_default_price > 0) {
+                return (float) $trx->bpjs_default_price;
+            }
+
+            switch ($serviceType) {
+                case 'BPJS I':
+                    return BpjsPricingService::BPJS_I_PRICE;
+                case 'BPJS II':
+                    return BpjsPricingService::BPJS_II_PRICE;
+                case 'BPJS III':
+                    return BpjsPricingService::BPJS_III_PRICE;
+                default:
+                    return 0;
+            }
+        });
+
+        $omsetBulananUmum = $transaksiBulanan->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            return in_array($serviceType, $bpjsTypes) ? 0 : (float) $trx->total;
+        });
+
+        $omsetBulanan = $omsetBulananBpjs + $omsetBulananUmum;
 
         // Omset per layanan
         $layananList = ['BPJS I', 'BPJS II', 'BPJS III', 'Umum'];
@@ -133,7 +197,9 @@ class LaporanPosController extends Controller
             'omsetHarian', 'omsetBulanan', 'rekapDP', 'rekapLunas',
             'bulan', 'tahun', 'piutangList', 'totalPiutang', 'omsetLayanan',
             'detailHarian', 'detailBulanan', 'branches', 'selectedBranchId', 
-            'selectedBranch', 'isSuperAdmin', 'summaryCabang'
+            'selectedBranch', 'isSuperAdmin', 'summaryCabang',
+            'omsetHarianBpjs', 'omsetHarianUmum',
+            'omsetBulananBpjs', 'omsetBulananUmum'
         ));
     }
 
@@ -154,14 +220,81 @@ class LaporanPosController extends Controller
         $tahun = $request->input('tahun', date('Y'));
         $today = Carbon::today();
 
+        $transaksiHarian = Penjualan::where('branch_id', $branchId)
+            ->whereDate('created_at', $today)
+            ->with('pasien:id_pasien,service_type')
+            ->get();
+
+        $bpjsTypes = ['BPJS I', 'BPJS II', 'BPJS III'];
+        $omsetHarianBpjs = $transaksiHarian->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+
+            if (!in_array($serviceType, $bpjsTypes)) {
+                return 0;
+            }
+
+            if ($trx->bpjs_default_price > 0) {
+                return (float) $trx->bpjs_default_price;
+            }
+
+            switch ($serviceType) {
+                case 'BPJS I':
+                    return BpjsPricingService::BPJS_I_PRICE;
+                case 'BPJS II':
+                    return BpjsPricingService::BPJS_II_PRICE;
+                case 'BPJS III':
+                    return BpjsPricingService::BPJS_III_PRICE;
+                default:
+                    return 0;
+            }
+        });
+
+        $omsetHarianUmum = $transaksiHarian->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            return in_array($serviceType, $bpjsTypes) ? 0 : (float) $trx->total;
+        });
+
+        $transaksiBulanan = Penjualan::where('branch_id', $branchId)
+            ->whereMonth('created_at', $bulan)
+            ->whereYear('created_at', $tahun)
+            ->with('pasien:id_pasien,service_type')
+            ->get();
+
+        $omsetBulananBpjs = $transaksiBulanan->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+
+            if (!in_array($serviceType, $bpjsTypes)) {
+                return 0;
+            }
+
+            if ($trx->bpjs_default_price > 0) {
+                return (float) $trx->bpjs_default_price;
+            }
+
+            switch ($serviceType) {
+                case 'BPJS I':
+                    return BpjsPricingService::BPJS_I_PRICE;
+                case 'BPJS II':
+                    return BpjsPricingService::BPJS_II_PRICE;
+                case 'BPJS III':
+                    return BpjsPricingService::BPJS_III_PRICE;
+                default:
+                    return 0;
+            }
+        });
+
+        $omsetBulananUmum = $transaksiBulanan->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            return in_array($serviceType, $bpjsTypes) ? 0 : (float) $trx->total;
+        });
+
         $data = [
-            'omset_harian' => Penjualan::where('branch_id', $branchId)
-                ->whereDate('created_at', $today)
-                ->sum('total'),
-            'omset_bulanan' => Penjualan::where('branch_id', $branchId)
-                ->whereMonth('created_at', $bulan)
-                ->whereYear('created_at', $tahun)
-                ->sum('total'),
+            'omset_harian' => $omsetHarianBpjs + $omsetHarianUmum,
+            'omset_harian_bpjs' => $omsetHarianBpjs,
+            'omset_harian_umum' => $omsetHarianUmum,
+            'omset_bulanan' => $omsetBulananBpjs + $omsetBulananUmum,
+            'omset_bulanan_bpjs' => $omsetBulananBpjs,
+            'omset_bulanan_umum' => $omsetBulananUmum,
             'piutang' => Penjualan::where('branch_id', $branchId)
                 ->where('status', 'Belum Lunas')
                 ->sum('kekurangan'),

@@ -232,7 +232,7 @@
             <div class="box">
                 <div class="box-header">
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-frames">Cari Frame</button>
+                        <button type="button" class="btn btn-sm btn-custom" id="btn-cari-frame" data-toggle="modal" data-target="#modal-frames">Cari Frame</button>
                        </div>
                     <div class="btn-group">                        
                         <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-lenses">Cari Lensa Stok</button>
@@ -243,6 +243,11 @@
                     <div class="btn-group">                        
                        
                         <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-aksesoris">Cari Aksesoris</button>
+                    </div>
+                    <div class="pull-right" style="margin-top: 5px;">
+                        <label style="margin: 0; font-weight: 600;">
+                            <input type="checkbox" id="has-own-frame" style="margin-right: 6px;"> Pasien Punya Frame Sendiri
+                        </label>
                     </div>
                 </div>
                 <div class="box-body table-responsive">
@@ -597,6 +602,15 @@ $(function() {
         if (isBPJS) {
             let existingFrame = cart.find(item => item.type === 'frame');
             let totalLensQuantity = getTotalLensQuantity();
+
+            if (product.type === 'frame' && hasOwnFrameSelected()) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan!',
+                    text: 'Nonaktifkan opsi frame sendiri jika ingin memilih frame dari stok.',
+                });
+                return;
+            }
             
             if (product.type === 'frame' && existingFrame) {
                 Swal.fire({
@@ -644,6 +658,10 @@ $(function() {
         return items.filter(isLensItem);
     }
 
+    function hasOwnFrameSelected() {
+        return $('#has-own-frame').is(':checked');
+    }
+
     function getTotalLensQuantity(items = cart) {
         return getLensItems(items).reduce((totalQty, item) => {
             return totalQty + (parseInt(item.quantity, 10) || 0);
@@ -685,6 +703,16 @@ $(function() {
             let frameItems = cart.filter(item => item.type === 'frame');
             let lensaItems = getLensItems();
             let totalLensQuantity = getTotalLensQuantity();
+
+            if (hasOwnFrameSelected() && frameItems.length > 0) {
+                cart = cart.filter(item => item.type !== 'frame');
+                frameItems = [];
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Info',
+                    text: 'Frame dari stok dihapus karena pasien menggunakan frame sendiri.',
+                });
+            }
             
             // Tampilkan peringatan jika ada terlalu banyak frame
             if (frameItems.length > 1) {
@@ -792,6 +820,7 @@ $(function() {
                 let frameItems = cart.filter(item => item.type === 'frame');
                 let lensaItems = getLensItems();
                 let aksesorisItems = cart.filter(item => item.type === 'aksesoris');
+                let hasOwnFrame = hasOwnFrameSelected();
                 
                 // Default harga berdasarkan level BPJS
                 let defaultPrice = 0;
@@ -878,6 +907,30 @@ $(function() {
                         calculateBPJSPriceFallback(frameItems, lensaItems, aksesorisItems, bpjsLevel, defaultPrice);
                     }
                 } else {
+                    if (hasOwnFrame && lensaItems.length > 0) {
+                        let totalLensaPrice = 0;
+                        lensaItems.forEach(lensa => {
+                            totalLensaPrice += lensa.price * lensa.quantity;
+                        });
+
+                        total = defaultPrice + totalLensaPrice;
+
+                        aksesorisItems.forEach(item => {
+                            total += item.price * item.quantity;
+                        });
+
+                        displayBPJSPricingInfo({
+                            pasien_service_type: 'BPJS ' + bpjsLevel,
+                            frame_type: 'Frame Sendiri',
+                            calculated_price: total,
+                            additional_cost: 0,
+                            reason: 'Frame pasien sendiri, gunakan harga default BPJS + lensa'
+                        }, defaultPrice, lensaItems, aksesorisItems);
+
+                        updateTotalDisplay(total);
+                        return;
+                    }
+
                     // Jika tidak ada frame atau lensa, gunakan default price
                     total = defaultPrice;
                     
@@ -1075,6 +1128,18 @@ $(function() {
         renderCartAndTotals();
     });
 
+    $('#has-own-frame').on('change', function() {
+        if ($(this).is(':checked')) {
+            cart = cart.filter(item => item.type !== 'frame');
+            $('#btn-cari-frame').prop('disabled', true);
+        } else {
+            $('#btn-cari-frame').prop('disabled', false);
+        }
+
+        $('#bayar').data('user-has-changed', false);
+        renderCartAndTotals();
+    });
+
     // Event listeners for cart item quantity change and removal
     $(document).on('change', '.quantity-input', function() {
         let index = $(this).data('index');
@@ -1123,12 +1188,13 @@ $(function() {
         if (isBPJS) {
             let frameItems = cart.filter(item => item.type === 'frame');
             let totalLensQuantity = getTotalLensQuantity();
+            let hasOwnFrame = hasOwnFrameSelected();
             
-            if (frameItems.length === 0 || totalLensQuantity === 0) {
+            if ((!hasOwnFrame && frameItems.length === 0) || totalLensQuantity === 0) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error!',
-                    text: 'Pasien BPJS harus memilih 1 frame dan minimal 1 lensa.',
+                    text: 'Pasien BPJS harus memilih frame (atau aktifkan frame sendiri) dan minimal 1 lensa.',
                 });
                 return;
             }

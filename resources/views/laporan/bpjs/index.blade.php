@@ -36,7 +36,6 @@
                             <option value="">Semua Transaksi</option>
                             <option value="bpjs_normal">BPJS Normal</option>
                             <option value="bpjs_naik_kelas">BPJS Naik Kelas</option>
-                            <option value="umum">Transaksi Umum</option>
                             <option value="all_bpjs">Semua BPJS</option>
                         </select>
                     </div>
@@ -74,10 +73,10 @@
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="small-box bg-red">
+                        <div class="small-box bg-aqua">
                             <div class="inner">
-                                <h3 id="umum_count">0</h3>
-                                <p>Transaksi Umum</p>
+                                <h3 id="total_default_bpjs_card">Rp 0</h3>
+                                <p>Total Default BPJS</p>
                             </div>
                         </div>
                     </div>
@@ -92,7 +91,7 @@
                                     <tr>
                                         <th>Jenis Transaksi</th>
                                         <th>Jumlah</th>
-                                        <th>Total Pendapatan</th>
+                                        <th>Total Nilai Default BPJS</th>
                                         <th>Total Default BPJS</th>
                                         <th>Total Biaya Tambahan</th>
                                     </tr>
@@ -111,13 +110,6 @@
                                         <td id="bpjs_naik_kelas_total">Rp 0</td>
                                         <td id="bpjs_naik_kelas_default_total">Rp 0</td>
                                         <td id="bpjs_naik_kelas_additional_total">Rp 0</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Transaksi Umum</strong></td>
-                                        <td id="umum_count_table">0</td>
-                                        <td id="umum_total">Rp 0</td>
-                                        <td>-</td>
-                                        <td>-</td>
                                     </tr>
                                     <tr class="bg-info">
                                         <td><strong>TOTAL</strong></td>
@@ -143,8 +135,8 @@
                                 <th>Nama Pasien</th>
                                 <th>Jenis Layanan</th>
                                 <th>Status Transaksi</th>
-                                <th>Total Harga</th>
-                                <th>Harga Default BPJS</th>
+                                <th>Nilai Default BPJS</th>
+                                <th>Default BPJS</th>
                                 <th>Biaya Tambahan</th>
                                 <th>Kasir</th>
                                 <th>Cabang</th>
@@ -220,23 +212,22 @@
             $('#total_transaksi').text(data.total_transaksi);
             $('#bpjs_normal_count').text(data.bpjs_normal_count);
             $('#bpjs_naik_kelas_count').text(data.bpjs_naik_kelas_count);
-            $('#umum_count').text(data.umum_count);
 
             $('#total_transaksi_table').text(data.total_transaksi);
             $('#bpjs_normal_count_table').text(data.bpjs_normal_count);
             $('#bpjs_naik_kelas_count_table').text(data.bpjs_naik_kelas_count);
-            $('#umum_count_table').text(data.umum_count);
 
             $('#total_pendapatan').text('Rp ' + formatNumber(data.total_pendapatan));
             $('#bpjs_normal_total').text('Rp ' + formatNumber(data.bpjs_normal_total));
             $('#bpjs_naik_kelas_total').text('Rp ' + formatNumber(data.bpjs_naik_kelas_total));
-            $('#umum_total').text('Rp ' + formatNumber(data.umum_total));
 
             $('#bpjs_normal_default_total').text('Rp ' + formatNumber(data.bpjs_normal_default_total));
             $('#bpjs_naik_kelas_default_total').text('Rp ' + formatNumber(data.bpjs_naik_kelas_default_total));
             $('#bpjs_naik_kelas_additional_total').text('Rp ' + formatNumber(data.bpjs_naik_kelas_additional_total));
 
-            $('#total_default_bpjs').text('Rp ' + formatNumber(data.bpjs_normal_default_total + data.bpjs_naik_kelas_default_total));
+            const totalDefaultBpjs = (data.bpjs_normal_default_total || 0) + (data.bpjs_naik_kelas_default_total || 0);
+            $('#total_default_bpjs').text('Rp ' + formatNumber(totalDefaultBpjs));
+            $('#total_default_bpjs_card').text('Rp ' + formatNumber(totalDefaultBpjs));
             $('#total_additional_cost').text('Rp ' + formatNumber(data.bpjs_naik_kelas_additional_total));
         })
         .fail(function(xhr, status, error) {

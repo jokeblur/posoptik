@@ -107,6 +107,7 @@ Route::middleware([
     Route::get('/penjualan/statistics', [PenjualanController::class, 'statistics'])->name('penjualan.statistics');
     Route::get('/penjualan/{penjualan}/cetak', [PenjualanController::class, 'cetak'])->name('penjualan.cetak');
     Route::get('/penjualan/{penjualan}/cetak-half', [PenjualanController::class, 'cetakHalf'])->name('penjualan.cetak-half');
+    Route::get('/penjualan/{id}/bpjs-photo', [PenjualanController::class, 'bpjsPhoto'])->name('penjualan.bpjs-photo');
     Route::get('/pasien/{pasien}/cetak-resep', [PasienController::class, 'cetakResep'])->name('pasien.cetak-resep');
     Route::get('/pasien/{pasien}/cetak-resep-a4', [PasienController::class, 'cetakResepA4'])->name('pasien.cetak-resep-a4');
     Route::get('/pasien/{pasien}/cetak-resep-kartu', [PasienController::class, 'cetakResepKartu'])->name('pasien.cetak-resep-kartu');

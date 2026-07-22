@@ -9,9 +9,12 @@ use App\Models\User;
 use App\Models\Pasien;
 use App\Services\BpjsPricingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use App\Models\OpenDay;
 use Carbon\Carbon;
 
@@ -38,6 +41,96 @@ class PenjualanController extends Controller
             ->whereRaw('LOWER(nama_produk) LIKE ?', ['%cleaner%'])
             ->orderByDesc('stok')
             ->first();
+    }
+
+    private function normalizeWhatsappNumber(?string $phone): ?string
+    {
+        if (!$phone) {
+            return null;
+        }
+
+        $normalized = preg_replace('/\D+/', '', $phone);
+        if (!$normalized) {
+            return null;
+        }
+
+        if (strpos($normalized, '0') === 0) {
+            $normalized = '62' . substr($normalized, 1);
+        }
+
+        if (strpos($normalized, '62') !== 0) {
+            $normalized = '62' . ltrim($normalized, '0');
+        }
+
+        return $normalized ?: null;
+    }
+
+    private function buildReadyPickupMessage(Penjualan $penjualan): string
+    {
+        $namaPasien = $penjualan->nama_pasien ?: 'Pelanggan';
+        $kode = $penjualan->kode_penjualan ?: '-';
+        $cabang = $penjualan->branch->name ?? 'Optik Melati';
+
+        return "Halo {$namaPasien}, kacamata Anda dengan nomor nota {$kode} sudah selesai dikerjakan dan sudah bisa diambil di {$cabang}. Terima kasih.";
+    }
+
+    private function notifyWhatsappReadyPickup(Penjualan $penjualan): array
+    {
+        $phone = $this->normalizeWhatsappNumber($penjualan->pasien->nohp ?? null);
+        if (!$phone) {
+            return [
+                'success' => false,
+                'channel' => 'none',
+                'message' => 'Nomor WhatsApp pasien belum tersedia.',
+            ];
+        }
+
+        $message = $this->buildReadyPickupMessage($penjualan);
+        $waLink = 'https://wa.me/' . $phone . '?text=' . urlencode($message);
+
+        $gatewayUrl = env('WHATSAPP_GATEWAY_URL');
+        $gatewayToken = env('WHATSAPP_GATEWAY_TOKEN');
+
+        if ($gatewayUrl && $gatewayToken) {
+            try {
+                $response = Http::asForm()
+                    ->timeout(15)
+                    ->withHeaders([
+                        'Authorization' => $gatewayToken,
+                    ])
+                    ->post($gatewayUrl, [
+                        'target' => $phone,
+                        'message' => $message,
+                    ]);
+
+                if ($response->successful()) {
+                    return [
+                        'success' => true,
+                        'channel' => 'gateway',
+                        'message' => 'Notifikasi WhatsApp berhasil dikirim otomatis.',
+                    ];
+                }
+
+                Log::warning('WhatsApp gateway returned non-success response.', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'penjualan_id' => $penjualan->id,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('WhatsApp gateway request failed.', [
+                    'error' => $e->getMessage(),
+                    'penjualan_id' => $penjualan->id,
+                ]);
+            }
+        }
+
+        return [
+            'success' => true,
+            'channel' => 'wa_link',
+            'message' => 'Gateway WA belum aktif, link WhatsApp siap dibuka untuk kirim pesan.',
+            'open_link' => true,
+            'link' => $waLink,
+        ];
     }
     /**
      * Display a listing of the resource.
@@ -827,6 +920,104 @@ class PenjualanController extends Controller
         return view('penjualan.cetak_half', compact('penjualan'));
     }
 
+    public function cetakHalfShare($id)
+    {
+        $penjualan = Penjualan::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
+        return view('penjualan.cetak_half', compact('penjualan'));
+    }
+
+    public function uploadWhatsappReceiptImage(Request $request, $id)
+    {
+        $penjualan = Penjualan::findOrFail($id);
+        $user = auth()->user();
+
+        if (!$user->isSuperAdmin() && !$user->isAdmin() && (int) $penjualan->branch_id !== (int) $user->branch_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses ke transaksi ini.'
+            ], 403);
+        }
+
+        $request->validate([
+            'image_data' => 'required|string',
+        ]);
+
+        $imageData = $request->input('image_data');
+        if (!preg_match('/^data:image\/png;base64,/', $imageData)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Format gambar tidak valid. Harus PNG base64.'
+            ], 422);
+        }
+
+        $base64 = substr($imageData, strpos($imageData, ',') + 1);
+        $binary = base64_decode($base64, true);
+
+        if ($binary === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membaca data gambar.'
+            ], 422);
+        }
+
+        if (strlen($binary) > (5 * 1024 * 1024)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ukuran gambar terlalu besar (maksimal 5MB).'
+            ], 422);
+        }
+
+        $filename = 'nota-' . $penjualan->id . '-' . now()->format('YmdHis') . '-' . Str::random(8) . '.png';
+        $relativePath = 'wa_nota/' . $filename;
+        Storage::disk('local')->put($relativePath, $binary);
+
+        $signedRelativePath = URL::temporarySignedRoute(
+            'penjualan.share-nota-image',
+            now()->addDays(15),
+            ['file' => $filename],
+            false
+        );
+
+        $signedImageUrl = url($signedRelativePath);
+
+        return response()->json([
+            'success' => true,
+            'image_url' => $signedImageUrl,
+            'message' => 'Gambar nota berhasil dibuat.'
+        ]);
+    }
+
+    public function shareNotaImage(Request $request, $file)
+    {
+        if (!URL::hasValidSignature($request, false)) {
+            abort(403, 'Invalid signature.');
+        }
+
+        if (!preg_match('/^[A-Za-z0-9._-]+$/', $file)) {
+            abort(404);
+        }
+
+        $path = storage_path('app/wa_nota/' . $file);
+        if (!file_exists($path)) {
+            abort(404, 'Gambar nota tidak ditemukan.');
+        }
+
+        $downloadName = 'nota-OPTIKMELATI.png';
+        if (preg_match('/^nota-(\d+)-/', $file, $matches)) {
+            $penjualanId = (int) $matches[1];
+            $penjualan = Penjualan::select('kode_penjualan')->find($penjualanId);
+            if ($penjualan && !empty($penjualan->kode_penjualan)) {
+                $safeKode = preg_replace('/[^A-Za-z0-9\-_]/', '', $penjualan->kode_penjualan);
+                $downloadName = 'nota-OPTIKMELATI-' . $safeKode . '.png';
+            }
+        }
+
+        return response()->download($path, $downloadName, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'private, max-age=300',
+        ]);
+    }
+
     public function lunas($id)
     {
         $penjualan = Penjualan::findOrFail($id);
@@ -1034,7 +1225,8 @@ class PenjualanController extends Controller
                 'status_pengerjaan' => 'required|in:Menunggu Pengerjaan,Sedang Dikerjakan,Selesai Dikerjakan,Sudah Diambil'
             ]);
 
-            $penjualan = Penjualan::findOrFail($id);
+            $penjualan = Penjualan::with(['pasien', 'branch'])->findOrFail($id);
+            $oldStatus = $penjualan->status_pengerjaan;
             
             $updateData = [
                 'status_pengerjaan' => $request->status_pengerjaan,
@@ -1048,6 +1240,13 @@ class PenjualanController extends Controller
 
             $penjualan->update($updateData);
 
+            $whatsappNotification = null;
+            if ($request->status_pengerjaan === 'Selesai Dikerjakan' && $oldStatus !== 'Selesai Dikerjakan') {
+                $penjualan->refresh();
+                $penjualan->loadMissing(['pasien', 'branch']);
+                $whatsappNotification = $this->notifyWhatsappReadyPickup($penjualan);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Status pengerjaan berhasil diperbarui',
@@ -1055,7 +1254,8 @@ class PenjualanController extends Controller
                     'status_pengerjaan' => $penjualan->status_pengerjaan,
                     'passet_by_user_id' => $penjualan->passet_by_user_id,
                     'waktu_selesai_dikerjakan' => $penjualan->waktu_selesai_dikerjakan
-                ]
+                ],
+                'whatsapp' => $whatsappNotification,
             ]);
 
         } catch (\Exception $e) {

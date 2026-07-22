@@ -82,7 +82,7 @@
                         <!-- Menu Footer-->
                         <li class="user-footer">
                             <div class="pull-left">
-                                <a href="{{ route('profile.show') }}" class="btn btn-default btn-flat">
+                                <a href="{{ route('custom.profile.show') }}" class="btn btn-default btn-flat">
                                     <i class="fa fa-user"></i> Profile
                                 </a>
                             </div>

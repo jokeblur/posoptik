@@ -37,6 +37,15 @@ use App\Exports\LensaCsvExport;
 
 Route::get('/', fn () =>redirect()->route ('login') );
 
+// Public signed link untuk share nota half page via WhatsApp
+Route::get('/share/penjualan/{penjualan}/cetak-half', [PenjualanController::class, 'cetakHalfShare'])
+    ->name('penjualan.cetak-half.share')
+    ->middleware('signed');
+
+// Public signed link untuk share nota gambar via WhatsApp
+Route::get('/share/nota-image/{file}', [PenjualanController::class, 'shareNotaImage'])
+    ->name('penjualan.share-nota-image');
+
 // Route khusus untuk logout dengan redirect yang aman
 Route::post('/logout', function () {
     try {
@@ -88,8 +97,8 @@ Route::middleware([
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
     // Custom profile routes (used by resources/views/profile/show.blade.php)
-    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
-    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/profile', [ProfileController::class, 'show'])->name('custom.profile.show');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('custom.profile.update');
     
     // Open/Close Day routes (baru)
     Route::post('/open-day', [OpenDayController::class, 'openDay'])->name('open.day');
@@ -112,6 +121,7 @@ Route::middleware([
     Route::get('/pasien/{pasien}/cetak-resep-kartu', [PasienController::class, 'cetakResepKartu'])->name('pasien.cetak-resep-kartu');
     Route::post('/penjualan/{penjualan}/lunas', [PenjualanController::class, 'lunas'])->name('penjualan.lunas');
     Route::post('/penjualan/{id}/diambil', [PenjualanController::class, 'diambil'])->name('penjualan.diambil');
+    Route::post('/penjualan/{penjualan}/wa-image', [PenjualanController::class, 'uploadWhatsappReceiptImage'])->name('penjualan.wa-image');
     Route::get('penjualan/omset-harian', [\App\Http\Controllers\PenjualanController::class, 'omsetHarian'])->name('penjualan.omset_harian');
     Route::post('/penjualan/calculate-bpjs-price', [PenjualanController::class, 'calculateBpjsPrice'])->name('penjualan.calculate_bpjs_price');
 

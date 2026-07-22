@@ -292,7 +292,18 @@
                         'status_pengerjaan': status
                     },
                     success: function(response) {
-                        Swal.fire('Berhasil!', response.message, 'success')
+                        const wa = response.whatsapp || null;
+                        let successMessage = response.message;
+
+                        if (wa && wa.message) {
+                            successMessage += '\n\n' + wa.message;
+                        }
+
+                        if (wa && wa.open_link && wa.link) {
+                            window.open(wa.link, '_blank');
+                        }
+
+                        Swal.fire('Berhasil!', successMessage, 'success')
                             .then(() => {
                                 table.ajax.reload(); // Reload tabel
                             });

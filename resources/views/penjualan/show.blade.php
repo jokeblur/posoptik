@@ -336,6 +336,37 @@
                 
                 <a href="{{ route('penjualan.cetak', $penjualan->id) }}" target="_blank" class="btn btn-primary pull-right"><i class="fa fa-print"></i> Cetak Struk</a>
                 <a href="{{ route('penjualan.cetak-half', $penjualan->id) }}" target="_blank" class="btn btn-info pull-right" style="margin-right: 10px;"><i class="fa fa-print"></i> Cetak Half Page</a>
+
+                @php
+                    $pasienPhone = $penjualan->pasien->nohp ?? '';
+                    $normalizedPhone = preg_replace('/\D+/', '', $pasienPhone);
+                    if (strpos($normalizedPhone, '0') === 0) {
+                        $normalizedPhone = '62' . substr($normalizedPhone, 1);
+                    }
+                    if (strpos($normalizedPhone, '62') !== 0 && $normalizedPhone !== '') {
+                        $normalizedPhone = '62' . ltrim($normalizedPhone, '0');
+                    }
+                @endphp
+
+                @if($normalizedPhone !== '')
+                <button
+                    type="button"
+                    class="btn btn-success pull-right"
+                    id="btn-kirim-wa-gambar"
+                    data-phone="{{ $normalizedPhone }}"
+                    data-pasien="{{ $penjualan->nama_pasien }}"
+                    data-kode="{{ $penjualan->kode_penjualan }}"
+                    data-capture-url="{{ route('penjualan.cetak-half', $penjualan->id) }}"
+                    data-upload-url="{{ route('penjualan.wa-image', $penjualan->id) }}"
+                    style="margin-right: 10px;"
+                >
+                    <i class="fa fa-whatsapp"></i> Kirim WA (Gambar Nota)
+                </button>
+                @else
+                <button type="button" class="btn btn-success pull-right" style="margin-right: 10px;" disabled title="Nomor HP pasien belum tersedia">
+                    <i class="fa fa-whatsapp"></i> Kirim WA (Gambar Nota)
+                </button>
+                @endif
                 
                 @php
                     $user = auth()->user();
@@ -352,7 +383,98 @@
 </div>
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
+async function renderReceiptToImage(captureUrl) {
+    return new Promise((resolve, reject) => {
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.left = '-99999px';
+        iframe.style.top = '0';
+        iframe.style.width = '420px';
+        iframe.style.height = '700px';
+        iframe.src = captureUrl;
+
+        iframe.onload = async function () {
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                const target = iframeDoc.body;
+
+                const canvas = await html2canvas(target, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    width: target.scrollWidth,
+                    height: target.scrollHeight,
+                    windowWidth: target.scrollWidth,
+                    windowHeight: target.scrollHeight
+                });
+
+                const imageData = canvas.toDataURL('image/png');
+                document.body.removeChild(iframe);
+                resolve(imageData);
+            } catch (error) {
+                if (iframe.parentNode) {
+                    document.body.removeChild(iframe);
+                }
+                reject(error);
+            }
+        };
+
+        iframe.onerror = function () {
+            if (iframe.parentNode) {
+                document.body.removeChild(iframe);
+            }
+            reject(new Error('Gagal memuat halaman nota untuk diubah ke gambar'));
+        };
+
+        document.body.appendChild(iframe);
+    });
+}
+
+$(document).on('click', '#btn-kirim-wa-gambar', async function() {
+    const btn = $(this);
+    const phone = btn.data('phone');
+    const pasien = btn.data('pasien') || 'Pasien';
+    const kode = btn.data('kode') || '-';
+    const captureUrl = btn.data('capture-url');
+    const uploadUrl = btn.data('upload-url');
+
+    try {
+        Swal.fire({
+            title: 'Menyiapkan Nota Gambar',
+            text: 'Sedang membuat gambar nota, mohon tunggu...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const imageData = await renderReceiptToImage(captureUrl);
+
+        const uploadResult = await $.ajax({
+            url: uploadUrl,
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                image_data: imageData
+            }
+        });
+
+        if (!uploadResult.success || !uploadResult.image_url) {
+            throw new Error(uploadResult.message || 'Gagal membuat link gambar nota');
+        }
+
+        const message = `Halo ${pasien}, berikut nota transaksi Anda (${kode}) dalam bentuk gambar: ${uploadResult.image_url}`;
+        const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+        Swal.close();
+        window.open(waUrl, '_blank');
+    } catch (error) {
+        Swal.fire('Gagal', error.message || 'Tidak dapat mengirim nota gambar ke WhatsApp.', 'error');
+    }
+});
+
 function generateBarcode(transaksiId) {
     Swal.fire({
         title: 'Generate Barcode',

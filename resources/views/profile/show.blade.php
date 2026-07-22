@@ -104,7 +104,7 @@
                         <h3 class="card-title">Edit Profil</h3>
                     </div>
 
-                    <form action="{{ route('profile.update') }}" method="POST">
+                    <form action="{{ route('custom.profile.update') }}" method="POST">
                         @csrf
                         @method('PUT')
 

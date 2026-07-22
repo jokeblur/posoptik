@@ -5,8 +5,19 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>{{ config('app.name') }} | @yield('title')</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="description" content="Aplikasi manajemen optik dan resep kacamata Optik Melati">
+    <meta name="theme-color" content="#e74c3c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Optik Melati">
+    <meta name="msapplication-TileColor" content="#e74c3c">
+    <meta name="msapplication-config" content="/browserconfig.xml">
     <!-- Tell the browser to be responsive to screen width -->
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <link rel="icon" type="image/png" sizes="32x32" href="/image/optik-melati.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/image/optik-melati.png">
+    <link rel="apple-touch-icon" href="/image/optik-melati.png">
+    <link rel="manifest" href="/manifest.json?v=1.1.1">
     <!-- Bootstrap 3.3.7 -->
     <link rel="stylesheet" href="{{ asset('AdminLTE2/bower_components/bootstrap/dist/css/bootstrap.min.css') }}">
     <!-- Font Awesome -->
@@ -254,6 +265,7 @@
 <script src="{{ asset('AdminLTE2/bower_components/chart.js/Chart.js') }}"></script>
 <script src="{{ asset('js/validator.min.js') }}"></script>
 <script src="{{ asset('js/sweetalert-config.js') }}"></script>
+<script src="{{ asset('js/pwa.js') }}?v=1.1.1" defer></script>
 
 <script>
     function confirmLogout() {

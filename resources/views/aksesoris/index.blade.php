@@ -22,6 +22,7 @@
                         <th width='5%'>No</th>
                         <th>Nama Produk</th>
                         @if(auth()->user()->isSuperAdmin())
+                        <th>Cabang</th>
                         <th>Harga Beli</th>
                         @endif
                         <th>Harga Jual</th>
@@ -44,6 +45,7 @@
         {data: 'DT_RowIndex', searchable: false, orderable: false},
         {data: 'nama_produk'},
         @if(auth()->user()->isSuperAdmin())
+        {data: 'branch_name'},
         {data: 'harga_beli'},
         @endif
         {data: 'harga_jual'},

@@ -136,6 +136,11 @@
 </head>
 <body {{-- onload="window.print()" --}}>
     <div class="container">
+        @php
+            $hanyaAksesoris = $penjualan->details->count() > 0 && $penjualan->details->every(function ($detail) {
+                return $detail->itemable_type === 'App\\Models\\Aksesoris';
+            });
+        @endphp
         <div class="header">
             <h2>{{ $penjualan->branch->name ?? 'Optik Melati' }}</h2>
             @php
@@ -163,11 +168,23 @@
             </div>
         </div>
 
+        @if($hanyaAksesoris)
+        <div class="pasien-info">
+            <div class="info-row">
+                <span class="info-label">Pembeli:</span>
+                <span class="info-value">{{ $penjualan->nama_pasien ?? 'Umum' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Tgl Beli:</span>
+                <span class="info-value">{{ tanggal_indonesia($penjualan->tanggal, false) }}</span>
+            </div>
+        </div>
+        @else
         <!-- Informasi Pasien -->
         <div class="pasien-info">
             <div class="info-row">
                 <span class="info-label">Pasien:</span>
-                <span class="info-value">{{ $penjualan->pasien->nama_pasien ?? 'N/A' }}</span>
+                <span class="info-value">{{ $penjualan->nama_pasien ?? 'N/A' }}</span>
             </div>
             @if($penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii']))
             <div class="info-row">
@@ -186,9 +203,10 @@
                 <span class="info-value">{{ $penjualan->status_pengerjaan ?? 'Menunggu Pengerjaan' }}</span>
             </div>
         </div>
+        @endif
 
         <!-- Informasi Resep -->
-        @if($penjualan->pasien && ($penjualan->pasien->resep_od_sph || $penjualan->pasien->resep_os_sph))
+        @if(!$hanyaAksesoris && $penjualan->pasien && ($penjualan->pasien->resep_od_sph || $penjualan->pasien->resep_os_sph))
         <div class="resep-info">
             <div style="text-align: center; font-weight: bold; margin-bottom: 3px;">RESEP LENSA</div>
             <table class="resep-table">
@@ -230,7 +248,7 @@
         </div>
         @endif
         
-        @if($penjualan->barcode)
+        @if(!$hanyaAksesoris && $penjualan->barcode)
         <div class="qrcode-section">
             <div class="qrcode-label">SCAN QR CODE UNTUK UPDATE STATUS</div>
             <div class="qrcode">
@@ -243,7 +261,7 @@
         <hr class="dashed">
 
         @php
-            $isBPJS = $penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii']);
+            $isBPJS = !$hanyaAksesoris && $penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii']);
         @endphp
         
         @if($isBPJS)
@@ -258,7 +276,7 @@
                 @foreach($penjualan->details as $detail)
                 <tr>
                     <td>
-                        {{ $detail->itemable->merk_frame ?? $detail->itemable->merk_lensa ?? 'Produk' }}
+                        {{ $detail->itemable->merk_frame ?? $detail->itemable->merk_lensa ?? $detail->itemable->nama_produk ?? 'Produk' }}
                     </td>
                 </tr>
                 @endforeach
@@ -277,7 +295,7 @@
                 @foreach($penjualan->details as $detail)
                 <tr>
                     <td>
-                        {{ $detail->itemable->merk_frame ?? $detail->itemable->merk_lensa ?? 'Produk' }}
+                        {{ $detail->itemable->merk_frame ?? $detail->itemable->merk_lensa ?? $detail->itemable->nama_produk ?? 'Produk' }}
                         <br>
                         ({{ $detail->quantity }} x Rp {{ format_uang($detail->price) }})
                     </td>
@@ -292,7 +310,7 @@
 
         <hr class="dashed">
 
-        @if(!$isBPJS)
+        @if(!$isBPJS && !$hanyaAksesoris)
         <!-- Hanya tampilkan summary untuk non-BPJS -->
         <table class="summary">
             <tr>
@@ -316,7 +334,7 @@
                 <td class="value">Rp {{ format_uang($penjualan->kekurangan) }}</td>
             </tr>
         </table>
-        @else
+        @elseif(!$hanyaAksesoris)
         <!-- Untuk BPJS, tambahkan pesan khusus -->
         <div style="text-align: center; margin: 10px 0; font-style: italic;">
             <p>Layanan ditanggung oleh {{ strtoupper($penjualan->pasien->service_type) }}</p>
@@ -331,7 +349,9 @@
 
         <div class="footer">
             <p>Terima kasih atas kunjungan Anda!</p>
+            @if(!$hanyaAksesoris)
             <p>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.</p>
+            @endif
         </div>
     </div>
 

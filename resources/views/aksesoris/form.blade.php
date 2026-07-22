@@ -23,6 +23,14 @@
                             <input type="number" class="form-control" name="harga_beli" id="harga_beli" required min="0">
                         </div>
                     </div>
+                    @else
+                    <div class="form-group">
+                        <div class="col-sm-offset-3 col-sm-8">
+                            <div class="alert alert-info" style="margin-bottom:0;">
+                                Default modal aksesoris diatur oleh super admin.
+                            </div>
+                        </div>
+                    </div>
                     @endif
                     <div class="form-group">
                         <label for="harga_jual" class="col-sm-3 control-label">Harga Jual</label>

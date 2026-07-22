@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 use App\Models\Penjualan;
 use App\Models\PenjualanDetail;
+use App\Models\Aksesoris;
 use App\Models\Frame;
 use App\Models\Lensa;
 use App\Models\User;
@@ -17,10 +18,26 @@ use Carbon\Carbon;
 class PenjualanController extends Controller
 {
     protected $bpjsPricingService;
+    private const BPJS_SERVICE_TYPES = ['BPJS I', 'BPJS II', 'BPJS III'];
 
     public function __construct(BpjsPricingService $bpjsPricingService)
     {
         $this->bpjsPricingService = $bpjsPricingService;
+    }
+
+    private function isBpjsServiceType(?string $serviceType): bool
+    {
+        return in_array($serviceType, self::BPJS_SERVICE_TYPES, true);
+    }
+
+    private function findFreeCleanerAksesoris(int $branchId): ?Aksesoris
+    {
+        return Aksesoris::query()
+            ->where('branch_id', $branchId)
+            ->where('stok', '>', 0)
+            ->whereRaw('LOWER(nama_produk) LIKE ?', ['%cleaner%'])
+            ->orderByDesc('stok')
+            ->first();
     }
     /**
      * Display a listing of the resource.
@@ -232,20 +249,45 @@ class PenjualanController extends Controller
     public function searchProduct(Request $request)
     {
         $query = $request->get('q');
+        $user = auth()->user();
+
+        if ($user && ($user->isSuperAdmin() || $user->isAdmin())) {
+            $branchId = session('active_branch_id', $user->branch_id);
+        } else {
+            $branchId = $user->branch_id ?? null;
+        }
         
-        $frames = \App\Models\Frame::where('merk_frame', 'LIKE', "%{$query}%")
-            ->orWhere('kode_frame', 'LIKE', "%{$query}%")
+        $frames = \App\Models\Frame::when($branchId, function ($q) use ($branchId) {
+                return $q->where('branch_id', $branchId);
+            })
+            ->where(function ($q) use ($query) {
+                $q->where('merk_frame', 'LIKE', "%{$query}%")
+                  ->orWhere('kode_frame', 'LIKE', "%{$query}%");
+            })
             ->select('id', 'merk_frame as name', 'harga_jual_frame as price', \DB::raw("'frame' as type"))
             ->limit(5)
             ->get();
             
-        $lenses = \App\Models\Lensa::where('merk_lensa', 'LIKE', "%{$query}%")
-            ->orWhere('kode_lensa', 'LIKE', "%{$query}%")
+        $lenses = \App\Models\Lensa::when($branchId, function ($q) use ($branchId) {
+                return $q->where('branch_id', $branchId);
+            })
+            ->where(function ($q) use ($query) {
+                $q->where('merk_lensa', 'LIKE', "%{$query}%")
+                  ->orWhere('kode_lensa', 'LIKE', "%{$query}%");
+            })
             ->select('id', 'merk_lensa as name', 'harga_jual_lensa as price', 'index', 'cly', 'add', \DB::raw("'lensa' as type"))
             ->limit(5)
             ->get();
 
-        $products = $frames->concat($lenses);
+        $aksesoris = Aksesoris::when($branchId, function ($q) use ($branchId) {
+                return $q->where('branch_id', $branchId);
+            })
+            ->where('nama_produk', 'LIKE', "%{$query}%")
+            ->select('id', 'nama_produk as name', 'harga_jual as price', \DB::raw("'aksesoris' as type"))
+            ->limit(5)
+            ->get();
+
+        $products = $frames->concat($lenses)->concat($aksesoris);
 
         return response()->json($products);
     }
@@ -355,7 +397,9 @@ class PenjualanController extends Controller
         $frames = \App\Models\Frame::where('branch_id', $branch_id)->where('stok', '>', 0)->get();
         // Tampilkan semua lensa, termasuk yang stok 0
         $lenses = \App\Models\Lensa::where('branch_id', $branch_id)->get();
-        $aksesoris = \App\Models\Aksesoris::where('branch_id', $branch_id)->where('stok', '>', 0)->get();
+        $aksesoris = \App\Models\Aksesoris::where('branch_id', $branch_id)
+            ->orderBy('nama_produk')
+            ->get();
         
         // Cek apakah ada pasien_id yang dikirim dari form pasien
         $selected_pasien = null;
@@ -436,7 +480,7 @@ class PenjualanController extends Controller
             $pasien = null;
             if ($request->filled('pasien_id')) {
                 $pasien = Pasien::find($request->pasien_id);
-                if ($pasien && in_array($pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+                if ($pasien && $this->isBpjsServiceType($pasien->service_type)) {
                     $pasienServiceType = $pasien->service_type;
                     $bpjsDefaultPrice = $this->bpjsPricingService->getDefaultPrice($pasien->service_type);
                     
@@ -500,6 +544,8 @@ class PenjualanController extends Controller
                 'transaction_status' => $penjualan->transaction_status
             ]);
 
+            $containsCleanerItem = false;
+
             foreach ($items as $itemData) {
                 $itemModel = null;
                 $price = $itemData['price']; // Default price dari frontend
@@ -512,7 +558,7 @@ class PenjualanController extends Controller
                         $normalUnitPrice = $itemModel->harga_jual_frame ?? $normalUnitPrice;
                     }
                     // Jika ada pasien dengan service_type BPJS, gunakan pricing service
-                    if ($itemModel && $pasien && in_array($pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+                    if ($itemModel && $pasien && $this->isBpjsServiceType($pasien->service_type)) {
                         $pricing = $this->bpjsPricingService->calculateFramePrice($pasien, $itemModel);
                         $price = $pricing['price'];
                         $additionalCost = $pricing['additional_cost'];
@@ -551,9 +597,10 @@ class PenjualanController extends Controller
                         'branch_id' => $branch_id,
                     ]);
                 } elseif ($itemData['type'] === 'aksesoris') {
-                    $itemModel = \App\Models\Aksesoris::find($itemData['id']);
+                    $itemModel = Aksesoris::find($itemData['id']);
                     if ($itemModel) {
                         $normalUnitPrice = $itemModel->harga_jual ?? $normalUnitPrice;
+                        $containsCleanerItem = $containsCleanerItem || str_contains(strtolower($itemModel->nama_produk ?? ''), 'cleaner');
                     }
                 }
 
@@ -576,9 +623,39 @@ class PenjualanController extends Controller
                 }
             }
 
+            $isUmumTransaction = !$pasien || !$this->isBpjsServiceType($pasien->service_type ?? null);
+
+            if ($isUmumTransaction && !$containsCleanerItem) {
+                $cleanerItem = $this->findFreeCleanerAksesoris($branch_id);
+
+                if ($cleanerItem) {
+                    $penjualan->details()->create([
+                        'itemable_id' => $cleanerItem->id,
+                        'itemable_type' => get_class($cleanerItem),
+                        'quantity' => 1,
+                        'price' => 0,
+                        'subtotal' => 0,
+                        'additional_cost' => 0,
+                    ]);
+
+                    $cleanerItem->decrement('stok', 1);
+
+                    Log::info('Free cleaner added to umum transaction.', [
+                        'penjualan_id' => $penjualan->id,
+                        'aksesoris_id' => $cleanerItem->id,
+                        'branch_id' => $branch_id,
+                    ]);
+                } else {
+                    Log::warning('Cleaner aksesoris not found or out of stock for umum transaction.', [
+                        'penjualan_id' => $penjualan->id,
+                        'branch_id' => $branch_id,
+                    ]);
+                }
+            }
+
             // Rumus biaya tambahan BPJS:
             // total biaya tambahan = total harga jual produk - plafon BPJS sesuai kelas (minimum 0)
-            if ($pasien && in_array($pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
+            if ($pasien && $this->isBpjsServiceType($pasien->service_type)) {
                 $totalHargaJualProduk = $totalHargaJualProduk ?? 0;
                 $totalAdditionalCost = max(0, $totalHargaJualProduk - $bpjsDefaultPrice);
                 $transactionStatus = $totalAdditionalCost > 0 ? 'Naik Kelas' : 'Normal';

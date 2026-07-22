@@ -319,6 +319,12 @@
         <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Cetak Sekarang</button>
     </div>
     
+    @php
+        $hanyaAksesoris = $penjualan->details->count() > 0 && $penjualan->details->every(function ($detail) {
+            return $detail->itemable_type === 'App\\Models\\Aksesoris';
+        });
+    @endphp
+
     <div class="print-container">
         <!-- Header -->
         <div class="header">
@@ -347,8 +353,8 @@
                 <span class="info-value">{{ \Carbon\Carbon::parse($penjualan->tanggal)->format('d/m/Y H:i') }}</span>
             </div> -->
             <div class="info-row">
-                <span class="info-label">📅 Tanggal Hari Ini:</span>
-                <span class="info-value" style="font-weight: 600; color: #17a2b8;">{{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</span>
+                <span class="info-label">📅 Tanggal Beli:</span>
+                <span class="info-value" style="font-weight: 600; color: #17a2b8;">{{ \Carbon\Carbon::parse($penjualan->tanggal)->format('d/m/Y H:i') }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Kasir:</span>
@@ -362,7 +368,7 @@
                 <span class="info-label">Dokter:</span>
                 <span class="info-value">{{ $penjualan->dokter->nama_dokter ?? $penjualan->dokter_manual ?? 'N/A' }}</span>
             </div> -->
-            @if($penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii']))
+            @if(!$hanyaAksesoris && $penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii']))
             <div class="info-row">
                 <span class="info-label">Jenis Layanan:</span>
                 <span class="info-value">
@@ -376,7 +382,7 @@
             </div>
             @endif
             @endif
-            @if(!($penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii'])))
+            @if(!$hanyaAksesoris && !($penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii'])))
             <div class="info-row">
                 <span class="info-label">Status Bayar:</span>
                 <span class="info-value">
@@ -402,7 +408,7 @@
                     </span>
                 </span>
             </div> -->
-            @if($penjualan->tanggal_siap)
+            @if(!$hanyaAksesoris && $penjualan->tanggal_siap)
             <div class="info-row">
                 <span class="info-label">📅 Siap:</span>
                 <span class="info-value" style="font-weight: 600; color: #28a745;">
@@ -413,12 +419,20 @@
         </div>
 
         <!-- Informasi Pasien -->
-        @if($penjualan->pasien)
+        @if($hanyaAksesoris)
+        <div class="pasien-info">
+            <div class="section-title">DATA PEMBELI</div>
+            <div class="info-row">
+                <span class="info-label">Nama:</span>
+                <span class="info-value">{{ $penjualan->nama_pasien ?? 'Umum' }}</span>
+            </div>
+        </div>
+        @elseif($penjualan->pasien)
         <div class="pasien-info">
             <div class="section-title">INFORMASI PASIEN</div>
             <div class="info-row">
                 <span class="info-label">Nama:</span>
-                <span class="info-value">{{ $penjualan->pasien->nama_pasien ?? 'N/A' }}</span>
+                <span class="info-value">{{ $penjualan->nama_pasien ?? 'N/A' }}</span>
             </div>
             @if($penjualan->pasien->alamat)
             <div class="info-row">
@@ -510,7 +524,7 @@
         </div> -->
 
         <!-- Informasi Resep -->
-        @if($penjualan->pasien)
+        @if(!$hanyaAksesoris && $penjualan->pasien)
         <div class="resep-info">
             <div class="section-title">📋 RESEP LENSA PASIEN</div>
             
@@ -580,7 +594,7 @@
 
         <!-- Detail Produk -->
         @php
-            $isBPJS = $penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii']);
+            $isBPJS = !$hanyaAksesoris && $penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii']);
         @endphp
         
         <table class="items-table">
@@ -608,13 +622,13 @@
                         @elseif($detail->itemable_type === 'App\\Models\\Lensa')
                             {{ $detail->itemable->merk_lensa ?? 'Lensa' }}
                         @elseif($detail->itemable_type === 'App\\Models\\Aksesoris')
-                            {{ $detail->itemable->nama_aksesoris ?? 'Aksesoris' }}
+                            {{ $detail->itemable->nama_produk ?? 'Aksesoris' }}
                         @else
                             Produk tidak ditemukan
                         @endif
                     </td>
                     <td style="text-align: center;">{{ $detail->quantity }}</td>
-                    @if(!$isBPJS)
+                    @if(!$isBPJS && !$hanyaAksesoris)
                     <td style="text-align: right;">{{ number_format($detail->price, 0, ',', '.') }}</td>
                     <td style="text-align: right;">{{ number_format($detail->subtotal, 0, ',', '.') }}</td>
                     @endif
@@ -624,7 +638,7 @@
         </table>
 
         <!-- Total Section - Hanya untuk non-BPJS -->
-        @if(!$isBPJS)
+        @if(!$isBPJS && !$hanyaAksesoris)
         <div class="total-section">
             <div class="total-row">
                 <span class="total-label">Subtotal:</span>
@@ -655,7 +669,7 @@
             </div>
             @endif
         </div>
-        @else
+        @elseif(!$hanyaAksesoris)
         <!-- Pesan khusus untuk BPJS -->
         <div style="text-align: center; margin: 8px 0; font-style: italic; padding: 5px; border: 1px dashed #000; font-size: 8px;">
             <strong>Layanan ditanggung oleh {{ strtoupper($penjualan->pasien->service_type) }}</strong>
@@ -669,15 +683,17 @@
                     <div style="margin-bottom: 5px;">
                         <strong>Terima Kasih Telah Mempercayai Optik Melati</strong>
                     </div>
+                    @if(!$hanyaAksesoris)
                     <div>
                         Barang yang sudah dibeli tidak dapat dikembalikan<br>
                         Garansi sesuai ketentuan yang berlaku
                     </div>
+                    @endif
                     <div style="margin-top: 5px;">
                         Cetak: {{ \Carbon\Carbon::now()->format('d/m/Y H:i:s') }}
                     </div>
                 </div>
-                @if($penjualan->barcode)
+                @if(!$hanyaAksesoris && $penjualan->barcode)
                 <div class="footer-right">
                     <div class="qrcode-small">
                         <div class="qrcode-label-small">SCAN QR CODE</div>

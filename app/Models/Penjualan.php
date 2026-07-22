@@ -13,7 +13,7 @@ class Penjualan extends Model
     protected $guarded = [];
 
     protected $fillable = [
-        'kode_penjualan', 'tanggal', 'user_id', 'branch_id', 'pasien_id', 
+        'kode_penjualan', 'tanggal', 'user_id', 'branch_id', 'pasien_id', 'nama_pasien_manual',
         'dokter_id', 'dokter_manual', 'tanggal_siap', 'total', 'diskon', 'bayar', 
         'kekurangan', 'status', 'status_pengerjaan', 'photo_bpjs', 'signature_bpjs', 'signature_date',
         'pasien_service_type', 'bpjs_default_price', 'total_additional_cost', 'transaction_status',
@@ -54,6 +54,24 @@ class Penjualan extends Model
     public function passetByUser()
     {
         return $this->belongsTo(User::class, 'passet_by_user_id');
+    }
+
+    public function getNamaPasienAttribute()
+    {
+        if ($this->pasien_id && $this->pasien) {
+            return $this->pasien->nama_pasien;
+        }
+
+        return $this->nama_pasien_manual;
+    }
+
+    public function getNamaDokterAttribute()
+    {
+        if ($this->dokter_id && $this->dokter) {
+            return $this->dokter->nama_dokter;
+        }
+
+        return $this->dokter_manual;
     }
 
     /**

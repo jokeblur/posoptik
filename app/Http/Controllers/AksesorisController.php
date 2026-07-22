@@ -11,12 +11,15 @@ class AksesorisController extends Controller
     {
         if ($request->ajax()) {
             $user = auth()->user();
-            $data = Aksesoris::query();
+            $data = Aksesoris::query()->with('branch');
             if (!($user->isSuperAdmin() || $user->isAdmin())) {
                 $data = $data->where('branch_id', $user->branch_id);
             }
             return datatables()->of($data)
                 ->addIndexColumn()
+                ->addColumn('branch_name', function ($row) {
+                    return $row->branch->name ?? '-';
+                })
                 ->editColumn('harga_beli', function($row) {
                     return number_format($row->harga_beli, 0, ',', '.');
                 })
@@ -47,10 +50,24 @@ class AksesorisController extends Controller
     {
         try {
             $user = auth()->user();
-            $data = $request->all();
-            if (!$user->isSuperAdmin() && !$user->isAdmin()) {
-                $data['branch_id'] = $user->branch_id;
+
+            // Default modal (harga beli) ditentukan super admin saat setup produk.
+            if (!$user->isSuperAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Produk aksesoris baru harus dibuat super admin agar default modal terisi dulu.'
+                ], 403);
             }
+
+            $validated = $request->validate([
+                'nama_produk' => 'required|string|max:255',
+                'harga_beli' => 'required|integer|min:0',
+                'harga_jual' => 'required|integer|min:0',
+                'stok' => 'required|integer|min:0',
+                'branch_id' => 'required|exists:branches,id',
+            ]);
+
+            $data = $validated;
             Aksesoris::create($data);
             return response()->json(['success' => true, 'message' => 'Aksesoris berhasil ditambahkan']);
         } catch (\Exception $e) {
@@ -66,10 +83,28 @@ class AksesorisController extends Controller
             if (!$aksesoris) {
                 return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
             }
-            $data = $request->all();
-            if (!$user->isSuperAdmin() && !$user->isAdmin()) {
+
+            $rules = [
+                'nama_produk' => 'required|string|max:255',
+                'harga_jual' => 'required|integer|min:0',
+                'stok' => 'required|integer|min:0',
+                'branch_id' => 'nullable|exists:branches,id',
+            ];
+
+            if ($user->isSuperAdmin()) {
+                $rules['harga_beli'] = 'required|integer|min:0';
+                $rules['branch_id'] = 'required|exists:branches,id';
+            }
+
+            $validated = $request->validate($rules);
+
+            $data = $validated;
+
+            if (!$user->isSuperAdmin()) {
+                unset($data['harga_beli']);
                 $data['branch_id'] = $user->branch_id;
             }
+
             $aksesoris->update($data);
             return response()->json(['success' => true, 'message' => 'Aksesoris berhasil diupdate']);
         } catch (\Exception $e) {

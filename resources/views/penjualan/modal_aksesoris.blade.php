@@ -18,19 +18,25 @@
                     </thead>
                     <tbody>
                         @foreach($aksesoris as $aks)
-                        <tr>
+                        <tr data-id="{{ $aks->id }}">
                             <td>{{ $aks->id }}</td>
                             <td>{{ $aks->nama_produk }}</td>
-                            <td>{{ $aks->stok }}</td>
+                            <td><span class="stock-display">{{ $aks->stok }}</span></td>
                             <td>Rp {{ number_format($aks->harga_jual,0,',','.') }}</td>
                             <td>
-                                <a href="#" class="btn btn-warning btn-sm add-to-cart" 
-                                   data-id="{{ $aks->id }}" 
-                                   data-name="{{ $aks->nama_produk }}"
-                                   data-price="{{ $aks->harga_jual }}"
-                                   data-type="aksesoris">
-                                    <i class="fa fa-plus"></i>
-                                </a>
+                                @if((int) $aks->stok > 0)
+                                    <a href="#" class="btn btn-warning btn-sm add-to-cart" 
+                                       data-id="{{ $aks->id }}" 
+                                       data-name="{{ $aks->nama_produk }}"
+                                       data-price="{{ $aks->harga_jual }}"
+                                       data-type="aksesoris">
+                                        <i class="fa fa-plus"></i>
+                                    </a>
+                                @else
+                                    <button type="button" class="btn btn-default btn-sm" disabled>
+                                        Habis
+                                    </button>
+                                @endif
                             </td>
                         </tr>
                         @endforeach

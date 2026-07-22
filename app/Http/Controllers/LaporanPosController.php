@@ -170,14 +170,80 @@ class LaporanPosController extends Controller
         // Detail transaksi harian
         $detailHarian = Penjualan::when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->whereDate('created_at', $today)
-            ->with(['pasien', 'branch'])
+            ->with(['pasien', 'branch', 'details'])
             ->get();
+
+        $detailHarian->each(function ($trx) {
+            $trx->total_item = (int) $trx->details->sum('quantity');
+            $trx->item_aksesoris = (int) $trx->details
+                ->where('itemable_type', 'App\\Models\\Aksesoris')
+                ->sum('quantity');
+            $trx->nilai_aksesoris = (float) $trx->details
+                ->where('itemable_type', 'App\\Models\\Aksesoris')
+                ->sum('subtotal');
+        });
             
         // Detail transaksi bulanan
         $detailBulanan = Penjualan::when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
-            ->with(['pasien', 'branch'])
+            ->with(['pasien', 'branch', 'details'])
+            ->get();
+
+        $detailBulanan->each(function ($trx) {
+            $trx->total_item = (int) $trx->details->sum('quantity');
+            $trx->item_aksesoris = (int) $trx->details
+                ->where('itemable_type', 'App\\Models\\Aksesoris')
+                ->sum('quantity');
+            $trx->nilai_aksesoris = (float) $trx->details
+                ->where('itemable_type', 'App\\Models\\Aksesoris')
+                ->sum('subtotal');
+        });
+
+        // Ringkasan aksesoris: transaksi, jumlah item, omset, modal
+        $aksesorisHarian = DB::table('penjualan_detail as pd')
+            ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+            ->leftJoin('aksesoris as a', 'a.id', '=', 'pd.itemable_id')
+            ->when($branchId, fn($q) => $q->where('p.branch_id', $branchId))
+            ->whereDate('p.created_at', $today)
+            ->where('pd.itemable_type', 'App\\Models\\Aksesoris')
+            ->selectRaw('COUNT(DISTINCT p.id) as total_transaksi, COALESCE(SUM(pd.quantity),0) as total_item, COALESCE(SUM(pd.subtotal),0) as total_omset, COALESCE(SUM(pd.quantity * COALESCE(a.harga_beli,0)),0) as total_modal')
+            ->first();
+
+        $aksesorisBulanan = DB::table('penjualan_detail as pd')
+            ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+            ->leftJoin('aksesoris as a', 'a.id', '=', 'pd.itemable_id')
+            ->when($branchId, fn($q) => $q->where('p.branch_id', $branchId))
+            ->whereMonth('p.created_at', $bulan)
+            ->whereYear('p.created_at', $tahun)
+            ->where('pd.itemable_type', 'App\\Models\\Aksesoris')
+            ->selectRaw('COUNT(DISTINCT p.id) as total_transaksi, COALESCE(SUM(pd.quantity),0) as total_item, COALESCE(SUM(pd.subtotal),0) as total_omset, COALESCE(SUM(pd.quantity * COALESCE(a.harga_beli,0)),0) as total_modal')
+            ->first();
+
+        $labaKotorAksesorisHarian = (float) (($aksesorisHarian->total_omset ?? 0) - ($aksesorisHarian->total_modal ?? 0));
+        $labaKotorAksesorisBulanan = (float) (($aksesorisBulanan->total_omset ?? 0) - ($aksesorisBulanan->total_modal ?? 0));
+
+        $detailAksesorisHarian = DB::table('penjualan_detail as pd')
+            ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+            ->leftJoin('aksesoris as a', 'a.id', '=', 'pd.itemable_id')
+            ->when($branchId, fn($q) => $q->where('p.branch_id', $branchId))
+            ->whereDate('p.created_at', $today)
+            ->where('pd.itemable_type', 'App\\Models\\Aksesoris')
+            ->selectRaw('COALESCE(a.nama_produk, "-") as nama_produk, COUNT(DISTINCT p.id) as total_transaksi, COALESCE(SUM(pd.quantity),0) as total_qty, COALESCE(SUM(pd.subtotal),0) as total_omset, COALESCE(SUM(pd.quantity * COALESCE(a.harga_beli,0)),0) as total_modal, COALESCE(SUM(pd.subtotal - (pd.quantity * COALESCE(a.harga_beli,0))),0) as laba_kotor')
+            ->groupBy('a.id', 'a.nama_produk')
+            ->orderByDesc('total_qty')
+            ->get();
+
+        $detailAksesorisBulanan = DB::table('penjualan_detail as pd')
+            ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+            ->leftJoin('aksesoris as a', 'a.id', '=', 'pd.itemable_id')
+            ->when($branchId, fn($q) => $q->where('p.branch_id', $branchId))
+            ->whereMonth('p.created_at', $bulan)
+            ->whereYear('p.created_at', $tahun)
+            ->where('pd.itemable_type', 'App\\Models\\Aksesoris')
+            ->selectRaw('COALESCE(a.nama_produk, "-") as nama_produk, COUNT(DISTINCT p.id) as total_transaksi, COALESCE(SUM(pd.quantity),0) as total_qty, COALESCE(SUM(pd.subtotal),0) as total_omset, COALESCE(SUM(pd.quantity * COALESCE(a.harga_beli,0)),0) as total_modal, COALESCE(SUM(pd.subtotal - (pd.quantity * COALESCE(a.harga_beli,0))),0) as laba_kotor')
+            ->groupBy('a.id', 'a.nama_produk')
+            ->orderByDesc('total_qty')
             ->get();
 
         // Summary per cabang (hanya untuk super admin)
@@ -213,7 +279,10 @@ class LaporanPosController extends Controller
             'detailHarian', 'detailBulanan', 'branches', 'selectedBranchId', 
             'selectedBranch', 'isSuperAdmin', 'summaryCabang',
             'omsetHarianBpjs', 'omsetHarianUmum',
-            'omsetBulananBpjs', 'omsetBulananUmum'
+            'omsetBulananBpjs', 'omsetBulananUmum',
+            'aksesorisHarian', 'aksesorisBulanan',
+            'labaKotorAksesorisHarian', 'labaKotorAksesorisBulanan',
+            'detailAksesorisHarian', 'detailAksesorisBulanan'
         ));
     }
 
@@ -319,6 +388,23 @@ class LaporanPosController extends Controller
                 ->whereMonth('created_at', $bulan)
                 ->whereYear('created_at', $tahun)
                 ->count(),
+            'aksesoris_harian' => DB::table('penjualan_detail as pd')
+                ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+                ->leftJoin('aksesoris as a', 'a.id', '=', 'pd.itemable_id')
+                ->where('p.branch_id', $branchId)
+                ->whereDate('p.created_at', $today)
+                ->where('pd.itemable_type', 'App\\Models\\Aksesoris')
+                ->selectRaw('COUNT(DISTINCT p.id) as total_transaksi, COALESCE(SUM(pd.quantity),0) as total_item, COALESCE(SUM(pd.subtotal),0) as total_omset, COALESCE(SUM(pd.quantity * COALESCE(a.harga_beli,0)),0) as total_modal')
+                ->first(),
+            'aksesoris_bulanan' => DB::table('penjualan_detail as pd')
+                ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+                ->leftJoin('aksesoris as a', 'a.id', '=', 'pd.itemable_id')
+                ->where('p.branch_id', $branchId)
+                ->whereMonth('p.created_at', $bulan)
+                ->whereYear('p.created_at', $tahun)
+                ->where('pd.itemable_type', 'App\\Models\\Aksesoris')
+                ->selectRaw('COUNT(DISTINCT p.id) as total_transaksi, COALESCE(SUM(pd.quantity),0) as total_item, COALESCE(SUM(pd.subtotal),0) as total_omset, COALESCE(SUM(pd.quantity * COALESCE(a.harga_beli,0)),0) as total_modal')
+                ->first(),
         ];
 
         return response()->json($data);

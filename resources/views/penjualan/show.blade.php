@@ -21,7 +21,7 @@
                         <table class="table">
                             <tr>
                                 <th style="width: 30%;">Pasien</th>
-                                <td>{{ $penjualan->pasien->nama_pasien ?? $penjualan->nama_pasien_manual ?? 'N/A' }}</td>
+                                <td>{{ $penjualan->nama_pasien ?? 'N/A' }}</td>
                             </tr>
                             @if(!$hanyaAksesoris)
                             <tr>
@@ -58,7 +58,7 @@
                             @endif
                             <tr>
                                 <th>Dokter</th>
-                                <td>{{ $penjualan->dokter->nama_dokter ?? 'N/A' }}</td>
+                                <td>{{ $penjualan->nama_dokter ?? 'N/A' }}</td>
                             </tr>
                             @endif
                         </table>

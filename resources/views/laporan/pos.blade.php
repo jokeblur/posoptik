@@ -234,6 +234,77 @@
                             </a>
                         </div>
                     </div>
+
+                    <div class="col-md-4">
+                        <div class="small-box bg-purple">
+                            <div class="inner">
+                                <h3>{{ number_format($aksesorisHarian->total_transaksi ?? 0,0,',','.') }}</h3>
+                                <p>Transaksi Aksesoris Hari Ini</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-shopping-bag"></i>
+                            </div>
+                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#modal-aksesoris-harian">
+                                Detail Harian Aksesoris <i class="fa fa-arrow-circle-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small-box bg-maroon">
+                            <div class="inner">
+                                <h3>{{ number_format($aksesorisHarian->total_item ?? 0,0,',','.') }}</h3>
+                                <p>Qty Item Aksesoris Hari Ini</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-cubes"></i>
+                            </div>
+                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#modal-aksesoris-harian">
+                                Detail Harian Aksesoris <i class="fa fa-arrow-circle-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small-box bg-black">
+                            <div class="inner">
+                                <h3>Rp {{ number_format($aksesorisHarian->total_omset ?? 0,0,',','.') }}</h3>
+                                <p>Omset Aksesoris Hari Ini</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-money"></i>
+                            </div>
+                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#modal-aksesoris-harian">
+                                Detail Harian Aksesoris <i class="fa fa-arrow-circle-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="small-box bg-gray">
+                            <div class="inner">
+                                <h3>Rp {{ number_format($aksesorisBulanan->total_modal ?? 0,0,',','.') }}</h3>
+                                <p>Modal Aksesoris Bulanan</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-calculator"></i>
+                            </div>
+                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#modal-aksesoris-bulanan">
+                                Detail Bulanan Aksesoris <i class="fa fa-arrow-circle-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="small-box bg-green">
+                            <div class="inner">
+                                <h3>Rp {{ number_format($labaKotorAksesorisBulanan ?? 0,0,',','.') }}</h3>
+                                <p>Laba Kotor Aksesoris Bulanan</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-line-chart"></i>
+                            </div>
+                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#modal-aksesoris-bulanan">
+                                Detail Bulanan Aksesoris <i class="fa fa-arrow-circle-right"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -349,6 +420,86 @@
     </div>
 </div>
 
+<!-- Modal Detail Aksesoris Harian -->
+<div class="modal fade" id="modal-aksesoris-harian" tabindex="-1" role="dialog" aria-labelledby="modalAksesorisHarianLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="modalAksesorisHarianLabel">Detail Aksesoris Harian</h4>
+            </div>
+            <div class="modal-body table-responsive">
+                <table class="table table-bordered table-striped datatable" id="table-aksesoris-harian">
+                    <thead>
+                        <tr>
+                            <th>Nama Aksesoris</th>
+                            <th>Jumlah Transaksi</th>
+                            <th>Qty Item</th>
+                            <th>Omset</th>
+                            <th>Modal</th>
+                            <th>Laba Kotor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($detailAksesorisHarian as $row)
+                        <tr>
+                            <td>{{ $row->nama_produk }}</td>
+                            <td>{{ number_format($row->total_transaksi,0,',','.') }}</td>
+                            <td>{{ number_format($row->total_qty,0,',','.') }}</td>
+                            <td>Rp {{ number_format($row->total_omset,0,',','.') }}</td>
+                            <td>Rp {{ number_format($row->total_modal,0,',','.') }}</td>
+                            <td>Rp {{ number_format($row->laba_kotor,0,',','.') }}</td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="6" class="text-center">Tidak ada data aksesoris harian</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detail Aksesoris Bulanan -->
+<div class="modal fade" id="modal-aksesoris-bulanan" tabindex="-1" role="dialog" aria-labelledby="modalAksesorisBulananLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="modalAksesorisBulananLabel">Detail Aksesoris Bulanan ({{ $bulan }}/{{ $tahun }})</h4>
+            </div>
+            <div class="modal-body table-responsive">
+                <table class="table table-bordered table-striped datatable" id="table-aksesoris-bulanan">
+                    <thead>
+                        <tr>
+                            <th>Nama Aksesoris</th>
+                            <th>Jumlah Transaksi</th>
+                            <th>Qty Item</th>
+                            <th>Omset</th>
+                            <th>Modal</th>
+                            <th>Laba Kotor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($detailAksesorisBulanan as $row)
+                        <tr>
+                            <td>{{ $row->nama_produk }}</td>
+                            <td>{{ number_format($row->total_transaksi,0,',','.') }}</td>
+                            <td>{{ number_format($row->total_qty,0,',','.') }}</td>
+                            <td>Rp {{ number_format($row->total_omset,0,',','.') }}</td>
+                            <td>Rp {{ number_format($row->total_modal,0,',','.') }}</td>
+                            <td>Rp {{ number_format($row->laba_kotor,0,',','.') }}</td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="6" class="text-center">Tidak ada data aksesoris bulanan</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Daftar Piutang -->
 <div class="modal fade" id="modal-piutang" tabindex="-1" role="dialog" aria-labelledby="modalPiutangLabel">
     <div class="modal-dialog modal-lg" role="document">
@@ -420,6 +571,9 @@
                             @endif
                             <th>Status Layanan</th>
                             <th>Harga Default Layanan BPJS</th>
+                            <th>Jumlah Item</th>
+                            <th>Item Aksesoris</th>
+                            <th>Nilai Aksesoris</th>
                             <th>Bayar</th>
                             <th>Status</th>
                         </tr>
@@ -450,11 +604,14 @@
                                     Rp {{ number_format(0,0,',','.') }}
                                 @endif
                             </td>
+                            <td>{{ number_format($trx->total_item ?? 0,0,',','.') }}</td>
+                            <td>{{ number_format($trx->item_aksesoris ?? 0,0,',','.') }}</td>
+                            <td>Rp {{ number_format($trx->nilai_aksesoris ?? 0,0,',','.') }}</td>
                             <td>Rp {{ number_format($trx->bayar,0,',','.') }}</td>
                             <td>{{ $trx->status }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '8' : '7' }}" class="text-center">Tidak ada data</td></tr>
+                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '11' : '10' }}" class="text-center">Tidak ada data</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -482,6 +639,9 @@
                             @endif
                             <th>Status Layanan</th>
                             <th>Harga Default Layanan BPJS</th>
+                            <th>Jumlah Item</th>
+                            <th>Item Aksesoris</th>
+                            <th>Nilai Aksesoris</th>
                             <th>Bayar</th>
                             <th>Status</th>
                         </tr>
@@ -512,11 +672,14 @@
                                     Rp {{ number_format(0,0,',','.') }}
                                 @endif
                             </td>
+                            <td>{{ number_format($trx->total_item ?? 0,0,',','.') }}</td>
+                            <td>{{ number_format($trx->item_aksesoris ?? 0,0,',','.') }}</td>
+                            <td>Rp {{ number_format($trx->nilai_aksesoris ?? 0,0,',','.') }}</td>
                             <td>Rp {{ number_format($trx->bayar,0,',','.') }}</td>
                             <td>{{ $trx->status }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '8' : '7' }}" class="text-center">Tidak ada data</td></tr>
+                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '11' : '10' }}" class="text-center">Tidak ada data</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -548,16 +711,48 @@ $(function() {
 
     // Detail transaksi omset harian (modal)
     initDataTable('#table-harian', {
-        order: [[1, 'desc']]
+        order: [[1, 'desc']],
+        columnDefs: [
+            {
+                targets: hasBranchColumn ? [6, 7, 8, 9] : [5, 6, 7, 8],
+                className: 'text-right'
+            }
+        ]
     });
 
     // Modal detail lainnya
     initDataTable('#table-bulanan', {
-        order: [[1, 'desc']]
+        order: [[1, 'desc']],
+        columnDefs: [
+            {
+                targets: hasBranchColumn ? [6, 7, 8, 9] : [5, 6, 7, 8],
+                className: 'text-right'
+            }
+        ]
     });
 
     initDataTable('#table-piutang', {
         order: [[1, 'desc']]
+    });
+
+    initDataTable('#table-aksesoris-harian', {
+        order: [[2, 'desc']],
+        columnDefs: [
+            {
+                targets: [1, 2, 3, 4, 5],
+                className: 'text-right'
+            }
+        ]
+    });
+
+    initDataTable('#table-aksesoris-bulanan', {
+        order: [[2, 'desc']],
+        columnDefs: [
+            {
+                targets: [1, 2, 3, 4, 5],
+                className: 'text-right'
+            }
+        ]
     });
 
     // Rekap DP (Belum Lunas)

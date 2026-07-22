@@ -311,7 +311,7 @@
     <div class="col-md-6">
         <div class="box box-success">
             <div class="box-header with-border">
-                <h3 class="box-title">Rekap Lunas</h3>
+                <h3 class="box-title">Rekap Lunas (Pasien Umum)</h3>
             </div>
             <div class="box-body table-responsive">
                 <table id="table-rekap-lunas" class="table table-bordered table-striped">
@@ -323,7 +323,7 @@
                             @if($isSuperAdmin && !$selectedBranchId)
                             <th>Cabang</th>
                             @endif
-                            <th>Harga Default Layanan BPJS</th>
+                            <th>Total Transaksi Umum</th>
                             <th>Bayar</th>
                         </tr>
                     </thead>

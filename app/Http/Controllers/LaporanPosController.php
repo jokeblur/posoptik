@@ -141,6 +141,20 @@ class LaporanPosController extends Controller
         // Rekap Lunas
         $rekapLunas = Penjualan::when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->where('status', 'Lunas')
+            ->where(function ($q) use ($bpjsTypes) {
+                $q->where(function ($sub) use ($bpjsTypes) {
+                    $sub->whereNotNull('pasien_service_type')
+                        ->whereNotIn('pasien_service_type', $bpjsTypes);
+                })->orWhere(function ($sub) use ($bpjsTypes) {
+                    $sub->whereNull('pasien_service_type')
+                        ->where(function ($sub2) use ($bpjsTypes) {
+                            $sub2->whereDoesntHave('pasien')
+                                ->orWhereHas('pasien', function ($pasienQuery) use ($bpjsTypes) {
+                                    $pasienQuery->whereNotIn('service_type', $bpjsTypes);
+                                });
+                        });
+                });
+            })
             ->with(['pasien', 'branch'])
             ->get();
 

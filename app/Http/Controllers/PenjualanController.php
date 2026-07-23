@@ -99,7 +99,40 @@ class PenjualanController extends Controller
         $kode = $penjualan->kode_penjualan ?: '-';
         $cabang = $penjualan->branch->name ?? 'Optik Melati';
 
-        return "Halo {$namaPasien}, kacamata Anda dengan nomor nota {$kode} sudah selesai dikerjakan dan sudah bisa diambil di {$cabang}. Terima kasih.";
+        
+
+
+return "Halo {$namaPasien}, kacamata Anda dengan nomor nota {$kode} sudah selesai dikerjakan dan sudah bisa diambil di {$cabang}. Terima kasih. jadwal pengabilan bisa di lakukan Senin"; gimana cara nulisnya biar rapi bro, saya mau tambhakan informasi buka senin- sabtu jam 08.00 s/d 16.30, minggu tutup, pukul 12.30-13.30 ISTIRAHAT *tidak melayani diluar jam kerja gitu broo buatkan bro
+
+Bisa dibuat lebih rapi dan enak dibaca seperti ini bro:
+
+return "Halo {$namaPasien},
+
+Kacamata Anda dengan nomor nota {$kode} telah selesai dikerjakan dan sudah bisa diambil di {$cabang}.
+
+🕒 Jam Operasional:
+• Senin - Sabtu : 08.00 - 16.30 WIB
+• Istirahat      : 12.30 - 13.30 WIB
+• Minggu         : Tutup
+
+Mohon datang pada jam operasional. Kami tidak melayani pengambilan di luar jam kerja.
+
+Terima kasih, kami tunggu kedatangannya 😊";
+Kalau mau lebih profesional untuk dikirim via WhatsApp, bisa seperti ini:
+
+return "Halo Bapak/Ibu {$namaPasien},
+
+Kami informasikan bahwa kacamata Anda dengan nomor nota *{$kode}* telah selesai dikerjakan dan sudah dapat diambil di *{$cabang}*.
+
+*Jam Operasional*
+📅 Senin - Sabtu
+🕗 08.00 - 16.30 WIB
+☕ Istirahat: 12.30 - 13.30 WIB
+🚫 Minggu: Tutup
+
+Mohon melakukan pengambilan pada jam operasional. Kami tidak melayani pengambilan di luar jam kerja.
+
+Terima kasih atas kepercayaan Anda kepada Optik Melati. Kami tunggu kedatangannya.";
     }
 
     private function notifyWhatsappReadyPickup(Penjualan $penjualan): array

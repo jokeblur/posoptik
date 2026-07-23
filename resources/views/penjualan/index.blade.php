@@ -64,6 +64,13 @@
         <div class="box">
             <div class="box-header with-border">
                 <a href="{{ route('penjualan.create') }}" class="btn btn-sm btn-custom">Tambah Penjualan Baru</a>
+                <div class="form-group pull-right" style="margin-bottom: 0; margin-left: 10px;">
+                    <select id="jenis_transaksi_filter" class="form-control input-sm">
+                        <option value="">Semua Jenis Transaksi</option>
+                        <option value="Stock">Stock</option>
+                        <option value="Gosok">Gosok</option>
+                    </select>
+                </div>
                 @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
                 <div class="form-group pull-right" style="margin-bottom: 0;">
                     <select id="branch_id_filter" class="form-control input-sm">
@@ -89,6 +96,7 @@
                             <th>Total</th>
                             <th>Passet Oleh</th>
                             <th>Jenis Layanan</th>
+                            <th>Jenis Transaksi</th>
                             <th>Status Transaksi</th>
                             <th>Status Pengerjaan</th>
                             <th width="15%"><i class="fa fa-cog"></i></th>
@@ -111,6 +119,7 @@
     let table; // Deklarasikan di sini agar bisa diakses secara global di dalam script
     let currentFilter = '';
     let currentBranchId = $('#branch_id_filter').val(); // Ambil nilai awal dari dropdown
+    let currentJenisTransaksi = $('#jenis_transaksi_filter').val();
 
     $(function () {
         table = $('#penjualan-table').DataTable({
@@ -121,6 +130,9 @@
                 data: function(d) {
                     if (currentFilter) {
                         d.status_filter = currentFilter;
+                    }
+                    if (currentJenisTransaksi) {
+                        d.jenis_transaksi = currentJenisTransaksi;
                     }
                     // Tambahkan filter cabang
                     if (currentBranchId) {
@@ -137,6 +149,7 @@
                 { data: 'total_harga', name: 'total_harga' },
                 { data: 'passet_by', name: 'passet_by' },
                 { data: 'jenis_layanan', name: 'jenis_layanan' },
+                { data: 'jenis_transaksi', name: 'jenis_transaksi' },
                 { data: 'status_transaksi', name: 'status_transaksi' },
                 { data: 'status_pengerjaan', name: 'status_pengerjaan' },
                 { data: 'aksi', name: 'aksi', orderable: false, searchable: false }
@@ -156,6 +169,12 @@
             table.ajax.reload();
             updateStatistics(); // Juga update statistik saat cabang berubah
         });
+
+        $('#jenis_transaksi_filter').on('change', function() {
+            currentJenisTransaksi = $(this).val();
+            table.ajax.reload();
+                updateStatistics();
+        });
     });
     
     function updateStatistics() {
@@ -163,7 +182,8 @@
             url: '{{ route("penjualan.statistics") }}',
             method: 'GET',
             data: {
-                branch_id: currentBranchId // Kirim branch_id ke endpoint statistik
+                    branch_id: currentBranchId,
+                    jenis_transaksi: currentJenisTransaksi
             },
             success: function(response) {
                 $('#menunggu-count').text(response.menunggu || 0);

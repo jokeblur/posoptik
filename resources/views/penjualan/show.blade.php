@@ -46,6 +46,12 @@
                                     @endif
                                 </td>
                             </tr>
+                            <tr>
+                                <th>Jenis Transaksi</th>
+                                <td>
+                                    <span class="label label-{{ $penjualan->jenis_transaksi == 'Gosok' ? 'warning' : 'info' }}">{{ $penjualan->jenis_transaksi ?? 'Stock' }}</span>
+                                </td>
+                            </tr>
                             @if($penjualan->pasien_service_type)
                             <tr>
                                 <th>Jenis Layanan BPJS</th>

@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
 use App\Models\OpenDay;
 use Carbon\Carbon;
 
@@ -41,6 +42,33 @@ class PenjualanController extends Controller
             ->whereRaw('LOWER(nama_produk) LIKE ?', ['%cleaner%'])
             ->orderByDesc('stok')
             ->first();
+    }
+
+    private function applyJenisTransaksiFilter($query, ?string $jenisTransaksi, bool $hasJenisTransaksiColumn)
+    {
+        if (!$jenisTransaksi) {
+            return $query;
+        }
+
+        if ($hasJenisTransaksiColumn) {
+            return $query->where('jenis_transaksi', $jenisTransaksi);
+        }
+
+        $gosokLensIds = Lensa::query()
+            ->where('is_custom_order', true)
+            ->select('id');
+
+        if ($jenisTransaksi === 'Gosok') {
+            return $query->whereHas('details', function ($detailQuery) use ($gosokLensIds) {
+                $detailQuery->where('itemable_type', Lensa::class)
+                    ->whereIn('itemable_id', $gosokLensIds);
+            });
+        }
+
+        return $query->whereDoesntHave('details', function ($detailQuery) use ($gosokLensIds) {
+            $detailQuery->where('itemable_type', Lensa::class)
+                ->whereIn('itemable_id', $gosokLensIds);
+        });
     }
 
     private function normalizeWhatsappNumber(?string $phone): ?string
@@ -156,6 +184,7 @@ class PenjualanController extends Controller
     {
         $user = auth()->user();
         $query = Penjualan::query();
+        $hasJenisTransaksiColumn = Schema::hasColumn('penjualan', 'jenis_transaksi');
 
         // Jika user super admin atau admin, gunakan branch_id dari request jika ada
         if ($user->isSuperAdmin() || $user->isAdmin()) {
@@ -173,6 +202,8 @@ class PenjualanController extends Controller
             // User biasa hanya bisa melihat cabang mereka sendiri
             $query->where('branch_id', $user->branch_id);
         }
+
+        $this->applyJenisTransaksiFilter($query, request()->jenis_transaksi, $hasJenisTransaksiColumn);
 
         $statistics = $query->selectRaw('
             SUM(CASE WHEN status_pengerjaan = "Menunggu Pengerjaan" THEN 1 ELSE 0 END) as menunggu,
@@ -193,6 +224,7 @@ class PenjualanController extends Controller
     {
         $user = auth()->user();
         $query = Penjualan::with('user', 'branch', 'passetByUser', 'dokter', 'pasien')->latest();
+        $hasJenisTransaksiColumn = Schema::hasColumn('penjualan', 'jenis_transaksi');
 
         // Jika user super admin atau admin, gunakan branch_id dari request jika ada
         if ($user->isSuperAdmin() || $user->isAdmin()) {
@@ -215,6 +247,9 @@ class PenjualanController extends Controller
         if ($request->has('status_filter') && $request->status_filter) {
             $query->where('status_pengerjaan', $request->status_filter);
         }
+
+        // Filter berdasarkan jenis transaksi jika ada
+        $this->applyJenisTransaksiFilter($query, $request->jenis_transaksi, $hasJenisTransaksiColumn);
 
         $penjualan = $query->get();
 
@@ -279,6 +314,12 @@ class PenjualanController extends Controller
                     return '<span class="label label-success">' . ($penjualan->transaction_status ?? 'Normal') . '</span>';
                 }
             })
+            ->addColumn('jenis_transaksi', function ($penjualan) {
+                $jenis = $penjualan->jenis_transaksi ?? 'Stock';
+                $labelClass = $jenis === 'Gosok' ? 'label-warning' : 'label-info';
+
+                return '<span class="label ' . $labelClass . '">' . e($jenis) . '</span>';
+            })
             ->addColumn('status_pengerjaan', function ($penjualan) {
                 $statusClass = 'label-default';
                 $statusText = $penjualan->status_pengerjaan;
@@ -336,7 +377,7 @@ class PenjualanController extends Controller
             ->addColumn('barcode', function ($penjualan) {
                 return $penjualan->barcode ?? null;
             })
-            ->rawColumns(['aksi', 'kode_penjualan', 'status_pengerjaan', 'status_transaksi', 'total_harga', 'jenis_layanan'])
+            ->rawColumns(['aksi', 'kode_penjualan', 'status_pengerjaan', 'status_transaksi', 'jenis_transaksi', 'total_harga', 'jenis_layanan'])
             ->make(true);
     }
     public function searchProduct(Request $request)
@@ -529,7 +570,9 @@ class PenjualanController extends Controller
             return response()->json(['message' => 'Transaksi tidak dapat dilakukan. Kasir cabang ini sudah tutup atau belum dibuka.'], 403);
         }
         // Validasi dasar
-        $rules = [
+            $hasJenisTransaksiColumn = Schema::hasColumn('penjualan', 'jenis_transaksi');
+
+            $rules = [
             'kode_penjualan' => 'required|unique:penjualan,kode_penjualan',
             'items' => 'required|json',
             'total' => 'required|numeric',
@@ -537,6 +580,10 @@ class PenjualanController extends Controller
             'bayar' => 'required|numeric|min:0',
             'kekurangan' => 'required|numeric',
         ];
+
+        if ($hasJenisTransaksiColumn) {
+            $rules['jenis_transaksi'] = 'required|in:Stock,Gosok';
+        }
 
         // Validasi kondisional untuk pasien
         if ($request->filled('pasien_id')) {
@@ -553,6 +600,7 @@ class PenjualanController extends Controller
             $kekurangan = $request->kekurangan;
             $status = $kekurangan <= 0 ? 'Lunas' : 'Belum Lunas';
             $transactionStatus = 'Normal'; // Default status
+            $jenisTransaksi = $hasJenisTransaksiColumn ? ($request->jenis_transaksi ?: 'Stock') : null;
             $bpjsDefaultPrice = 0;
             $totalAdditionalCost = 0;
             $pasienServiceType = null;
@@ -564,6 +612,10 @@ class PenjualanController extends Controller
             $mengandungLensaGosok = !empty($items) && collect($items)->contains(function ($item) {
                 return ($item['type'] ?? null) === 'lensa_gosok';
             });
+
+            if ($mengandungLensaGosok) {
+                $jenisTransaksi = 'Gosok';
+            }
 
             $tanggalSiap = $mengandungLensaGosok
                 ? now()->addDays(15)->toDateString()
@@ -613,6 +665,10 @@ class PenjualanController extends Controller
                 'status_pengerjaan' => $hanyaAksesoris ? 'Sudah Diambil' : 'Menunggu Pengerjaan',
                 'waktu_sudah_diambil' => $hanyaAksesoris ? now() : null,
             ];
+
+            if ($hasJenisTransaksiColumn) {
+                $penjualanData['jenis_transaksi'] = $jenisTransaksi ?? 'Stock';
+            }
 
             // Handle file upload
             if ($request->hasFile('photo_bpjs')) {
@@ -865,6 +921,14 @@ class PenjualanController extends Controller
             'signature_bpjs' => 'nullable|string',
         ]);
 
+        $hasJenisTransaksiColumn = Schema::hasColumn('penjualan', 'jenis_transaksi');
+
+        if ($hasJenisTransaksiColumn) {
+            $request->validate([
+                'jenis_transaksi' => 'required|in:Stock,Gosok',
+            ]);
+        }
+
         try {
             DB::beginTransaction();
 
@@ -878,6 +942,10 @@ class PenjualanController extends Controller
             $penjualan->bayar = $request->bayar;
             $penjualan->status = $request->status;
             $penjualan->status_pengerjaan = $request->status_pengerjaan;
+
+            if ($hasJenisTransaksiColumn) {
+                $penjualan->jenis_transaksi = $request->jenis_transaksi;
+            }
 
             // Update bukti BPJS jika diunggah ulang
             if ($request->hasFile('photo_bpjs')) {

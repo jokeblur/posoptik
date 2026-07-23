@@ -98,6 +98,13 @@
                         <input type="date" class="form-control" name="tanggal_siap" id="tanggal_siap">
                     </div>
                     <div class="form-group col-md-4">
+                        <label for="jenis_transaksi">Jenis Transaksi</label>
+                        <select name="jenis_transaksi" id="jenis_transaksi" class="form-control" style="border-radius: 25px; border: 2px solid #ddd; padding: 8px 15px; font-size: 14px;">
+                            <option value="Stock" selected>Stock</option>
+                            <option value="Gosok">Gosok</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-4">
                         <label>Pasien</label>
                         <div class="input-group">
                             <input type="hidden" name="pasien_id" id="pasien_id">
@@ -389,6 +396,10 @@ $(function() {
     $('#table-aksesoris').DataTable();
     $('#table-pasien').DataTable();
 
+    function setJenisTransaksi(value) {
+        $('#jenis_transaksi').val(value || 'Stock');
+    }
+
     let cart = [];
     let currentBPJSLevel = null; // Variabel global untuk menyimpan level BPJS
     
@@ -642,6 +653,8 @@ $(function() {
         } else { 
             cart.push(product); 
         }
+
+        setJenisTransaksi(cart.some(item => item.type === 'lensa_gosok') ? 'Gosok' : 'Stock');
         
         // Validasi komposisi cart untuk BPJS
         validateBPJSCart();
@@ -1106,6 +1119,7 @@ $(function() {
 
         const hasLensaGosok = cart.some(item => item.type === 'lensa_gosok');
         if (hasLensaGosok) {
+            setJenisTransaksi('Gosok');
             const targetDate = new Date();
             targetDate.setDate(targetDate.getDate() + 15);
             const yyyy = targetDate.getFullYear();
@@ -1114,6 +1128,7 @@ $(function() {
             tanggalSiapInput.val(`${yyyy}-${mm}-${dd}`);
             tanggalSiapInput.prop('readonly', true);
         } else {
+            setJenisTransaksi('Stock');
             tanggalSiapInput.prop('readonly', false);
         }
     }

@@ -33,6 +33,13 @@
                         <input type="date" class="form-control" name="tanggal_siap" value="{{ $penjualan->tanggal_siap }}">
                     </div>
                     <div class="form-group col-md-4">
+                        <label for="jenis_transaksi">Jenis Transaksi</label>
+                        <select name="jenis_transaksi" id="jenis_transaksi" class="form-control" style="border-radius: 25px; border: 2px solid #ddd; padding: 8px 15px; font-size: 14px;">
+                            <option value="Stock" {{ $penjualan->jenis_transaksi === 'Stock' ? 'selected' : '' }}>Stock</option>
+                            <option value="Gosok" {{ $penjualan->jenis_transaksi === 'Gosok' ? 'selected' : '' }}>Gosok</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-4">
                         <label>Pasien</label>
                         <div class="input-group">
                             <input type="hidden" name="pasien_id" id="pasien_id" value="{{ $penjualan->pasien_id }}">

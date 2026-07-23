@@ -114,9 +114,18 @@
     
     <!-- Custom Scripts -->
     <script>
-        // Force refresh to prevent caching
-        if (window.performance && window.performance.navigation.type === window.performance.navigation.TYPE_BACK_FORWARD) {
-            window.location.reload(true);
+        // Reload pages restored from browser history so the CSRF token is always fresh.
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
+
+        if (window.performance && window.performance.getEntriesByType) {
+            const navigationEntries = window.performance.getEntriesByType('navigation');
+            if (navigationEntries.length > 0 && navigationEntries[0].type === 'back_forward') {
+                window.location.reload();
+            }
         }
         
         // Add loading state to form

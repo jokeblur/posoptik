@@ -17,7 +17,7 @@ class Transaksi extends Model
         'dokter_id', 'dokter_manual', 'user_id', 'branch_id', 'total', 'diskon', 
         'bayar', 'kekurangan', 'status', 'transaction_status', 'bpjs_default_price', 
         'total_additional_cost', 'pasien_service_type', 'status_pengerjaan', 'waktu_sudah_diambil', 
-        'photo_bpjs', 'passet_by_user_id'
+        'jenis_transaksi', 'photo_bpjs', 'passet_by_user_id'
     ];
     
     // Menambahkan accessor untuk nama pasien (bisa dari relasi atau manual)

@@ -1,14 +1,17 @@
 /**
  * Real-time Helper untuk Optik Melati
- * Menggunakan Server-Sent Events (SSE) untuk real-time updates
+ * Menggunakan polling AJAX ringan untuk real-time updates
  */
 
 class RealtimeManager {
     constructor() {
-        this.eventSources = {};
-        this.reconnectAttempts = {};
-        this.maxReconnectAttempts = 5;
-        this.reconnectDelay = 3000; // 3 seconds
+        this.pollTimers = {};
+        this.pollIntervals = {
+            dashboard: 15000,
+            'omset-kasir': 15000,
+            notifications: 15000,
+            'stock-updates': 30000,
+        };
         this.isPageVisible = true;
         
         this.setupVisibilityChange();
@@ -83,84 +86,48 @@ class RealtimeManager {
      * Generic connection method
      */
     connect(name, url, callbacks) {
-        // Close existing connection if any
         this.disconnect(name);
-        
-        const eventSource = new EventSource(url);
-        this.eventSources[name] = eventSource;
-        this.reconnectAttempts[name] = 0;
-        
-        eventSource.onopen = (event) => {
-            console.log(`Real-time connection opened: ${name}`);
-            this.reconnectAttempts[name] = 0;
-            if (callbacks.onOpen) callbacks.onOpen(event);
-        };
-        
-        eventSource.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                
-                // Handle heartbeat messages
-                if (data.type === 'heartbeat') {
-                    console.log(`Heartbeat received for ${name}:`, data.timestamp);
-                    if (callbacks.onHeartbeat) callbacks.onHeartbeat(data);
-                    return;
-                }
-                
-                if (callbacks.onData) callbacks.onData(data);
-            } catch (error) {
-                console.error(`Error parsing real-time data for ${name}:`, error);
+
+        const poll = () => {
+            if (!this.isPageVisible) {
+                return;
             }
+
+            $.ajax({
+                url: url,
+                method: 'GET',
+                dataType: 'json',
+                success: (data) => {
+                    if (callbacks.onOpen) callbacks.onOpen();
+                    if (callbacks.onData) callbacks.onData(data);
+                },
+                error: (event) => {
+                    console.error(`Real-time request error: ${name}`, event);
+                    if (callbacks.onError) callbacks.onError(event);
+                }
+            });
         };
-        
-        eventSource.onerror = (event) => {
-            console.error(`Real-time connection error: ${name}`, event);
-            
-            if (callbacks.onError) callbacks.onError(event);
-            
-            // Attempt to reconnect
-            this.scheduleReconnect(name, url, callbacks);
-        };
-        
-        return eventSource;
+
+        poll();
+        this.pollTimers[name] = setInterval(poll, this.pollIntervals[name] || 15000);
+
+        return this.pollTimers[name];
     }
     
     /**
      * Schedule reconnection with exponential backoff
      */
     scheduleReconnect(name, url, callbacks) {
-        this.reconnectAttempts[name] = (this.reconnectAttempts[name] || 0) + 1;
-        
-        if (this.reconnectAttempts[name] <= this.maxReconnectAttempts) {
-            // Exponential backoff: 3s, 6s, 12s, 24s, 48s
-            const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts[name] - 1), 30000);
-            
-            setTimeout(() => {
-                if (this.isPageVisible) {
-                    console.log(`Attempting to reconnect ${name} (attempt ${this.reconnectAttempts[name]}, delay: ${delay}ms)`);
-                    this.connect(name, url, callbacks);
-                }
-            }, delay);
-        } else {
-            console.error(`Max reconnection attempts reached for ${name}. Will retry in 60 seconds.`);
-            // Reset attempts after 60 seconds for another try
-            setTimeout(() => {
-                this.reconnectAttempts[name] = 0;
-                if (this.isPageVisible) {
-                    console.log(`Resetting reconnection attempts for ${name}`);
-                }
-            }, 60000);
-        }
+        return this.connect(name, url, callbacks);
     }
     
     /**
      * Disconnect a specific connection
      */
     disconnect(name) {
-        if (this.eventSources[name]) {
-            this.eventSources[name].close();
-            delete this.eventSources[name];
-            delete this.reconnectAttempts[name];
+        if (this.pollTimers[name]) {
+            clearInterval(this.pollTimers[name]);
+            delete this.pollTimers[name];
         }
     }
     
@@ -168,15 +135,14 @@ class RealtimeManager {
      * Reconnect all active connections
      */
     reconnectAll() {
-        // This would require storing the original connection parameters
-        // For now, let existing error handlers handle reconnection
+        // Polling will resume automatically on the next interval.
     }
     
     /**
      * Close all connections
      */
     closeAll() {
-        Object.keys(this.eventSources).forEach(name => {
+        Object.keys(this.pollTimers).forEach(name => {
             this.disconnect(name);
         });
     }

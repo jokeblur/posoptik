@@ -14,53 +14,8 @@ class RealtimeController extends Controller
     public function dashboard(Request $request)
     {
         $user = auth()->user();
-        
-        // Set execution time limit
-        set_time_limit(0);
-        ini_set('memory_limit', '256M');
-        
-        return response()->stream(function () use ($user) {
-            $lastCheck = now();
-            $heartbeatCount = 0;
-            
-            while (true) {
-                // Send heartbeat every 30 seconds to keep connection alive
-                if ($heartbeatCount % 6 == 0) {
-                    echo "data: " . json_encode(['type' => 'heartbeat', 'timestamp' => now()->toISOString()]) . "\n\n";
-                }
-                
-                // Get real-time data
-                $data = $this->getDashboardData($user);
-                $data['type'] = 'dashboard_update';
-                $data['timestamp'] = now()->toISOString();
-                
-                // Send data as SSE
-                echo "data: " . json_encode($data) . "\n\n";
-                
-                // Flush output
-                if (ob_get_level()) {
-                    ob_flush();
-                }
-                flush();
-                
-                // Update last check time
-                $lastCheck = now();
-                $heartbeatCount++;
-                
-                // Wait 5 seconds before next update
-                sleep(5);
-                
-                // Check if connection is still alive
-                if (connection_aborted()) {
-                    break;
-                }
-            }
-        }, 200, [
-            'Cache-Control' => 'no-cache',
-            'Content-Type' => 'text/event-stream',
-            'X-Accel-Buffering' => 'no', // Disable Nginx buffering
-            'Connection' => 'keep-alive',
-        ]);
+
+        return response()->json($this->getDashboardData($user));
     }
     
     public function omsetKasir(Request $request)
@@ -71,43 +26,7 @@ class RealtimeController extends Controller
             abort(403, 'Unauthorized');
         }
         
-        // Set execution time limit
-        set_time_limit(0);
-        ini_set('memory_limit', '256M');
-        
-        return response()->stream(function () use ($user) {
-            $heartbeatCount = 0;
-            
-            while (true) {
-                // Send heartbeat every 30 seconds to keep connection alive
-                if ($heartbeatCount % 10 == 0) {
-                    echo "data: " . json_encode(['type' => 'heartbeat', 'timestamp' => now()->toISOString()]) . "\n\n";
-                }
-                
-                $data = $this->getOmsetKasirData($user);
-                $data['type'] = 'omset_update';
-                $data['timestamp'] = now()->toISOString();
-                
-                echo "data: " . json_encode($data) . "\n\n";
-                
-                if (ob_get_level()) {
-                    ob_flush();
-                }
-                flush();
-                
-                $heartbeatCount++;
-                sleep(3); // Update setiap 3 detik untuk omset
-                
-                if (connection_aborted()) {
-                    break;
-                }
-            }
-        }, 200, [
-            'Cache-Control' => 'no-cache',
-            'Content-Type' => 'text/event-stream',
-            'X-Accel-Buffering' => 'no',
-            'Connection' => 'keep-alive',
-        ]);
+        return response()->json($this->getOmsetKasirData($user));
     }
     
     private function getDashboardData($user)
@@ -198,17 +117,6 @@ class RealtimeController extends Controller
             }
         });
         
-        // Debug logging untuk membantu troubleshooting
-        \Log::info('RealtimeController - Omset Kasir Data:', [
-            'user_id' => $user->id,
-            'branch_id' => $selectedBranchId,
-            'total_transactions' => $jumlahTransaksi,
-            'omset_kasir' => $omsetKasir,
-            'omset_bpjs' => $omsetBpjs,
-            'omset_umum' => $omsetUmum,
-            'bpjs_transactions_count' => $bpjsTransactions->count(),
-        ]);
-            
         $omsetUmum = Penjualan::where('branch_id', $selectedBranchId)
             ->where('user_id', $user->id)
             ->when($omsetStart, fn($q) => $q->where('created_at', '>=', $omsetStart))
@@ -223,6 +131,17 @@ class RealtimeController extends Controller
             ->when($omsetStart, fn($q) => $q->where('created_at', '>=', $omsetStart))
             ->when($omsetEnd, fn($q) => $q->where('created_at', '<=', $omsetEnd))
             ->count();
+
+        // Debug logging untuk membantu troubleshooting
+        \Log::info('RealtimeController - Omset Kasir Data:', [
+            'user_id' => $user->id,
+            'branch_id' => $selectedBranchId,
+            'total_transactions' => $jumlahTransaksi,
+            'omset_kasir' => $omsetKasir,
+            'omset_bpjs' => $omsetBpjs,
+            'omset_umum' => $omsetUmum,
+            'bpjs_transactions_count' => $bpjsTransactions->count(),
+        ]);
             
         $transaksiTerbaru = Penjualan::where('branch_id', $selectedBranchId)
             ->where('user_id', $user->id)
@@ -337,67 +256,17 @@ class RealtimeController extends Controller
     public function notifications(Request $request)
     {
         $user = auth()->user();
-        
-        return response()->stream(function () use ($user) {
-            $lastNotificationCheck = now()->subMinutes(5);
-            
-            while (true) {
-                $notifications = $this->getNotifications($user, $lastNotificationCheck);
-                
-                foreach ($notifications as $notification) {
-                    echo "data: " . json_encode($notification) . "\n\n";
-                }
-                
-                if (ob_get_level()) {
-                    ob_flush();
-                }
-                flush();
-                
-                $lastNotificationCheck = now();
-                sleep(10); // Check for notifications every 10 seconds
-                
-                if (connection_aborted()) {
-                    break;
-                }
-            }
-        }, 200, [
-            'Cache-Control' => 'no-cache',
-            'Content-Type' => 'text/event-stream',
-            'X-Accel-Buffering' => 'no',
-        ]);
+
+        $lastNotificationCheck = now()->subMinutes(5);
+        return response()->json($this->getNotifications($user, $lastNotificationCheck));
     }
     
     public function stockUpdates(Request $request)
     {
         $user = auth()->user();
-        
-        return response()->stream(function () use ($user) {
-            $lastStockCheck = now()->subMinutes(1);
-            
-            while (true) {
-                $stockUpdates = $this->getStockUpdates($user, $lastStockCheck);
-                
-                if (!empty($stockUpdates)) {
-                    echo "data: " . json_encode($stockUpdates) . "\n\n";
-                }
-                
-                if (ob_get_level()) {
-                    ob_flush();
-                }
-                flush();
-                
-                $lastStockCheck = now();
-                sleep(5); // Check stock updates every 5 seconds
-                
-                if (connection_aborted()) {
-                    break;
-                }
-            }
-        }, 200, [
-            'Cache-Control' => 'no-cache',
-            'Content-Type' => 'text/event-stream',
-            'X-Accel-Buffering' => 'no',
-        ]);
+
+        $lastStockCheck = now()->subMinutes(1);
+        return response()->json($this->getStockUpdates($user, $lastStockCheck));
     }
     
     private function getNotifications($user, $since)

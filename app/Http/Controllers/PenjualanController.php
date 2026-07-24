@@ -23,6 +23,7 @@ class PenjualanController extends Controller
 {
     protected $bpjsPricingService;
     private const BPJS_SERVICE_TYPES = ['BPJS I', 'BPJS II', 'BPJS III'];
+    private array $tableColumnsCache = [];
 
     public function __construct(BpjsPricingService $bpjsPricingService)
     {
@@ -51,7 +52,18 @@ class PenjualanController extends Controller
         }
 
         if ($hasJenisTransaksiColumn) {
-            return $query->where('jenis_transaksi', $jenisTransaksi);
+            if ($jenisTransaksi === 'Gosok') {
+                return $query->where('jenis_transaksi', 'Gosok');
+            }
+
+            return $query->where(function ($q) {
+                $q->where('jenis_transaksi', 'Stock')
+                    ->orWhereNull('jenis_transaksi');
+            });
+        }
+
+        if (!Schema::hasColumn('lensa', 'is_custom_order')) {
+            return $query;
         }
 
         $gosokLensIds = Lensa::query()
@@ -91,6 +103,20 @@ class PenjualanController extends Controller
         }
 
         return $normalized ?: null;
+    }
+
+    private function filterDataByExistingColumns(string $table, array $data): array
+    {
+        if (!isset($this->tableColumnsCache[$table])) {
+            $this->tableColumnsCache[$table] = Schema::getColumnListing($table);
+        }
+
+        $available = array_flip($this->tableColumnsCache[$table]);
+        return array_filter(
+            $data,
+            static fn ($key) => isset($available[$key]),
+            ARRAY_FILTER_USE_KEY
+        );
     }
 
     private function buildReadyPickupMessage(Penjualan $penjualan): string
@@ -736,7 +762,7 @@ class PenjualanController extends Controller
                     $kodeLensaGosok = 'GSK-' . now()->format('YmdHis') . '-' . strtoupper(substr(md5(uniqid((string) mt_rand(), true)), 0, 4));
                     $normalUnitPrice = $itemData['price'] ?? 0;
 
-                    $itemModel = \App\Models\Lensa::create([
+                    $lensaData = [
                         'kode_lensa' => $kodeLensaGosok,
                         'merk_lensa' => $itemData['merk'] ?? 'Lensa Gosok',
                         'type' => $itemData['lensaType'] ?? null,
@@ -751,7 +777,11 @@ class PenjualanController extends Controller
                         'is_custom_order' => true,
                         'sales_id' => null,
                         'branch_id' => $branch_id,
-                    ]);
+                    ];
+
+                    $itemModel = \App\Models\Lensa::create(
+                        $this->filterDataByExistingColumns('lensa', $lensaData)
+                    );
                 } elseif ($itemData['type'] === 'aksesoris') {
                     $itemModel = Aksesoris::find($itemData['id']);
                     if ($itemModel) {

@@ -326,8 +326,13 @@ class RealtimeController extends Controller
         $selectedBranchId = $user->isSuperAdmin() ? null : $user->branch_id;
         
         // Check for frame stock updates
-        $frameUpdates = \App\Models\Frame::when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId))
+        $frameUpdates = \App\Models\Frame::query()
+            ->with('branch:id,name')
+            ->select(['id', 'merk_frame', 'jenis_frame', 'stok', 'kode_frame', 'branch_id', 'updated_at'])
+            ->when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId))
             ->where('updated_at', '>', $since)
+            ->orderByDesc('updated_at')
+            ->limit(200)
             ->get()
             ->map(function($frame) {
                 return [
@@ -344,8 +349,13 @@ class RealtimeController extends Controller
             });
             
         // Check for lensa stock updates (exclude custom order from low stock alerts)
-        $lensaUpdates = \App\Models\Lensa::when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId))
+        $lensaUpdates = \App\Models\Lensa::query()
+            ->with('branch:id,name')
+            ->select(['id', 'merk_lensa', 'type', 'stok', 'kode_lensa', 'branch_id', 'updated_at', 'is_custom_order'])
+            ->when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId))
             ->where('updated_at', '>', $since)
+            ->orderByDesc('updated_at')
+            ->limit(200)
             ->get()
             ->map(function($lensa) {
                 $alertLevel = $lensa->is_custom_order
@@ -365,8 +375,13 @@ class RealtimeController extends Controller
             });
             
         // Check for aksesoris stock updates
-        $aksesorisUpdates = \App\Models\Aksesoris::when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId))
+        $aksesorisUpdates = \App\Models\Aksesoris::query()
+            ->with('branch:id,name')
+            ->select(['id', 'nama_produk', 'stok', 'branch_id', 'updated_at'])
+            ->when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId))
             ->where('updated_at', '>', $since)
+            ->orderByDesc('updated_at')
+            ->limit(200)
             ->get()
             ->map(function($aksesoris) {
                 return [

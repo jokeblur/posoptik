@@ -130,8 +130,8 @@
 </head>
 <body>
     <div class="button-container" style="position: absolute; top: 10px; left: 10px; z-index: 1000;">
-        <a href="{{ route('penjualan.show', $penjualan->id) }}" style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 4px; font-size: 12px;">← Kembali</a>
-        <button onclick="window.print()" style="margin-left: 5px;">🖨️ Cetak</button>
+        <a href="{{ route('penjualan.show', $penjualan->id) }}" style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 4px; font-size: 12px;">Kembali</a>
+        <button onclick="window.print()" style="margin-left: 5px;">Cetak Barcode</button>
     </div>
 
     <div class="container">

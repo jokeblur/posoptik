@@ -10,11 +10,12 @@ class Frame extends Model
     use HasFactory;
     
     protected $fillable = [
+        'kode_frame',
         'id_sales',
-        'nama_frame',
         'merk_frame',
-        'harga_beli',
-        'harga_jual',
+        'jenis_frame',
+        'harga_beli_frame',
+        'harga_jual_frame',
         'stok',
         'branch_id',
     ];

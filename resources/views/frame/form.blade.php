@@ -12,9 +12,15 @@
       </div>
     <div class="modal-body">     
                <div class="form-group">
+                  <label for="kode_frame" class="col-sm-2 control-label">Kode Frame</label>
+                  <div class="col-sm-10">
+                    <input type="text" class="form-control" name="kode_frame" id="kode_frame" required>
+                  </div>
+                </div>
+               <div class="form-group">
                   <label for="merk_frame" class="col-sm-2 control-label">Nama Frame</label>
                   <div class="col-sm-10">
-                    <input type="text" class="form-control" name="merk_frame"id="merk_frame" >
+                    <input type="text" class="form-control" name="merk_frame"id="merk_frame" required>
                   </div>
                 </div>
                 <div class="form-group">

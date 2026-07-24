@@ -48,9 +48,9 @@ class FrameController extends Controller
     {
         $user = auth()->user();
         if ($user->isSuperAdmin() || $user->isAdmin()) {
-            $query = Frame::with('branch', 'sales')->orderBy('id', 'desc');
+            $query = Frame::with('branch', 'sales');
         } else {
-            $query = Frame::with('branch', 'sales')->accessibleByUser($user)->orderBy('id', 'desc');
+            $query = Frame::with('branch', 'sales')->accessibleByUser($user);
         }
         if ($request->filled('jenis_frame')) {
             $query->where('jenis_frame', $request->jenis_frame);
@@ -98,12 +98,17 @@ class FrameController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
-        $frame = Frame::latest()->first() ?? new Frame();
-        $id_baru = (int)$frame->id + 1;
-        $kode_frame = 'FR' . tambah_nol_didepan($id_baru, 6);
-        
+        $request->validate([
+            'kode_frame' => 'required|string|max:255|unique:frames,kode_frame',
+            'merk_frame' => 'required|string|max:255',
+            'jenis_frame' => 'nullable|string|max:255',
+            'harga_beli_frame' => 'nullable|numeric|min:0',
+            'harga_jual_frame' => 'nullable|numeric|min:0',
+            'stok' => 'nullable|integer|min:0',
+            'id_sales' => 'nullable|exists:sales,id_sales',
+        ]);
+
         $data = $request->all();
-        $data['kode_frame'] = $kode_frame;
 
         // Logika baru yang membedakan peran Admin dan Kasir
         if ($user->isSuperAdmin() || $user->isAdmin()) {
@@ -138,6 +143,17 @@ class FrameController extends Controller
     {
         $frame = Frame::find($id);
         $user = auth()->user();
+
+        $request->validate([
+            'kode_frame' => 'required|string|max:255|unique:frames,kode_frame,' . $id,
+            'merk_frame' => 'required|string|max:255',
+            'jenis_frame' => 'nullable|string|max:255',
+            'harga_beli_frame' => 'nullable|numeric|min:0',
+            'harga_jual_frame' => 'nullable|numeric|min:0',
+            'stok' => 'nullable|integer|min:0',
+            'id_sales' => 'nullable|exists:sales,id_sales',
+        ]);
+
         $data = $request->all();
 
         // Admin/Super Admin bisa mengubah semua data termasuk cabang

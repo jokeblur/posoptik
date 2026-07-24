@@ -119,24 +119,26 @@
             <div class="box-body table-responsive">
                 <table class="table table-striped table-bordered" id="table-lensa">
                     <thead>
-                        <th><input type="checkbox" name="select_all" id="select_all"></th>
-                        <th width='5%'>No</th>
-                        <th>Kode lensa</th>
-                        <th>Nama lensa</th>
-                        <th>Cabang</th>
-                        <th>Type</th>
-                        <th>Ukuran</th>
-                        <th>ADD</th>
-                        <th>CLY</th>
-                        <th>Coating</th>
-                        @if(auth()->user()->isSuperAdmin())
-                            <th>Harga Beli</th>
-                        @endif
-                        <th>Harga Jual</th>
-                        <th>Stok</th>
-                        <th>Tipe Stok</th>
-                        <th>Sales</th>
-                        <th width='10%'><i class="fa fa-cog"></i></th>
+                        <tr>
+                            <th><input type="checkbox" name="select_all" id="select_all"></th>
+                            <th width='5%'>No</th>
+                            <th>Kode lensa</th>
+                            <th>Nama lensa</th>
+                            <th>Cabang</th>
+                            <th>Type</th>
+                            <th>Ukuran</th>
+                            <th>ADD</th>
+                            <th>CLY</th>
+                            <th>Coating</th>
+                            @if(auth()->user()->isSuperAdmin())
+                                <th>Harga Beli</th>
+                            @endif
+                            <th>Harga Jual</th>
+                            <th>Stok</th>
+                            <th>Tipe Stok</th>
+                            <th>Sales</th>
+                            <th width='10%'><i class="fa fa-cog"></i></th>
+                        </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
@@ -173,7 +175,7 @@
                         <ul>
                             <li>File harus berformat Excel (.xlsx atau .xls)</li>
                             <li>Baris pertama harus berisi header: kode_lensa, merk_lensa, type, index, coating, harga_beli_lensa, harga_jual_lensa, stok, cabang, sales, is_custom_order, add</li>
-                            <li>Kolom kode_lensa akan dibuat otomatis jika kosong</li>
+                            <li>Kolom kode_lensa wajib diisi manual</li>
                             <li>Kolom cabang harus sesuai dengan nama cabang yang ada di sistem</li>
                         </ul>
                     </div>
@@ -215,30 +217,30 @@
  $(function () {
         // Build columns array dynamically
         var columns = [
-            {data: 'select_all'},
-            {data: 'DT_RowIndex', searchable: false, sortable: false},
-            {data: 'kode_lensa'},
-            {data: 'merk_lensa'},
-            {data: 'branch_name'},
-            {data: 'type'},
-            {data: 'index'},
-            {data: 'add'},
-            {data: 'cly'},
-            {data: 'coating'}
+            {data: 'select_all', searchable: false, orderable: false},
+            {data: 'DT_RowIndex', searchable: false, orderable: false},
+            {data: 'kode_lensa', name: 'kode_lensa', orderable: true},
+            {data: 'merk_lensa', name: 'merk_lensa', orderable: true},
+            {data: 'branch_name', searchable: false, orderable: false},
+            {data: 'type', name: 'type', orderable: true},
+            {data: 'index', name: 'index', orderable: true},
+            {data: 'add', searchable: false, orderable: false},
+            {data: 'cly', searchable: false, orderable: false},
+            {data: 'coating', name: 'coating', orderable: true}
         ];
         
         @if(auth()->user()->isSuperAdmin())
-        columns.push({data: 'harga_beli_lensa'});
+        columns.push({data: 'harga_beli_lensa', name: 'harga_beli_lensa', orderable: true});
         @endif
         
         columns.push(
             
-            {data: 'harga_jual_lensa'},
-            {data: 'stok'},
-            {data: 'stock_status'},
-            {data: 'sales_name'},
+            {data: 'harga_jual_lensa', name: 'harga_jual_lensa', orderable: true},
+            {data: 'stok', name: 'stok', orderable: true},
+            {data: 'stock_status', searchable: false, orderable: false},
+            {data: 'sales_name', searchable: false, orderable: false},
            
-            {data: 'aksi', searchable: false, sortable: false}
+            {data: 'aksi', searchable: false, orderable: false}
         );
 
         var $lowStockLensaTable = $('#table-low-stock-lensa');
@@ -263,6 +265,7 @@
             responsive: true,
             processing: true,
             serverSide: true,
+            ordering: true,
             autoWidth: false,
             deferRender: true,
             language: {
@@ -360,7 +363,7 @@
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('post');
-        $('#modal-form [name=nama_lensa]').focus();
+        $('#modal-form [name=kode_lensa]').focus();
     }
     function editform(url) {
         $('#modal-form').modal('show');
@@ -368,7 +371,7 @@
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('put');
-        $('#modal-form [name=nama_lensa]').focus();
+        $('#modal-form [name=kode_lensa]').focus();
         $.get(url)
             .done((response) => {
                 $('#modal-form [name=merk_lensa]').val(response.merk_lensa);

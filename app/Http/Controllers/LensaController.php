@@ -39,7 +39,7 @@ class LensaController extends Controller
     public function data(Request $request)
     {
         $user = auth()->user();
-        $query = Lensa::with(['branch', 'sales'])->accessibleByUser($user)->orderBy('id', 'desc');
+        $query = Lensa::with(['branch', 'sales'])->accessibleByUser($user);
         if ($request->filled('branch_id')) {
             $query->where('branch_id', $request->branch_id);
         }
@@ -120,11 +120,22 @@ class LensaController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
-        $lensa = Lensa::latest()->first() ?? new Lensa();
-        $id_baru = (int)$lensa->id + 1;
+        $request->validate([
+            'kode_lensa' => 'required|string|max:255',
+            'merk_lensa' => 'required|string|max:255',
+            'type' => 'nullable|string|max:255',
+            'index' => 'nullable|string|max:255',
+            'coating' => 'nullable|string|max:255',
+            'harga_beli_lensa' => 'nullable|numeric|min:0',
+            'harga_jual_lensa' => 'nullable|numeric|min:0',
+            'stok' => 'nullable|integer|min:0',
+            'sales_id' => 'nullable|exists:sales,id_sales',
+            'is_custom_order' => 'nullable|boolean',
+            'add' => 'nullable|string|max:255',
+            'cly' => 'nullable|string|max:255',
+        ]);
         
         $data = $request->all();
-        $data['kode_lensa'] = 'L' . tambah_nol_didepan($id_baru, 5);
         
         // CATATAN: Sistem mengizinkan duplikasi merk_lensa dan kode_lensa
         // Tidak ada validasi unique pada field ini
@@ -163,6 +174,22 @@ class LensaController extends Controller
     {
         $lensa = Lensa::find($id);
         $user = auth()->user();
+
+        $request->validate([
+            'kode_lensa' => 'required|string|max:255',
+            'merk_lensa' => 'required|string|max:255',
+            'type' => 'nullable|string|max:255',
+            'index' => 'nullable|string|max:255',
+            'coating' => 'nullable|string|max:255',
+            'harga_beli_lensa' => 'nullable|numeric|min:0',
+            'harga_jual_lensa' => 'nullable|numeric|min:0',
+            'stok' => 'nullable|integer|min:0',
+            'sales_id' => 'nullable|exists:sales,id_sales',
+            'is_custom_order' => 'nullable|boolean',
+            'add' => 'nullable|string|max:255',
+            'cly' => 'nullable|string|max:255',
+        ]);
+
         $data = $request->all();
 
         // Admin/Super Admin bisa mengubah semua data termasuk cabang

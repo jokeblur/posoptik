@@ -30,7 +30,7 @@
                                        data-name="{{ $aks->nama_produk }}"
                                        data-price="{{ $aks->harga_jual }}"
                                        data-type="aksesoris">
-                                        <i class="fa fa-plus"></i>
+                                        <i class="fa fa-plus"></i> Pilih
                                     </a>
                                 @else
                                     <button type="button" class="btn btn-default btn-sm" disabled>

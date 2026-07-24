@@ -27,10 +27,10 @@ class NewLensaImport implements ToModel, WithHeadingRow, WithValidation, WithChu
     public function model(array $row)
     {
         try {
-            // Generate kode_lensa if empty
-            $kodeLensa = $row['kode_lensa'] ?? '';
-            if (empty($kodeLensa)) {
-                $kodeLensa = 'L' . str_pad(Lensa::max('id') + 1, 5, '0', STR_PAD_LEFT);
+            $kodeLensa = trim((string) ($row['kode_lensa'] ?? ''));
+            if ($kodeLensa === '') {
+                Log::warning('NewLensaImport skipped row because kode_lensa is empty', $row);
+                return null;
             }
 
             // Find branch by name
@@ -96,6 +96,7 @@ class NewLensaImport implements ToModel, WithHeadingRow, WithValidation, WithChu
     public function rules(): array
     {
         return [
+            'kode_lensa' => 'required|string|max:255',
             'merk_lensa' => 'required|string|max:255',
             'harga_beli' => 'nullable|numeric|min:0',
             'harga_jual' => 'nullable|numeric|min:0',
@@ -106,6 +107,9 @@ class NewLensaImport implements ToModel, WithHeadingRow, WithValidation, WithChu
     public function customValidationMessages()
     {
         return [
+            'kode_lensa.required' => 'Kode lensa harus diisi',
+            'kode_lensa.string' => 'Kode lensa harus berupa teks',
+            'kode_lensa.max' => 'Kode lensa maksimal 255 karakter',
             'merk_lensa.required' => 'Merk lensa harus diisi',
             'harga_beli.numeric' => 'Harga beli harus berupa angka',
             'harga_jual.numeric' => 'Harga jual harus berupa angka',

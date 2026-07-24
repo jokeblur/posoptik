@@ -175,7 +175,7 @@
                         <ul>
                             <li>File harus berformat Excel (.xlsx atau .xls)</li>
                             <li>Baris pertama harus berisi header sesuai format di atas</li>
-                            <li>Kolom kode_frame bisa dikosongkan (akan di-generate otomatis)</li>
+                            <li>Kolom kode_frame wajib diisi manual</li>
                             <li>Kolom cabang dan sales harus sesuai dengan data yang ada di sistem</li>
                             <li>Harga dan stok harus berupa angka</li>
                         </ul>
@@ -242,17 +242,17 @@
     let isSelectAllActive = false; // Status select all
     $(function () {
         let columns = [
-            {data: 'checkbox', searchable: false, sortable: false},
+            {data: 'checkbox', searchable: false, orderable: false},
             {data: 'DT_RowIndex', searchable: false, orderable: false},
-            {data: 'kode_frame'},
-            {data: 'merk_frame'},
+            {data: 'kode_frame', name: 'kode_frame', orderable: true},
+            {data: 'merk_frame', name: 'merk_frame', orderable: true},
             @if(auth()->user()->isSuperAdmin())
-            {data: 'harga_beli_frame'},
+            {data: 'harga_beli_frame', name: 'harga_beli_frame', orderable: true},
             @endif
-            {data: 'harga_jual_frame'},
-            {data: 'stok'},
-            {data: 'jenis_frame'},
-            {data: 'branch_name'},
+            {data: 'harga_jual_frame', name: 'harga_jual_frame', orderable: true},
+            {data: 'stok', name: 'stok', orderable: true},
+            {data: 'jenis_frame', name: 'jenis_frame', orderable: true},
+            {data: 'branch_name', searchable: false, orderable: false},
             {data: 'aksi', searchable: false, orderable: false},
         ];
         var $lowStockFrameTable = $('#table-low-stock-frame');
@@ -285,6 +285,7 @@
             responsive: true,
             processing: true,
             serverSide: true,
+            ordering: true,
             autoWidth: false,
             deferRender: true,
             language: {
@@ -379,7 +380,7 @@
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('post');
-        $('#modal-form [name=nama_frame]').focus();
+        $('#modal-form [name=merk_frame]').focus();
     }
     function editform(url) {
         $('#modal-form').modal('show');
@@ -387,7 +388,7 @@
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('put');
-        $('#modal-form [name=nama_frame]').focus();
+        $('#modal-form [name=merk_frame]').focus();
         $.get(url)
             .done((response) => {
                 $('#modal-form [name=merk_frame]').val(response.merk_frame);

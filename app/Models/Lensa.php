@@ -11,14 +11,16 @@ class Lensa extends Model
     
     protected $table = 'lensa';
     protected $fillable = [
-        'id_sales',
+        'kode_lensa',
         'sales_id',
         'merk_lensa',
-        'harga_beli',
-        'harga_jual',
+        'type',
+        'index',
+        'coating',
+        'harga_beli_lensa',
+        'harga_jual_lensa',
         'stok',
         'is_custom_order',
-        'axis',
         'add',
         'cly',
         'branch_id',

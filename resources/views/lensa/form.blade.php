@@ -9,10 +9,10 @@
                     <h1 class="modal-title fs-3"></h1>
                 </div>
                 <div class="modal-body">
-                    <div class="form-group" style="display: none;">
+                    <div class="form-group">
                         <label for="kode_lensa" class="col-sm-2 control-label">Kode Lensa</label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control" name="kode_lensa" id="kode_lensa" readonly>
+                            <input type="text" class="form-control" name="kode_lensa" id="kode_lensa" required>
                         </div>
                     </div>
                     <div class="form-group">

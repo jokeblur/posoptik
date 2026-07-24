@@ -48,7 +48,7 @@
                                    data-price="{{ $frame->harga_jual_frame }}"
                                    data-type="frame"
                                    data-jenis-frame="{{ $frame->jenis_frame }}">
-                                    <i class="fa fa-plus"></i>
+                                    <i class="fa fa-plus"></i> Pilih
                                 </a>
                             </td>
                         </tr>

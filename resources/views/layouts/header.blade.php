@@ -49,16 +49,8 @@
                 <!-- User Account: style can be found in dropdown.less -->
                 <li class="dropdown user user-menu">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown" onclick="event.preventDefault(); $(this).next('.dropdown-menu').toggleClass('show'); $(this).parent().toggleClass('open');">
-                        <div class="user-image-initials" data-role="{{ auth()->user()->role }}">
-                            {{ \App\Helpers\UserHelper::getInitials(auth()->user()->name) }}
-                        </div>
-                        <div class="hidden-xs user-info-vertical">
-                            <div class="user-name">{{ auth()->user()->name }}</div>
-                            <div class="user-role">{{ \App\Helpers\UserHelper::getRoleDisplayName(auth()->user()->role) }}</div>
-                            @if(auth()->user()->branch)
-                                <div class="user-branch">{{ auth()->user()->branch->name }}</div>
-                            @endif
-                        </div>
+                        <i class="fa fa-user-circle" style="font-size:18px; margin-right:8px;"></i>
+                        <span class="hidden-xs" style="font-weight:600;">{{ auth()->user()->name }}</span>
                     </a>
                     <ul class="dropdown-menu">
                         <!-- User image -->

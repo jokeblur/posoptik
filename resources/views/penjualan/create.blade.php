@@ -1806,7 +1806,7 @@ $(function() {
                                'data-cly="' + (row.cly || '') + '" ' +
                                'data-axis="' + (row.axis || '') + '" ' +
                                'data-add="' + (row.add || '') + '">' +
-                               '<i class="fa fa-plus"></i></a>';
+                               '<i class="fa fa-plus"></i> Pilih</a>';
                     }
                 }
             ],

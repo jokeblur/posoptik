@@ -28,12 +28,10 @@ class FrameImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnErr
             // Normalisasi header untuk membaca berbagai format
             $normalizedRow = $this->normalizeHeaders($row);
             
-            // Generate kode_frame otomatis jika tidak ada
-            $kodeFrame = $normalizedRow['kode_frame'] ?? null;
-            if (empty($kodeFrame)) {
-                $lastFrame = Frame::latest()->first();
-                $idBaru = $lastFrame ? (int)$lastFrame->id + 1 : 1;
-                $kodeFrame = 'FR' . tambah_nol_didepan($idBaru, 6);
+            $kodeFrame = trim((string) ($normalizedRow['kode_frame'] ?? ''));
+            if ($kodeFrame === '') {
+                Log::warning('Frame import skipped row because kode_frame is empty', $row);
+                return null;
             }
 
             // Cari branch_id dari nama cabang jika ada
@@ -139,6 +137,7 @@ class FrameImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnErr
     public function rules(): array
     {
         return [
+            'kode_frame' => 'required|string|max:255',
             'merk_frame' => 'nullable|string|max:255',
             'jenis_frame' => 'nullable|string|max:255',
             'harga_beli_frame' => 'nullable|numeric|min:0',
@@ -155,6 +154,9 @@ class FrameImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnErr
     public function customValidationMessages()
     {
         return [
+            'kode_frame.required' => 'Kode frame wajib diisi',
+            'kode_frame.string' => 'Kode frame harus berupa teks',
+            'kode_frame.max' => 'Kode frame maksimal 255 karakter',
             'merk_frame.string' => 'Merk frame harus berupa teks',
             'merk_frame.max' => 'Merk frame maksimal 255 karakter',
             'jenis_frame.string' => 'Jenis frame harus berupa teks',

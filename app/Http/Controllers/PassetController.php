@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Transaksi;
+use App\Helpers\WhatsAppHelper;
 
 class PassetController extends Controller
 {
@@ -75,6 +76,31 @@ class PassetController extends Controller
         $transaksi->waktu_selesai_dikerjakan = now();
         $transaksi->save();
 
-        return response()->json(['message' => 'Status berhasil diubah menjadi Selesai.']);
+        // Kirim WhatsApp ke pasien bahwa kacamata sudah siap
+        try {
+            if ($transaksi->pasien && $transaksi->pasien->nohp) {
+                $phoneNumber = WhatsAppHelper::normalizePhoneNumber($transaksi->pasien->nohp);
+                $pesan = "👓 *Kacamata Anda Sudah Siap!*\n\n";
+                $pesan .= "Hai *" . ($transaksi->pasien->nama_pasien ?? 'Pasien') . "*,\n\n";
+                $pesan .= "Kacamata Anda sudah selesai dikerjakan dan siap untuk diambil. 🎉\n\n";
+                $pesan .= "Silakan kunjungi toko kami untuk mengambil pesanan Anda.\n";
+                $pesan .= "No. Kode: *" . $transaksi->kode_penjualan . "*\n\n";
+                $pesan .= "Terima kasih telah memilih Optik Melati. 😊";
+
+                $waLink = WhatsAppHelper::buildShareLink($phoneNumber, $pesan);
+                \Log::info('WhatsApp link generated for patient ready notification', [
+                    'transaksi_id' => $transaksi->id,
+                    'pasien_id' => $transaksi->pasien_id,
+                    'phone' => $phoneNumber
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Failed to generate WhatsApp link for patient notification', [
+                'error' => $e->getMessage(),
+                'transaksi_id' => $transaksi->id
+            ]);
+        }
+
+        return response()->json(['message' => 'Status berhasil diubah menjadi Selesai. Notifikasi WhatsApp akan dikirim ke pasien.']);
     }
 }

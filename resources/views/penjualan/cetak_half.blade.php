@@ -51,10 +51,10 @@
         }
         
         .logo {
-            width: 45px;
-            height: 45px;
+            width: 70px;
+            height: 70px;
             flex-shrink: 0;
-            margin-top: 3px;
+            margin-top: 1px;
         }
         
         .header-info {
@@ -81,6 +81,24 @@
         
         .transaction-info {
             margin-bottom: 8px;
+        }
+
+        .transaction-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .transaction-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .transaction-qr {
+            width: 90px;
+            text-align: center;
+            flex-shrink: 0;
         }
         
         .info-row {
@@ -315,7 +333,8 @@
     </style>
 </head>
 <body>
-    <div class="print-button-container no-print" style="text-align: center; margin-bottom: 20px;">
+    <div class="print-button-container no-print" style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center;">
+        <a href="{{ route('penjualan.show', $penjualan->id) }}" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block;">Kembali</a>
         <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Cetak Sekarang</button>
     </div>
     
@@ -344,6 +363,8 @@
 
         <!-- Informasi Transaksi -->
         <div class="transaction-info">
+            <div class="transaction-top">
+                <div class="transaction-main">
             <div class="info-row">
                 <span class="info-label">No. Transaksi:</span>
                 <span class="info-value">{{ $penjualan->kode_penjualan }}</span>
@@ -353,21 +374,13 @@
                 <span class="info-value">{{ \Carbon\Carbon::parse($penjualan->tanggal)->format('d/m/Y H:i') }}</span>
             </div> -->
             <div class="info-row">
-                <span class="info-label">📅 Tanggal Beli:</span>
+                <span class="info-label">Tanggal Beli:</span>
                 <span class="info-value" style="font-weight: 600; color: #17a2b8;">{{ \Carbon\Carbon::parse($penjualan->tanggal)->format('d/m/Y H:i') }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Kasir:</span>
                 <span class="info-value">{{ $penjualan->user->name ?? 'N/A' }}</span>
             </div>
-            <!-- <div class="info-row">
-                <span class="info-label">Pasien:</span>
-                <span class="info-value">{{ $penjualan->nama_pasien ?? 'N/A' }}</span>
-            </div> -->
-            <!-- <div class="info-row">
-                <span class="info-label">Dokter:</span>
-                <span class="info-value">{{ $penjualan->dokter->nama_dokter ?? $penjualan->dokter_manual ?? 'N/A' }}</span>
-            </div> -->
             @if(!$hanyaAksesoris && $penjualan->pasien && in_array(strtolower($penjualan->pasien->service_type), ['bpjs i', 'bpjs ii', 'bpjs iii']))
             <div class="info-row">
                 <span class="info-label">Jenis Layanan:</span>
@@ -410,15 +423,13 @@
             </div> -->
             @if(!$hanyaAksesoris && $penjualan->tanggal_siap)
             <div class="info-row">
-                <span class="info-label">📅 Siap:</span>
+                <span class="info-label">Siap:</span>
                 <span class="info-value" style="font-weight: 600; color: #28a745;">
                     {{ \Carbon\Carbon::parse($penjualan->tanggal_siap)->format('d/m/Y H:i') }}
                 </span>
             </div>
             @endif
-        </div>
-
-        <!-- Informasi Pasien -->
+             <!-- Informasi Pasien -->
         @if($hanyaAksesoris)
         <div class="pasien-info">
             <div class="section-title">DATA PEMBELI</div>
@@ -448,6 +459,31 @@
             @endif
         </div>
         @endif
+                </div>
+                @if(!$hanyaAksesoris && $penjualan->barcode)
+                <div class="transaction-qr">
+                    <div class="qrcode-small">
+                        <div class="qrcode-label-small">SCAN QR CODE</div>
+                        <div class="qrcode-image">
+                            {!! QrCode::size(95)->generate(url('/barcode/scan/' . $penjualan->barcode)) !!}
+                        </div>
+                        <div class="qrcode-barcode">{{ $penjualan->barcode }}</div>
+                    </div>
+                </div>
+                @endif
+            </div>
+            <!-- <div class="info-row">
+                <span class="info-label">Pasien:</span>
+                <span class="info-value">{{ $penjualan->nama_pasien ?? 'N/A' }}</span>
+            </div> -->
+            <!-- <div class="info-row">
+                <span class="info-label">Dokter:</span>
+                <span class="info-value">{{ $penjualan->dokter->nama_dokter ?? $penjualan->dokter_manual ?? 'N/A' }}</span>
+            </div> -->
+            
+        </div>
+
+       
 
         <!-- Informasi Pengerjaan -->
         <!-- <div class="pengerjaan-info">
@@ -539,45 +575,38 @@
                 $os_sph = $latestPrescription->os_sph ?? $penjualan->resep_os_sph ?? '-';
                 $os_cyl = $latestPrescription->os_cyl ?? $penjualan->resep_os_cyl ?? '-';
                 $os_axis = $latestPrescription->os_axis ?? $penjualan->resep_os_axis ?? '-';
-                $add = $latestPrescription->add ?? $penjualan->resep_add ?? '-';
-                $pd = $latestPrescription->pd ?? $penjualan->resep_pd ?? '-';
+                $add_kanan = $latestPrescription->add_kanan ?? $latestPrescription->add ?? $penjualan->resep_add ?? '-';
+                $add_kiri = $latestPrescription->add_kiri ?? $latestPrescription->add ?? $penjualan->resep_add ?? '-';
+                $pd_kanan = $latestPrescription->pd_kanan ?? $latestPrescription->pd ?? $penjualan->resep_pd ?? '-';
+                $pd_kiri = $latestPrescription->pd_kiri ?? $latestPrescription->pd ?? $penjualan->resep_pd ?? '-';
                 $dokter = $latestPrescription->dokter->nama_dokter ?? $latestPrescription->dokter_manual ?? $penjualan->dokter->nama_dokter ?? $penjualan->dokter_manual ?? '-';
                 $tanggal = $latestPrescription->tanggal ?? $penjualan->tanggal ?? '-';
             @endphp
             
-            <table class="resep-table">
-                <thead>
-                    <tr>
-                        <th class="eye-label">👁️ Mata</th>
-                        <th>🔍 SPH</th>
-                        <th>🔬 CYL</th>
-                        <th>📐 AXIS</th>
-                        <th>➕ ADD</th>
-                    </tr>
-                </thead>
+            <table class="resep-table" style="width: 100%; font-size: 8px;">
                 <tbody>
                     <tr>
-                        <td class="eye-label">OD (Kanan)</td>
-                        <td>{{ $od_sph }}</td>
-                        <td>{{ $od_cyl }}</td>
-                        <td>{{ $od_axis }}</td>
-                        <td rowspan="2" style="background: #e8f5e8; font-weight: 600;">{{ $add }}</td>
+                        <td class="eye-label" style="width: 10%;"><strong>👁️ OD (Kanan)</strong></td>
+                        <td style="width: 14%; text-align: center; background: #f8f9fa; border: 1px solid #dee2e6; padding: 3px;"><small>SPH</small><br>{{ $od_sph }}</td>
+                        <td style="width: 14%; text-align: center; background: #f8f9fa; border: 1px solid #dee2e6; padding: 3px;"><small>CYL</small><br>{{ $od_cyl }}</td>
+                        <td style="width: 14%; text-align: center; background: #f8f9fa; border: 1px solid #dee2e6; padding: 3px;"><small>AXIS</small><br>{{ $od_axis }}</td>
+                        <td style="width: 14%; text-align: center; background: #e8f5e8; border: 1px solid #dee2e6; padding: 3px; font-weight: 600;"><small>ADD</small><br>{{ $add_kanan }}</td>
+                        <td style="width: 14%; text-align: center; background: #e8f5e8; border: 1px solid #dee2e6; padding: 3px; font-weight: 600;"><small>PD</small><br>{{ $pd_kanan }}</td>
+                        <td style="width: 10%; text-align: center; font-size: 7px; color: #666; font-weight: bold;">Kanan</td>
                     </tr>
                     <tr>
-                        <td class="eye-label">OS (Kiri)</td>
-                        <td>{{ $os_sph }}</td>
-                        <td>{{ $os_cyl }}</td>
-                        <td>{{ $os_axis }}</td>
+                        <td class="eye-label" style="width: 10%;"><strong>👁️ OS (Kiri)</strong></td>
+                        <td style="width: 14%; text-align: center; background: #f8f9fa; border: 1px solid #dee2e6; padding: 3px;"><small>SPH</small><br>{{ $os_sph }}</td>
+                        <td style="width: 14%; text-align: center; background: #f8f9fa; border: 1px solid #dee2e6; padding: 3px;"><small>CYL</small><br>{{ $os_cyl }}</td>
+                        <td style="width: 14%; text-align: center; background: #f8f9fa; border: 1px solid #dee2e6; padding: 3px;"><small>AXIS</small><br>{{ $os_axis }}</td>
+                        <td style="width: 14%; text-align: center; background: #e8f5e8; border: 1px solid #dee2e6; padding: 3px; font-weight: 600;"><small>ADD</small><br>{{ $add_kiri }}</td>
+                        <td style="width: 14%; text-align: center; background: #e8f5e8; border: 1px solid #dee2e6; padding: 3px; font-weight: 600;"><small>PD</small><br>{{ $pd_kiri }}</td>
+                        <td style="width: 10%; text-align: center; font-size: 7px; color: #666; font-weight: bold;">Kiri</td>
                     </tr>
                 </tbody>
             </table>
             
             <div style="margin-top: 5px; padding: 4px; background: rgba(255, 193, 7, 0.1); border-radius: 3px; border: 1px solid rgba(255, 193, 7, 0.3);">
-                @if($pd && $pd != '-')
-                <div style="text-align: center; margin-bottom: 3px; font-size: 8px; font-weight: 600; color: #495057;">
-                    📏 <strong>PD (Pupillary Distance): {{ $pd }}mm</strong>
-                </div>
-                @endif
                 @if($dokter && $dokter != '-')
                 <div style="text-align: center; margin-bottom: 3px; font-size: 8px; font-weight: 500; color: #6c757d;">
                     👨‍⚕️ <em>Dokter: {{ $dokter }}</em>
@@ -693,17 +722,6 @@
                         Cetak: {{ \Carbon\Carbon::now()->format('d/m/Y H:i:s') }}
                     </div>
                 </div>
-                @if(!$hanyaAksesoris && $penjualan->barcode)
-                <div class="footer-right">
-                    <div class="qrcode-small">
-                        <div class="qrcode-label-small">SCAN QR CODE</div>
-                        <div class="qrcode-image">
-                            {!! QrCode::size(45)->generate(url('/barcode/scan/' . $penjualan->barcode)) !!}
-                        </div>
-                        <div class="qrcode-barcode">{{ $penjualan->barcode }}</div>
-                    </div>
-                </div>
-                @endif
             </div>
         </div>
     </div>

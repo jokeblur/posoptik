@@ -64,32 +64,55 @@
                     <hr>
                     <h5 class="text-center" style="margin-bottom:18px;"><b>Resep Kacamata</b></h5>
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
+                            <!-- OD Row -->
                             <div style="margin-bottom:16px;">
-                                <label style="font-weight:bold;">OD</label>
-                                <div class="row" style="margin-bottom:8px;">
-                                    <div class="col-xs-4"><input type="text" name="od_sph" class="form-control" placeholder="SPH"></div>
-                                    <div class="col-xs-4"><input type="text" name="od_cyl" class="form-control" placeholder="CYL"></div>
-                                    <div class="col-xs-4"><input type="text" name="od_axis" class="form-control" placeholder="AXIS"></div>
+                                <div class="row" style="align-items: flex-end;">
+                                    <div class="col-xs-1">
+                                        <label style="font-weight:bold; display:block; margin-bottom:5px;">OD</label>
+                                    </div>
+                                    <div class="col-xs-2">
+                                        <input type="text" name="od_sph" class="form-control" placeholder="SPH" style="font-size:12px;">
+                                    </div>
+                                    <div class="col-xs-2">
+                                        <input type="text" name="od_cyl" class="form-control" placeholder="CYL" style="font-size:12px;">
+                                    </div>
+                                    <div class="col-xs-2">
+                                        <input type="text" name="od_axis" class="form-control" placeholder="AXIS" style="font-size:12px;">
+                                    </div>
+                                    <div class="col-xs-2">
+                                        <input type="text" name="add_kanan" id="add_kanan" class="form-control" placeholder="ADD" style="font-size:12px;">
+                                    </div>
+                                    <div class="col-xs-2">
+                                        <input type="text" name="pd_kanan" id="pd_kanan" class="form-control" placeholder="PD" style="font-size:12px;">
+                                    </div>
+                                    
                                 </div>
                             </div>
+                            
+                            <!-- OS Row -->
                             <div style="margin-bottom:16px;">
-                                <label style="font-weight:bold;">OS</label>
-                                <div class="row" style="margin-bottom:8px;">
-                                    <div class="col-xs-4"><input type="text" name="os_sph" class="form-control" placeholder="SPH"></div>
-                                    <div class="col-xs-4"><input type="text" name="os_cyl" class="form-control" placeholder="CYL"></div>
-                                    <div class="col-xs-4"><input type="text" name="os_axis" class="form-control" placeholder="AXIS"></div>
+                                <div class="row" style="align-items: flex-end;">
+                                    <div class="col-xs-1">
+                                        <label style="font-weight:bold; display:block; margin-bottom:5px;">OS</label>
+                                    </div>
+                                    <div class="col-xs-2">
+                                        <input type="text" name="os_sph" class="form-control" placeholder="SPH" style="font-size:12px;">
+                                    </div>
+                                    <div class="col-xs-2">
+                                        <input type="text" name="os_cyl" class="form-control" placeholder="CYL" style="font-size:12px;">
+                                    </div>
+                                    <div class="col-xs-2">
+                                        <input type="text" name="os_axis" class="form-control" placeholder="AXIS" style="font-size:12px;">
+                                    </div>
+                                    <div class="col-xs-2">
+                                        <input type="text" name="add_kiri" id="add_kiri" class="form-control" placeholder="ADD" style="font-size:12px;">
+                                    </div>
+                                    <div class="col-xs-2">
+                                        <input type="text" name="pd_kiri" id="pd_kiri" class="form-control" placeholder="PD" style="font-size:12px;">
+                                    </div>
+                                    
                                 </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div style="margin-bottom:16px;">
-                                <label for="add" style="font-weight:bold;">ADD</label>
-                                <input type="text" name="add" id="add" class="form-control" style="margin-bottom:8px;">
-                            </div>
-                            <div style="margin-bottom:16px;">
-                                <label for="pd" style="font-weight:bold;">PD</label>
-                                <input type="text" name="pd" id="pd" class="form-control" style="margin-bottom:8px;">
                             </div>
                         </div>
                     </div>

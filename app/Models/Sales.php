@@ -9,7 +9,12 @@ class Sales extends Model
 {
     use HasFactory;
     protected $primaryKey = 'id_sales';
-    protected $guarded = [] ;
+    protected $fillable = [
+        'nama_sales',
+        'alamat',
+        'nohp',
+        'branch_id',
+    ];
 
     /**
      * Get all lensa orders handled by this sales

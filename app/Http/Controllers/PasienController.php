@@ -74,7 +74,7 @@ class PasienController extends Controller
             $pasienData = $request->only(['nama_pasien', 'alamat', 'nohp', 'service_type', 'no_bpjs']);
             $pasien = Pasien::create($pasienData);
 
-            $prescriptionData = $request->only(['od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis', 'add', 'pd', 'catatan', 'dokter_id']);
+            $prescriptionData = $request->only(['od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis', 'add', 'add_kanan', 'add_kiri', 'pd', 'pd_kanan', 'pd_kiri', 'catatan', 'dokter_id']);
             $prescriptionData['id_pasien'] = $pasien->id_pasien;
             $prescriptionData['tanggal'] = now();
             if ($request->input('dokter_id') === 'manual') {
@@ -100,7 +100,7 @@ class PasienController extends Controller
             $pasienData = $request->only(['nama_pasien', 'alamat', 'nohp', 'service_type', 'no_bpjs']);
             $pasien = Pasien::create($pasienData);
 
-            $prescriptionData = $request->only(['od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis', 'add', 'pd', 'catatan', 'dokter_id']);
+            $prescriptionData = $request->only(['od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis', 'add', 'add_kanan', 'add_kiri', 'pd', 'pd_kanan', 'pd_kiri', 'catatan', 'dokter_id']);
             $prescriptionData['id_pasien'] = $pasien->id_pasien;
             $prescriptionData['tanggal'] = now();
             if ($request->input('dokter_id') === 'manual') {
@@ -178,7 +178,7 @@ class PasienController extends Controller
             $pasien->update($pasienData);
 
             if ($request->filled('od_sph')) {
-                $prescriptionData = $request->only(['od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis', 'add', 'pd', 'catatan']);
+                $prescriptionData = $request->only(['od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis', 'add', 'add_kanan', 'add_kiri', 'pd', 'pd_kanan', 'pd_kiri', 'catatan']);
                 $prescriptionData['id_pasien'] = $pasien->id_pasien;
                 $prescriptionData['tanggal'] = now();
                 

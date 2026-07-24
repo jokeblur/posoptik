@@ -269,15 +269,27 @@
         
         <div class="additional-info">
             <div class="info-box">
-                <h4>ADD (Addition)</h4>
+                <h4>ADD Kanan (Kanan)</h4>
                 <p style="font-size: 18px; font-weight: bold; text-align: center; margin: 0;">
-                    {{ $latestPrescription->add ?? '-' }}
+                    {{ $latestPrescription->add_kanan ?? $latestPrescription->add ?? '-' }}
                 </p>
             </div>
             <div class="info-box">
-                <h4>PD (Pupillary Distance)</h4>
+                <h4>ADD Kiri (Kiri)</h4>
                 <p style="font-size: 18px; font-weight: bold; text-align: center; margin: 0;">
-                    {{ $latestPrescription->pd ?? '-' }}
+                    {{ $latestPrescription->add_kiri ?? $latestPrescription->add ?? '-' }}
+                </p>
+            </div>
+            <div class="info-box">
+                <h4>PD Kanan (Kanan)</h4>
+                <p style="font-size: 18px; font-weight: bold; text-align: center; margin: 0;">
+                    {{ $latestPrescription->pd_kanan ?? $latestPrescription->pd ?? '-' }}
+                </p>
+            </div>
+            <div class="info-box">
+                <h4>PD Kiri (Kiri)</h4>
+                <p style="font-size: 18px; font-weight: bold; text-align: center; margin: 0;">
+                    {{ $latestPrescription->pd_kiri ?? $latestPrescription->pd ?? '-' }}
                 </p>
             </div>
         </div>

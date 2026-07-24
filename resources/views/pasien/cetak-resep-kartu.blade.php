@@ -415,14 +415,16 @@
                         <td>{{ $latestPrescription->od_sph ?? '' }}</td>
                         <td>{{ $latestPrescription->od_cyl ?? '' }}</td>
                         <td>{{ $latestPrescription->od_axis ?? '' }}</td>
-                        <td rowspan="2">{{ $latestPrescription->add ?? '' }}</td>
-                        <td rowspan="2">{{ $latestPrescription->pd ?? '' }}</td>
+                        <td>{{ $latestPrescription->add_kanan ?? $latestPrescription->add ?? '' }}</td>
+                        <td>{{ $latestPrescription->pd_kanan ?? $latestPrescription->pd ?? '' }}</td>
                     </tr>
                     <tr>
                         <td class="eye-label">L</td>
                         <td>{{ $latestPrescription->os_sph ?? '' }}</td>
                         <td>{{ $latestPrescription->os_cyl ?? '' }}</td>
                         <td>{{ $latestPrescription->os_axis ?? '' }}</td>
+                        <td>{{ $latestPrescription->add_kiri ?? $latestPrescription->add ?? '' }}</td>
+                        <td>{{ $latestPrescription->pd_kiri ?? $latestPrescription->pd ?? '' }}</td>
                     </tr>
                 </tbody>
             </table>

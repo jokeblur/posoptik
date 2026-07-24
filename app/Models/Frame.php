@@ -9,7 +9,15 @@ class Frame extends Model
 {
     use HasFactory;
     
-    protected $guarded = [] ;
+    protected $fillable = [
+        'id_sales',
+        'nama_frame',
+        'merk_frame',
+        'harga_beli',
+        'harga_jual',
+        'stok',
+        'branch_id',
+    ];
 
     /**
      * Get the branch that owns the frame

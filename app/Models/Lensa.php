@@ -10,7 +10,19 @@ class Lensa extends Model
     use HasFactory;
     
     protected $table = 'lensa';
-    protected $guarded = [] ;
+    protected $fillable = [
+        'id_sales',
+        'sales_id',
+        'merk_lensa',
+        'harga_beli',
+        'harga_jual',
+        'stok',
+        'is_custom_order',
+        'axis',
+        'add',
+        'cly',
+        'branch_id',
+    ];
 
     protected $casts = [
         'is_custom_order' => 'boolean',

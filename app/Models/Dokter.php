@@ -10,5 +10,11 @@ class Dokter extends Model
     use HasFactory;
     protected $table = 'dokter';
     protected $primaryKey = 'id_dokter';
-    protected $guarded = [] ;
+    protected $fillable = [
+        'nama_dokter',
+        'alamat',
+        'nohp',
+        'no_str',
+        'branch_id',
+    ];
 }

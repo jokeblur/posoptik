@@ -70,6 +70,7 @@ class DashboardController extends Controller
                 ->when($omsetStart, fn($q) => $q->where('created_at', '>=', $omsetStart))
                 ->when($omsetEnd, fn($q) => $q->where('created_at', '<=', $omsetEnd))
                 ->with(['user', 'pasien'])
+                ->limit(5000)
                 ->get();
                 
             // Hitung rekap omset per kasir dengan harga default BPJS
@@ -124,6 +125,7 @@ class DashboardController extends Controller
                 ->where('created_at', '>=', $omsetStartKasir)
                 ->where('created_at', '<=', $omsetEndKasir)
                 ->with('pasien')
+                ->limit(5000)
                 ->get();
                 
             // Hitung omset kasir dengan harga default BPJS
@@ -175,8 +177,9 @@ class DashboardController extends Controller
             
             $omsetUmum = $umumTransactions->sum('total');
             
-            // Debug logging untuk membantu troubleshooting
-            \Log::info('DashboardController - Omset Kasir Data:', [
+            // Conditional debug logging untuk membantu troubleshooting
+            if (config('app.debug')) {
+                \Log::debug('DashboardController - Omset Kasir Data:', [
                 'user_id' => $user->id,
                 'branch_id' => $selectedBranchId,
                 'omset_kasir' => $omsetKasir,
@@ -186,6 +189,7 @@ class DashboardController extends Controller
                 'bpjs_transactions_count' => $bpjsTransactions->count(),
                 'umum_transactions_count' => $umumTransactions->count(),
             ]);
+            }
             
             $transaksiKasir = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
@@ -193,24 +197,27 @@ class DashboardController extends Controller
                 ->where('created_at', '<=', $omsetEndKasir)
                 ->with('pasien')
                 ->orderBy('created_at', 'desc')
+                ->limit(500)
                 ->get();
             
-                    // Debug: Log data transaksi untuk troubleshooting
-        \Log::info('DashboardController - Transaksi Kasir Data:', [
-            'user_id' => $user->id,
-            'branch_id' => $selectedBranchId,
-            'total_transactions' => $transaksiKasir->count(),
-            'sample_transaction' => $transaksiKasir->first() ? [
-                'id' => $transaksiKasir->first()->id,
-                'kode_penjualan' => $transaksiKasir->first()->kode_penjualan,
-                'pasien_id' => $transaksiKasir->first()->pasien_id,
-                'pasien_data' => $transaksiKasir->first()->pasien ? [
-                    'id' => $transaksiKasir->first()->pasien->id_pasien,
-                    'nama' => $transaksiKasir->first()->pasien->nama_pasien,
-                    'service_type' => $transaksiKasir->first()->pasien->service_type,
+            // Conditional debug: Log data transaksi untuk troubleshooting
+            if (config('app.debug')) {
+                \Log::debug('DashboardController - Transaksi Kasir Data:', [
+                'user_id' => $user->id,
+                'branch_id' => $selectedBranchId,
+                'total_transactions' => $transaksiKasir->count(),
+                'sample_transaction' => $transaksiKasir->first() ? [
+                    'id' => $transaksiKasir->first()->id,
+                    'kode_penjualan' => $transaksiKasir->first()->kode_penjualan,
+                    'pasien_id' => $transaksiKasir->first()->pasien_id,
+                    'pasien_data' => $transaksiKasir->first()->pasien ? [
+                        'id' => $transaksiKasir->first()->pasien->id_pasien,
+                        'nama' => $transaksiKasir->first()->pasien->nama_pasien,
+                        'service_type' => $transaksiKasir->first()->pasien->service_type,
+                    ] : null,
                 ] : null,
-            ] : null,
-        ]);
+            ]);
+            }
             $jumlahPasien = \App\Models\Pasien::count();
             $jumlahLensa = \App\Models\Lensa::where('branch_id', $selectedBranchId)->count();
             $jumlahFrame = \App\Models\Frame::where('branch_id', $selectedBranchId)->count();
@@ -238,14 +245,17 @@ class DashboardController extends Controller
             ->where('is_custom_order', false)
             ->where('stok', '<=', $batasStok)
             ->with('branch')
+            ->limit(100)
             ->get();
         $lowStockFrame = \App\Models\Frame::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
             ->where('stok', '<=', $batasStok)
             ->with('branch')
+            ->limit(100)
             ->get();
         $lowStockAksesoris = \App\Models\Aksesoris::when($user->isSuperAdmin() ? null : $selectedBranchId, fn($q, $branchId) => $branchId ? $q->where('branch_id', $branchId) : $q)
             ->where('stok', '<=', $batasStok)
             ->with('branch')
+            ->limit(100)
             ->get();
 
         // Data untuk passet bantu - transaksi yang menunggu pengerjaan

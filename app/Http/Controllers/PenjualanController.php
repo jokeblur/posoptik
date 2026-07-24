@@ -8,12 +8,14 @@ use App\Models\Lensa;
 use App\Models\User;
 use App\Models\Pasien;
 use App\Services\BpjsPricingService;
+use App\Helpers\WhatsAppHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Schema;
 use App\Models\OpenDay;
@@ -62,7 +64,7 @@ class PenjualanController extends Controller
             });
         }
 
-        if (!Schema::hasColumn('lensa', 'is_custom_order')) {
+        if (!$this->hasTableColumn('lensa', 'is_custom_order')) {
             return $query;
         }
 
@@ -85,24 +87,8 @@ class PenjualanController extends Controller
 
     private function normalizeWhatsappNumber(?string $phone): ?string
     {
-        if (!$phone) {
-            return null;
-        }
-
-        $normalized = preg_replace('/\D+/', '', $phone);
-        if (!$normalized) {
-            return null;
-        }
-
-        if (strpos($normalized, '0') === 0) {
-            $normalized = '62' . substr($normalized, 1);
-        }
-
-        if (strpos($normalized, '62') !== 0) {
-            $normalized = '62' . ltrim($normalized, '0');
-        }
-
-        return $normalized ?: null;
+        // Delegate to centralized WhatsAppHelper
+        return WhatsAppHelper::normalizePhoneNumber($phone);
     }
 
     private function filterDataByExistingColumns(string $table, array $data): array
@@ -117,6 +103,18 @@ class PenjualanController extends Controller
             static fn ($key) => isset($available[$key]),
             ARRAY_FILTER_USE_KEY
         );
+    }
+
+    /**
+     * Cache-aware check for column existence to prevent repeated DB hits
+     */
+    private function hasTableColumn(string $table, string $column): bool
+    {
+        if (!isset($this->tableColumnsCache[$table])) {
+            $this->tableColumnsCache[$table] = Schema::getColumnListing($table);
+        }
+
+        return in_array($column, $this->tableColumnsCache[$table], true);
     }
 
     private function buildReadyPickupMessage(Penjualan $penjualan): string
@@ -137,7 +135,7 @@ class PenjualanController extends Controller
 
     private function notifyWhatsappReadyPickup(Penjualan $penjualan): array
     {
-        $phone = $this->normalizeWhatsappNumber($penjualan->pasien->nohp ?? null);
+        $phone = WhatsAppHelper::normalizePhoneNumber($penjualan->pasien?->nohp ?? null);
         if (!$phone) {
             return [
                 'success' => false,
@@ -147,48 +145,23 @@ class PenjualanController extends Controller
         }
 
         $message = $this->buildReadyPickupMessage($penjualan);
-        $waLink = 'https://wa.me/' . $phone . '?text=' . urlencode($message);
+        $waLink = WhatsAppHelper::buildShareLink($phone, $message);
 
-        $gatewayUrl = env('WHATSAPP_GATEWAY_URL');
-        $gatewayToken = env('WHATSAPP_GATEWAY_TOKEN');
-
-        if ($gatewayUrl && $gatewayToken) {
-            try {
-                $response = Http::asForm()
-                    ->timeout(15)
-                    ->withHeaders([
-                        'Authorization' => $gatewayToken,
-                    ])
-                    ->post($gatewayUrl, [
-                        'target' => $phone,
-                        'message' => $message,
-                    ]);
-
-                if ($response->successful()) {
-                    return [
-                        'success' => true,
-                        'channel' => 'gateway',
-                        'message' => 'Notifikasi WhatsApp berhasil dikirim otomatis.',
-                    ];
-                }
-
-                Log::warning('WhatsApp gateway returned non-success response.', [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                    'penjualan_id' => $penjualan->id,
-                ]);
-            } catch (\Throwable $e) {
-                Log::warning('WhatsApp gateway request failed.', [
-                    'error' => $e->getMessage(),
-                    'penjualan_id' => $penjualan->id,
-                ]);
-            }
+        // Try to send via gateway first
+        $gatewayResult = WhatsAppHelper::sendViaGateway($phone, $message);
+        if ($gatewayResult['success']) {
+            return [
+                'success' => true,
+                'channel' => 'gateway',
+                'message' => $gatewayResult['message'],
+            ];
         }
 
+        // Fallback to manual link
         return [
             'success' => true,
             'channel' => 'wa_link',
-            'message' => 'Gateway WA belum aktif, link WhatsApp siap dibuka untuk kirim pesan.',
+            'message' => 'WhatsApp gateway tidak aktif. Kirim pesan manual melalui link berikut.',
             'open_link' => true,
             'link' => $waLink,
         ];
@@ -217,7 +190,7 @@ class PenjualanController extends Controller
     {
         $user = auth()->user();
         $query = Penjualan::query();
-        $hasJenisTransaksiColumn = Schema::hasColumn('penjualan', 'jenis_transaksi');
+        $hasJenisTransaksiColumn = $this->hasTableColumn('penjualan', 'jenis_transaksi');
 
         // Jika user super admin atau admin, gunakan branch_id dari request jika ada
         if ($user->isSuperAdmin() || $user->isAdmin()) {
@@ -257,7 +230,7 @@ class PenjualanController extends Controller
     {
         $user = auth()->user();
         $query = Penjualan::with('user', 'branch', 'passetByUser', 'dokter', 'pasien')->latest();
-        $hasJenisTransaksiColumn = Schema::hasColumn('penjualan', 'jenis_transaksi');
+        $hasJenisTransaksiColumn = $this->hasTableColumn('penjualan', 'jenis_transaksi');
 
         // Jika user super admin atau admin, gunakan branch_id dari request jika ada
         if ($user->isSuperAdmin() || $user->isAdmin()) {
@@ -284,7 +257,10 @@ class PenjualanController extends Controller
         // Filter berdasarkan jenis transaksi jika ada
         $this->applyJenisTransaksiFilter($query, $request->jenis_transaksi, $hasJenisTransaksiColumn);
 
-        $penjualan = $query->get();
+        // Add eager loading to prevent N+1 queries
+        $penjualan = $query
+            ->with('pasien', 'user', 'branch', 'dokter', 'passetByUser', 'details.itemable')
+            ->get();
 
         return datatables()
             ->of($penjualan)
@@ -314,10 +290,10 @@ class PenjualanController extends Controller
             })
 
             ->addColumn('passet_by', function ($penjualan) {
-                return $penjualan->passetByUser->name ?? '-';
+                return $penjualan->passetByUser?->name ?? '-';
             })
             ->addColumn('nama_pasien', function ($penjualan) {
-                return $penjualan->pasien->nama_pasien ?? '-';
+                return $penjualan->pasien?->nama_pasien ?? '-';
             })
             ->addColumn('nama_dokter', function ($penjualan) {
                 if ($penjualan->dokter && !empty($penjualan->dokter->nama_dokter)) {
@@ -574,14 +550,16 @@ class PenjualanController extends Controller
             $selected_pasien = \App\Models\Pasien::with('prescriptions.dokter')->find($request->pasien_id);
         }
         
-        // Debug log
-        \Log::info('PenjualanController@create - Data loaded', [
-            'branch_id' => $branch_id,
-            'lenses_count' => $lenses->count(),
-            'frames_count' => $frames->count(),
-            'aksesoris_count' => $aksesoris->count(),
-            'selected_pasien_id' => $request->pasien_id ?? null
-        ]);
+        // Conditional debug log
+        if (config('app.debug')) {
+            \Log::debug('PenjualanController@create - Data loaded', [
+                'branch_id' => $branch_id,
+                'lenses_count' => $lenses->count(),
+                'frames_count' => $frames->count(),
+                'aksesoris_count' => $aksesoris->count(),
+                'selected_pasien_id' => $request->pasien_id ?? null
+            ]);
+        }
         
         return view('penjualan.create', compact('pasiens', 'dokters', 'frames', 'lenses', 'aksesoris', 'selected_pasien'));
     }
@@ -603,7 +581,7 @@ class PenjualanController extends Controller
             return response()->json(['message' => 'Transaksi tidak dapat dilakukan. Kasir cabang ini sudah tutup atau belum dibuka.'], 403);
         }
         // Validasi dasar
-            $hasJenisTransaksiColumn = Schema::hasColumn('penjualan', 'jenis_transaksi');
+            $hasJenisTransaksiColumn = $this->hasTableColumn('penjualan', 'jenis_transaksi');
 
             $rules = [
             'kode_penjualan' => 'required|unique:penjualan,kode_penjualan',
@@ -662,13 +640,15 @@ class PenjualanController extends Controller
                     $pasienServiceType = $pasien->service_type;
                     $bpjsDefaultPrice = $this->bpjsPricingService->getDefaultPrice($pasien->service_type);
                     
-                    // Debug logging untuk BPJS pricing
-                    \Log::info('BPJS Pricing in Store Method:', [
-                        'pasien_id' => $pasien->id_pasien,
-                        'service_type' => $pasien->service_type,
-                        'bpjs_default_price' => $bpjsDefaultPrice,
-                        'pasien_service_type' => $pasienServiceType
-                    ]);
+                    // Conditional debug logging untuk BPJS pricing
+                    if (config('app.debug')) {
+                        \Log::debug('BPJS Pricing in Store Method:', [
+                            'pasien_id' => $pasien->id_pasien,
+                            'service_type' => $pasien->service_type,
+                            'bpjs_default_price' => $bpjsDefaultPrice,
+                            'pasien_service_type' => $pasienServiceType
+                        ]);
+                    }
                 }
             }
 
@@ -1023,6 +1003,205 @@ class PenjualanController extends Controller
     {
         $penjualan = Penjualan::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
         return view('penjualan.cetak_half', compact('penjualan'));
+    }
+
+    public function cetakBarcodeWa($id)
+    {
+        $penjualan = Penjualan::findOrFail($id);
+        return view('penjualan.cetak_barcode_wa', compact('penjualan'));
+    }
+
+    /**
+     * Generate barcode image and return URL for WhatsApp sharing
+     */
+    public function generateBarcodeImage(Request $request, $id)
+    {
+        try {
+            $penjualan = Penjualan::findOrFail($id);
+            $user = auth()->user();
+
+            if (!$user->isSuperAdmin() && !$user->isAdmin() && (int) $penjualan->branch_id !== (int) $user->branch_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses ke transaksi ini.'
+                ], 403);
+            }
+
+            if (!$penjualan->barcode) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Barcode belum tersedia untuk transaksi ini.'
+                ], 400);
+            }
+
+            // Ensure directory exists
+            $dir = storage_path('app/wa_barcode');
+            if (!file_exists($dir)) {
+                mkdir($dir, 0755, true);
+            }
+
+            // Generate QR code using online API (no imagick needed)
+            $qrCodeUrl = url('/barcode/scan/' . $penjualan->barcode);
+            $apiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($qrCodeUrl);
+            
+            // Download QR code from API
+            $response = Http::timeout(10)->get($apiUrl);
+            
+            if (!$response->successful()) {
+                throw new \Exception('Failed to generate QR code from API: ' . $response->status());
+            }
+
+            $qrCodeData = $response->body();
+            
+            // Add logo to QR code
+            try {
+                $qrCodeData = $this->addLogoToQRCode($qrCodeData);
+            } catch (\Exception $logoError) {
+                Log::warning('Failed to add logo to QR code: ' . $logoError->getMessage());
+                // Continue with QR code without logo if logo addition fails
+            }
+
+            // Store with unique filename
+            $filename = 'barcode-' . $penjualan->id . '-' . now()->format('YmdHis') . '.png';
+            $fullPath = storage_path('app/wa_barcode/' . $filename);
+            
+            // Save file
+            if (!file_put_contents($fullPath, $qrCodeData)) {
+                throw new \Exception('Failed to write barcode file to disk');
+            }
+
+            // Generate simple token-based URL (WhatsApp safe)
+            $token = Str::uuid()->toString();
+            $cacheKey = 'barcode_' . $token;
+            
+            // Store filename in cache for 15 days
+            Cache::put($cacheKey, $filename, now()->addDays(15));
+            
+            // Generate simple URL without signatures
+            $imageUrl = url('/share/barcode-image/' . $token);
+
+            Log::info('Barcode generated successfully', [
+                'penjualan_id' => $penjualan->id,
+                'filename' => $filename,
+                'url' => $imageUrl
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'image_url' => $imageUrl,
+                'message' => 'Barcode berhasil dibuat.'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Generate barcode image error: ' . $e->getMessage(), [
+                'penjualan_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membuat barcode gambar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Add Optik Melati logo to center of QR code
+     */
+    private function addLogoToQRCode($qrCodeData)
+    {
+        // Create QR code image from data
+        $qrImage = imagecreatefromstring($qrCodeData);
+        if (!$qrImage) {
+            throw new \Exception('Failed to create image from QR code data');
+        }
+
+        $qrWidth = imagesx($qrImage);
+        $qrHeight = imagesy($qrImage);
+
+        // Load logo
+        $logoPath = public_path('image/optik-melati.png');
+        if (!file_exists($logoPath)) {
+            imagedestroy($qrImage);
+            throw new \Exception('Logo file not found: ' . $logoPath);
+        }
+
+        $logoImage = imagecreatefrompng($logoPath);
+        if (!$logoImage) {
+            imagedestroy($qrImage);
+            throw new \Exception('Failed to load logo image');
+        }
+
+        $logoWidth = imagesx($logoImage);
+        $logoHeight = imagesy($logoImage);
+
+        // Calculate logo size (25% of QR code size, max 80px)
+        $maxLogoSize = min(($qrWidth * 0.25), 80);
+        $logoScaleRatio = $maxLogoSize / max($logoWidth, $logoHeight);
+        
+        $newLogoWidth = (int)($logoWidth * $logoScaleRatio);
+        $newLogoHeight = (int)($logoHeight * $logoScaleRatio);
+
+        // Create white background for logo (so it's visible over QR code)
+        $bgSize = $newLogoWidth + 10;
+        $bgImage = imagecreatetruecolor($bgSize, $bgSize);
+        $white = imagecolorallocate($bgImage, 255, 255, 255);
+        imagefilledrectangle($bgImage, 0, 0, $bgSize, $bgSize, $white);
+
+        // Resize and copy logo onto white background
+        imagecopyresampled($bgImage, $logoImage, 5, 5, 0, 0, $newLogoWidth, $newLogoHeight, $logoWidth, $logoHeight);
+
+        // Calculate position (center of QR code)
+        $x = ($qrWidth - $bgSize) / 2;
+        $y = ($qrHeight - $bgSize) / 2;
+
+        // Copy background with logo onto QR code (center position)
+        imagecopy($qrImage, $bgImage, (int)$x, (int)$y, 0, 0, $bgSize, $bgSize);
+
+        // Convert to PNG
+        ob_start();
+        imagepng($qrImage);
+        $result = ob_get_clean();
+
+        // Clean up
+        imagedestroy($qrImage);
+        imagedestroy($logoImage);
+        imagedestroy($bgImage);
+
+        return $result;
+    }
+
+    /**
+     * Share barcode image via token
+     */
+    public function shareBarcodeImage($token)
+    {
+        // Validate token format
+        if (!preg_match('/^[a-f0-9\-]{36}$/', $token)) {
+            abort(404, 'Invalid token.');
+        }
+
+        // Get filename from cache
+        $cacheKey = 'barcode_' . $token;
+        $filename = Cache::get($cacheKey);
+        
+        if (!$filename) {
+            abort(404, 'Link telah expired atau tidak ditemukan.');
+        }
+
+        // Validate filename format
+        if (!preg_match('/^barcode-\d+-\d{14}\.png$/', $filename)) {
+            abort(404, 'Invalid filename.');
+        }
+
+        $path = storage_path('app/wa_barcode/' . $filename);
+        if (!file_exists($path)) {
+            abort(404, 'Barcode gambar tidak ditemukan.');
+        }
+
+        // Display image in browser (not download)
+        return response()->file($path, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'public, max-age=86400'
+        ]);
     }
 
     public function cetakHalfShare($id)

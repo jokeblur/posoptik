@@ -206,43 +206,35 @@
         @endif
 
         <!-- Informasi Resep -->
-        @if(!$hanyaAksesoris && $penjualan->pasien && ($penjualan->pasien->resep_od_sph || $penjualan->pasien->resep_os_sph))
+        @if(!$hanyaAksesoris && $penjualan->pasien && $penjualan->pasien->prescriptions->isNotEmpty())
+        @php $resep = $penjualan->pasien->prescriptions->last(); @endphp
         <div class="resep-info">
-            <div style="text-align: center; font-weight: bold; margin-bottom: 3px;">RESEP LENSA</div>
-            <table class="resep-table">
-                <thead>
-                    <tr>
-                        <th class="eye-label">Mata</th>
-                        <th>SPH</th>
-                        <th>CYL</th>
-                        <th>AXIS</th>
-                        <th>ADD</th>
-                    </tr>
-                </thead>
+            <div style="text-align: center; font-weight: bold; margin-bottom: 5px; font-size: 10pt;">RESEP LENSA</div>
+            <table class="resep-table" style="width: 100%; font-size: 9pt;">
                 <tbody>
                     <tr>
-                        <td class="eye-label">OD</td>
-                        <td>{{ $penjualan->pasien->resep_od_sph ?? '-' }}</td>
-                        <td>{{ $penjualan->pasien->resep_od_cyl ?? '-' }}</td>
-                        <td>{{ $penjualan->pasien->resep_od_axis ?? '-' }}</td>
-                        <td rowspan="2">{{ $penjualan->pasien->resep_add ?? '-' }}</td>
+                        <td class="eye-label" style="width: 8%; text-align: center;"><strong>OD</strong></td>
+                        <td style="width: 13%; text-align: center; border: 1px solid #ddd; padding: 3px;"><strong>SPH</strong><br>{{ $resep->od_sph ?? '-' }}</td>
+                        <td style="width: 13%; text-align: center; border: 1px solid #ddd; padding: 3px;"><strong>CYL</strong><br>{{ $resep->od_cyl ?? '-' }}</td>
+                        <td style="width: 13%; text-align: center; border: 1px solid #ddd; padding: 3px;"><strong>AXIS</strong><br>{{ $resep->od_axis ?? '-' }}</td>
+                        <td style="width: 13%; text-align: center; border: 1px solid #ddd; padding: 3px;"><strong>ADD</strong><br>{{ $resep->add_kanan ?? $resep->add ?? '-' }}</td>
+                        <td style="width: 13%; text-align: center; border: 1px solid #ddd; padding: 3px;"><strong>PD</strong><br>{{ $resep->pd_kanan ?? $resep->pd ?? '-' }}</td>
+                        <td style="width: 13%; text-align: center; font-size: 8pt; color: #666;">Kanan</td>
                     </tr>
                     <tr>
-                        <td class="eye-label">OS</td>
-                        <td>{{ $penjualan->pasien->resep_os_sph ?? '-' }}</td>
-                        <td>{{ $penjualan->pasien->resep_os_cyl ?? '-' }}</td>
-                        <td>{{ $penjualan->pasien->resep_os_axis ?? '-' }}</td>
+                        <td class="eye-label" style="width: 8%; text-align: center;"><strong>OS</strong></td>
+                        <td style="width: 13%; text-align: center; border: 1px solid #ddd; padding: 3px;"><strong>SPH</strong><br>{{ $resep->os_sph ?? '-' }}</td>
+                        <td style="width: 13%; text-align: center; border: 1px solid #ddd; padding: 3px;"><strong>CYL</strong><br>{{ $resep->os_cyl ?? '-' }}</td>
+                        <td style="width: 13%; text-align: center; border: 1px solid #ddd; padding: 3px;"><strong>AXIS</strong><br>{{ $resep->os_axis ?? '-' }}</td>
+                        <td style="width: 13%; text-align: center; border: 1px solid #ddd; padding: 3px;"><strong>ADD</strong><br>{{ $resep->add_kiri ?? $resep->add ?? '-' }}</td>
+                        <td style="width: 13%; text-align: center; border: 1px solid #ddd; padding: 3px;"><strong>PD</strong><br>{{ $resep->pd_kiri ?? $resep->pd ?? '-' }}</td>
+                        <td style="width: 13%; text-align: center; font-size: 8pt; color: #666;">Kiri</td>
                     </tr>
                 </tbody>
             </table>
-            @if($penjualan->pasien->resep_pd)
-            <div style="text-align: center; margin-top: 3px;">
-                <strong>PD: {{ $penjualan->pasien->resep_pd }}mm</strong>
-            </div>
-            @endif
-            @if($penjualan->pasien->resep_dokter)
-            <div style="text-align: center; margin-top: 3px; font-size: 9pt;">
-                <em>Dokter: {{ $penjualan->pasien->resep_dokter }}</em>
+            @if($resep->dokter_manual || ($resep->dokter && $resep->dokter->nama_dokter))
+            <div style="text-align: center; margin-top: 5px; font-size: 8pt;">
+                <em>Dokter: {{ $resep->dokter_manual ?? ($resep->dokter->nama_dokter ?? '-') }}</em>
             </div>
             @endif
         </div>

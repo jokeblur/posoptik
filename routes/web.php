@@ -46,6 +46,10 @@ Route::get('/share/penjualan/{penjualan}/cetak-half', [PenjualanController::clas
 Route::get('/share/nota-image/{file}', [PenjualanController::class, 'shareNotaImage'])
     ->name('penjualan.share-nota-image');
 
+// Public route untuk share barcode image via WhatsApp (token-based, no signature needed)
+Route::get('/share/barcode-image/{token}', [PenjualanController::class, 'shareBarcodeImage'])
+    ->name('penjualan.share-barcode-image');
+
 // Route khusus untuk logout dengan redirect yang aman
 Route::post('/logout', function () {
     try {
@@ -115,6 +119,8 @@ Route::middleware([
     Route::get('/penjualan/statistics', [PenjualanController::class, 'statistics'])->name('penjualan.statistics');
     Route::get('/penjualan/{penjualan}/cetak', [PenjualanController::class, 'cetak'])->name('penjualan.cetak');
     Route::get('/penjualan/{penjualan}/cetak-half', [PenjualanController::class, 'cetakHalf'])->name('penjualan.cetak-half');
+    Route::get('/penjualan/{penjualan}/cetak-barcode-wa', [PenjualanController::class, 'cetakBarcodeWa'])->name('penjualan.cetak-barcode-wa');
+    Route::post('/penjualan/{id}/generate-barcode-image', [PenjualanController::class, 'generateBarcodeImage'])->name('penjualan.generate-barcode-image');
     Route::get('/penjualan/{id}/bpjs-photo', [PenjualanController::class, 'bpjsPhoto'])->name('penjualan.bpjs-photo');
     Route::get('/pasien/{pasien}/cetak-resep', [PasienController::class, 'cetakResep'])->name('pasien.cetak-resep');
     Route::get('/pasien/{pasien}/cetak-resep-a4', [PasienController::class, 'cetakResepA4'])->name('pasien.cetak-resep-a4');

@@ -142,38 +142,28 @@
                 @if(!$hanyaAksesoris && $penjualan->pasien && $penjualan->pasien->prescriptions->isNotEmpty())
                     @php $resep = $penjualan->pasien->prescriptions->last(); @endphp
                     <h4>Resep Terakhir ({{ tanggal_indonesia($resep->tanggal, false) }})</h4>
-                    <table class="table table-bordered text-center" style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th class="text-center" style="width: 25%;">Mata</th>
-                                <th class="text-center" style="width: 25%;">SPH</th>
-                                <th class="text-center" style="width: 25%;">CYL</th>
-                                <th class="text-center" style="width: 25%;">AXIS</th>
-                            </tr>
-                        </thead>
+                    <table class="table table-condensed" style="width: 100%; margin-bottom: 10px;">
                         <tbody>
                             <tr>
-                                <td><strong>OD (Kanan)</strong></td>
-                                <td>{{ $resep->od_sph ?? '-' }}</td>
-                                <td>{{ $resep->od_cyl ?? '-' }}</td>
-                                <td>{{ $resep->od_axis ?? '-' }}</td>
+                                <td style="width: 8%; font-weight: bold; text-align: center;">OD</td>
+                                <td style="width: 12%; text-align: center;"><strong>SPH</strong><br>{{ $resep->od_sph ?? '-' }}</td>
+                                <td style="width: 12%; text-align: center;"><strong>CYL</strong><br>{{ $resep->od_cyl ?? '-' }}</td>
+                                <td style="width: 12%; text-align: center;"><strong>AXIS</strong><br>{{ $resep->od_axis ?? '-' }}</td>
+                                <td style="width: 12%; text-align: center;"><strong>ADD</strong><br>{{ $resep->add_kanan ?? $resep->add ?? '-' }}</td>
+                                <td style="width: 12%; text-align: center;"><strong>PD</strong><br>{{ $resep->pd_kanan ?? $resep->pd ?? '-' }}</td>
+                                <td style="width: 12%; text-align: center; font-size: 11px; font-weight: bold; color: #666;">Kanan</td>
                             </tr>
                             <tr>
-                                <td><strong>OS (Kiri)</strong></td>
-                                <td>{{ $resep->os_sph ?? '-' }}</td>
-                                <td>{{ $resep->os_cyl ?? '-' }}</td>
-                                <td>{{ $resep->os_axis ?? '-' }}</td>
+                                <td style="width: 8%; font-weight: bold; text-align: center;">OS</td>
+                                <td style="width: 12%; text-align: center;"><strong>SPH</strong><br>{{ $resep->os_sph ?? '-' }}</td>
+                                <td style="width: 12%; text-align: center;"><strong>CYL</strong><br>{{ $resep->os_cyl ?? '-' }}</td>
+                                <td style="width: 12%; text-align: center;"><strong>AXIS</strong><br>{{ $resep->os_axis ?? '-' }}</td>
+                                <td style="width: 12%; text-align: center;"><strong>ADD</strong><br>{{ $resep->add_kiri ?? $resep->add ?? '-' }}</td>
+                                <td style="width: 12%; text-align: center;"><strong>PD</strong><br>{{ $resep->pd_kiri ?? $resep->pd ?? '-' }}</td>
+                                <td style="width: 12%; text-align: center; font-size: 11px; font-weight: bold; color: #666;">Kiri</td>
                             </tr>
                         </tbody>
                     </table>
-                    <div class="row">
-                        <div class="col-xs-6">
-                            <p><strong>ADD:</strong> {{ $resep->add ?? '-' }}</p>
-                        </div>
-                        <div class="col-xs-6">
-                            <p><strong>PD:</strong> {{ $resep->pd ?? '-' }}</p>
-                        </div>
-                    </div>
                     <hr>
                 @endif
 
@@ -344,7 +334,7 @@
                 <a href="{{ route('penjualan.cetak-half', $penjualan->id) }}" target="_blank" class="btn btn-info pull-right" style="margin-right: 10px;"><i class="fa fa-print"></i> Cetak Half Page</a>
 
                 @php
-                    $pasienPhone = $penjualan->pasien->nohp ?? '';
+                    $pasienPhone = $penjualan->pasien?->nohp ?? '';
                     $normalizedPhone = preg_replace('/\D+/', '', $pasienPhone);
                     if (strpos($normalizedPhone, '0') === 0) {
                         $normalizedPhone = '62' . substr($normalizedPhone, 1);
@@ -354,25 +344,19 @@
                     }
                 @endphp
 
-                @if($normalizedPhone !== '')
                 <button
                     type="button"
                     class="btn btn-success pull-right"
-                    id="btn-kirim-wa-gambar"
+                    id="btn-kirim-wa-barcode"
                     data-phone="{{ $normalizedPhone }}"
                     data-pasien="{{ $penjualan->nama_pasien }}"
                     data-kode="{{ $penjualan->kode_penjualan }}"
-                    data-capture-url="{{ route('penjualan.cetak-half', $penjualan->id) }}"
-                    data-upload-url="{{ route('penjualan.wa-image', $penjualan->id) }}"
+                    data-penjualan-id="{{ $penjualan->id }}"
+                    data-generate-url="{{ route('penjualan.generate-barcode-image', $penjualan->id) }}"
                     style="margin-right: 10px;"
                 >
-                    <i class="fa fa-whatsapp"></i> Kirim WA (Gambar Nota)
+                    <i class="fa fa-whatsapp"></i> Kirim WA (Barcode)
                 </button>
-                @else
-                <button type="button" class="btn btn-success pull-right" style="margin-right: 10px;" disabled title="Nomor HP pasien belum tersedia">
-                    <i class="fa fa-whatsapp"></i> Kirim WA (Gambar Nota)
-                </button>
-                @endif
                 
                 @php
                     $user = auth()->user();
@@ -391,6 +375,7 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
+// Helper function untuk render receipt ke image
 async function renderReceiptToImage(captureUrl) {
     return new Promise((resolve, reject) => {
         const iframe = document.createElement('iframe');
@@ -438,48 +423,152 @@ async function renderReceiptToImage(captureUrl) {
     });
 }
 
-$(document).on('click', '#btn-kirim-wa-gambar', async function() {
-    const btn = $(this);
-    const phone = btn.data('phone');
-    const pasien = btn.data('pasien') || 'Pasien';
-    const kode = btn.data('kode') || '-';
-    const captureUrl = btn.data('capture-url');
-    const uploadUrl = btn.data('upload-url');
+// Tunggu jQuery siap sebelum menjalankan handler
+function initWAHandlers() {
+    console.log('✓ Initializing WA handlers...');
+    
+    // Handler untuk tombol Kirim WA Barcode
+    $(document).on('click', '#btn-kirim-wa-barcode', async function(e) {
+        e.preventDefault();
+        console.log('✓ Barcode button clicked!');
+        
+        const btn = $(this);
+        let phone = btn.data('phone');
+        const pasien = btn.data('pasien') || 'Pasien';
+        const kode = btn.data('kode') || '-';
+        const generateUrl = btn.data('generate-url');
 
-    try {
-        Swal.fire({
-            title: 'Menyiapkan Nota Gambar',
-            text: 'Sedang membuat gambar nota, mohon tunggu...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
+        // Jika tidak ada nomor HP, minta input dari user
+        if (!phone || phone === '' || phone === '0') {
+            const { value: inputPhone } = await Swal.fire({
+                title: 'Input Nomor WhatsApp',
+                input: 'tel',
+                inputLabel: 'Masukkan nomor WhatsApp pasien (cth: 62812XXXXXX)',
+                inputValue: phone || '',
+                showCancelButton: true,
+                confirmButtonText: 'Kirim',
+                cancelButtonText: 'Batal'
+            });
+
+            if (!inputPhone) {
+                Swal.fire('Dibatalkan', 'Kirim WA dibatalkan karena tidak ada nomor.', 'info');
+                return;
             }
-        });
 
-        const imageData = await renderReceiptToImage(captureUrl);
-
-        const uploadResult = await $.ajax({
-            url: uploadUrl,
-            type: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                image_data: imageData
+            // Normalize nomor
+            phone = inputPhone.replace(/\D+/g, '');
+            if (phone.startsWith('0')) {
+                phone = '62' + phone.substring(1);
+            } else if (!phone.startsWith('62')) {
+                phone = '62' + phone;
             }
-        });
 
-        if (!uploadResult.success || !uploadResult.image_url) {
-            throw new Error(uploadResult.message || 'Gagal membuat link gambar nota');
+            console.log('Phone input normalized:', phone);
         }
 
-        const message = `Halo ${pasien}, berikut nota transaksi Anda (${kode}) dalam bentuk gambar: ${uploadResult.image_url}`;
-        const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        console.log('Phone:', phone, 'URL:', generateUrl);
 
-        Swal.close();
-        window.open(waUrl, '_blank');
-    } catch (error) {
-        Swal.fire('Gagal', error.message || 'Tidak dapat mengirim nota gambar ke WhatsApp.', 'error');
-    }
-});
+        try {
+            Swal.fire({
+                title: 'Menyiapkan Barcode',
+                text: 'Sedang membuat barcode QR code, mohon tunggu...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Call server to generate barcode image
+            const result = await $.ajax({
+                url: generateUrl,
+                type: 'POST',
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'
+                },
+                timeout: 30000
+            });
+
+            console.log('Generate result:', result);
+
+            if (!result.success || !result.image_url) {
+                throw new Error(result.message || 'Gagal membuat barcode');
+            }
+
+            const message = `Halo ${pasien}, berikut QR code nota Anda (${kode}): ${result.image_url}`;
+            const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+            Swal.close();
+            window.open(waUrl, '_blank');
+        } catch (error) {
+            console.error('Error:', error);
+            let errorMsg = 'Tidak dapat membuat barcode.';
+            if (error.responseJSON && error.responseJSON.message) {
+                errorMsg = error.responseJSON.message;
+            } else if (error.message) {
+                errorMsg = error.message;
+            } else if (error.statusText) {
+                errorMsg = error.statusText;
+            }
+            Swal.fire('Gagal', errorMsg, 'error');
+        }
+    });
+
+    // Handler untuk tombol Kirim WA Gambar Nota
+    $(document).on('click', '#btn-kirim-wa-gambar', async function(e) {
+        e.preventDefault();
+        console.log('✓ Gambar button clicked!');
+        
+        const btn = $(this);
+        const phone = btn.data('phone');
+        const pasien = btn.data('pasien') || 'Pasien';
+        const kode = btn.data('kode') || '-';
+        const captureUrl = btn.data('capture-url');
+        const uploadUrl = btn.data('upload-url');
+
+        try {
+            Swal.fire({
+                title: 'Menyiapkan Nota Gambar',
+                text: 'Sedang membuat gambar nota, mohon tunggu...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const imageData = await renderReceiptToImage(captureUrl);
+
+            const uploadResult = await $.ajax({
+                url: uploadUrl,
+                type: 'POST',
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}',
+                    image_data: imageData
+                },
+                timeout: 30000
+            });
+
+            if (!uploadResult.success || !uploadResult.image_url) {
+                throw new Error(uploadResult.message || 'Gagal membuat link gambar nota');
+            }
+
+            const message = `Halo ${pasien}, berikut nota transaksi Anda (${kode}) dalam bentuk gambar: ${uploadResult.image_url}`;
+            const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+            Swal.close();
+            window.open(waUrl, '_blank');
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire('Gagal', error.message || 'Tidak dapat mengirim nota gambar ke WhatsApp.', 'error');
+        }
+    });
+}
+
+// Cek apakah jQuery sudah loaded
+if (typeof jQuery !== 'undefined') {
+    initWAHandlers();
+} else {
+    document.addEventListener('DOMContentLoaded', initWAHandlers);
+}
 
 function generateBarcode(transaksiId) {
     Swal.fire({

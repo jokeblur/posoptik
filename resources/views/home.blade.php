@@ -1167,6 +1167,9 @@ var KASIR_OMSET_IS_TODAY = @json($isOmsetToday ?? true);
 
 // Setup real-time connections with custom callbacks
 $(function() {
+    // Real-time connections disabled - causing UI loading disruption
+    // Uncomment below if needed, but be aware of performance impact
+    /*
     // Setup real-time dashboard connection
     window.RealtimeManager.connectDashboard({
         onOpen: function() {
@@ -1220,6 +1223,7 @@ $(function() {
             showRealtimeNotification(notification);
         }
     });
+    */
 });
 
 function updateTransaksiTable(transaksiList) {

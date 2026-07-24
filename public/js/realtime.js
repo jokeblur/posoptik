@@ -448,6 +448,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.RealtimeManager.requestNotificationPermission();
     
     // Start real-time dashboard if on dashboard page
+    // DISABLED: Realtime polling causing UI loading disruption
+    /*
     if (window.location.pathname === '/dashboard' || window.location.pathname === '/') {
         window.RealtimeManager.connectDashboard();
         window.RealtimeManager.connectNotifications();
@@ -460,6 +462,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Connect to stock updates for all authenticated users
         window.RealtimeManager.connectStockUpdates();
     }
+    */
 });
 
 // Cleanup on page unload

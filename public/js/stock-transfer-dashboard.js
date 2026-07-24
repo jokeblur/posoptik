@@ -4,8 +4,9 @@
  */
 
 $(document).ready(function() {
-    // Auto-refresh dashboard statistics every 30 seconds
-    setInterval(refreshStats, 30000);
+    // Auto-refresh dashboard statistics - DISABLED
+    // Causing performance issues with continuous loading
+    // setInterval(refreshStats, 30000);
     
     // Initialize tooltips
     $('[data-toggle="tooltip"]').tooltip();

@@ -192,6 +192,7 @@
                             @endif
                             <th>{{ $isBPJS ? 'Harga Jual Produk' : 'Subtotal' }}</th>
                             <th>Biaya Tambahan</th>
+                            <th width="15%">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -233,6 +234,15 @@
                             <td>
                                 @if($detail->additional_cost > 0)
                                     <span class="label label-warning">Rp {{ format_uang($detail->additional_cost) }}</span>
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td>
+                                @if($detail->itemable_type === 'App\\Models\\Lensa' && in_array($penjualan->status_pengerjaan, ['Sedang Dikerjakan', 'Selesai Dikerjakan']))
+                                    <button class="btn btn-xs btn-danger" onclick="openReplaceLensaModal({{ $detail->id }}, '{{ $detail->itemable->merk_lensa }}')" title="Lensa Rusak">
+                                        <i class="fa fa-exchange"></i> Ganti
+                                    </button>
                                 @else
                                     -
                                 @endif
@@ -374,6 +384,87 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<style>
+/* Fix Select2 in modal */
+.modal .select2-container {
+    z-index: 1050 !important;
+    width: 100% !important;
+}
+
+.select2-dropdown {
+    z-index: 1050 !important;
+    background-color: #ffffff !important;
+    border: 1px solid #ddd !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+}
+
+.select2-dropdown.select2-dropdown--below {
+    margin-top: 2px !important;
+}
+
+.select2-results__options {
+    background-color: #ffffff !important;
+    max-height: 300px !important;
+    overflow-y: auto !important;
+}
+
+.select2-results__option {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+    padding: 8px 12px !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+}
+
+.select2-results__option:hover {
+    background-color: #e8f4f8 !important;
+    color: #000 !important;
+}
+
+.select2-results__option--highlighted {
+    background-color: #007bff !important;
+    color: #ffffff !important;
+}
+
+.select2-results__option--selected {
+    background-color: #f8f9fa !important;
+    color: #333333 !important;
+}
+
+.select2-container--open .select2-dropdown {
+    background-color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+.select2-container .select2-selection--single {
+    background-color: #ffffff !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    min-height: 38px !important;
+}
+
+.select2-container--focus .select2-selection--single {
+    border-color: #80bdff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25) !important;
+}
+
+.select2-search__field {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+    border: 1px solid #ddd !important;
+    padding: 6px 8px !important;
+}
+
+.select2-search__field::placeholder {
+    color: #999999 !important;
+}
+
+.hidden-accessible {
+    position: absolute !important;
+    left: -9999px !important;
+}
+</style>
 <script>
 // Helper function untuk render receipt ke image
 async function renderReceiptToImage(captureUrl) {
@@ -610,6 +701,112 @@ function generateBarcode(transaksiId) {
     });
 }
 
+// Fungsi buka modal ganti lensa - GLOBAL SCOPE
+window.openReplaceLensaModal = function(detailId, oldLensaMerk) {
+    console.log('=== Opening modal for detail:', detailId, oldLensaMerk);
+    console.log('Modal element exists:', $('#modal-replace-lensa').length > 0);
+    console.log('Dropdown element exists:', $('#new_lensa_id').length > 0);
+    
+    $('#detail_id').val(detailId);
+    $('#old_lensa_name').val(oldLensaMerk);
+    
+    // Destroy Select2 sebelum reset
+    if ($('#new_lensa_id').data('select2')) {
+        console.log('Destroying existing Select2...');
+        $('#new_lensa_id').select2('destroy');
+    }
+    
+    $('#new_lensa_id').val('').html('<option value="">-- Pilih Lensa --</option>');
+    $('#reason').val('');
+    
+    // Show modal dan load lensa stok setelah modal shown
+    $('#modal-replace-lensa').off('shown.bs.modal').on('shown.bs.modal', function() {
+        console.log('Modal shown event fired, loading lensa stock...');
+        loadLensaStock();
+    }).modal('show');
+};
+
+// Load lensa yang tersedia
+window.loadLensaStock = function() {
+    console.log('=== Loading lensa stock...');
+    $.ajax({
+        url: '{{ route("penjualan.lensa-stok") }}',
+        method: 'GET',
+        dataType: 'json',
+        timeout: 5000,
+        success: function(response) {
+            console.log('AJAX Success - Lensa count:', response.data ? response.data.length : 0);
+            let options = '<option value="">-- Pilih Lensa --</option>';
+            if (response.data && response.data.length > 0) {
+                response.data.forEach(lensa => {
+                    if (lensa.stok > 0) {
+                        // Format: Merk (Ukuran | Type | Coating) - Stok: X
+                        let displayText = lensa.merk_lensa;
+                        let specs = [];
+                        
+                        if (lensa.index && lensa.index !== '-') {
+                            specs.push('Ukuran: ' + lensa.index);
+                        }
+                        if (lensa.type && lensa.type !== '-') {
+                            specs.push(lensa.type);
+                        }
+                        if (lensa.coating && lensa.coating !== '-') {
+                            specs.push(lensa.coating);
+                        }
+                        
+                        if (specs.length > 0) {
+                            displayText += ' (' + specs.join(' | ') + ')';
+                        }
+                        displayText += ' - Stok: ' + lensa.stok;
+                        
+                        options += '<option value="' + lensa.id + '" data-stok="' + lensa.stok + 
+                                   '" data-index="' + (lensa.index || '-') + 
+                                   '" data-type="' + (lensa.type || '-') + 
+                                   '" data-harga="' + lensa.harga_jual_lensa + '">' + 
+                                   displayText + '</option>';
+                    }
+                });
+                console.log('Generated options count:', (options.match(/option/g) || []).length);
+            }
+            
+            // Set HTML
+            $('#new_lensa_id').html(options);
+            console.log('HTML set. Element value:', $('#new_lensa_id').val());
+            console.log('HTML length:', $('#new_lensa_id').html().length);
+            
+            // Wait a bit then initialize Select2
+            setTimeout(function() {
+                try {
+                    console.log('Initializing Select2...');
+                    $('#new_lensa_id').select2({
+                        width: '100%',
+                        placeholder: '-- Cari dan Pilih Lensa --',
+                        allowClear: true,
+                        minimumInputLength: 0,
+                        matcher: function(params, data) {
+                            if ($.trim(params.term) === '') {
+                                return data;
+                            }
+                            if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+                                return data;
+                            }
+                            return null;
+                        }
+                    });
+                    console.log('Select2 initialized. Data attribute:', $('#new_lensa_id').data('select2'));
+                } catch(e) {
+                    console.error('Error initializing Select2:', e);
+                }
+            }, 100);
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX Error:', status, error);
+            console.error('Response:', xhr.responseText);
+            Swal.fire('Error!', 'Gagal memuat data lensa. ' + error, 'error');
+        }
+    });
+};
+
 $(document).on('click', '#btn-bayar-lunas', function() {
     let url = $(this).data('url');
     
@@ -682,6 +879,155 @@ $(document).on('click', '#btn-hapus-transaksi', function() {
         }
     });
 });
+
+// Event handler: Update info stok ketika lensa dipilih
+$(document).on('change', '#new_lensa_id', function() {
+    let selectedValue = $(this).val();
+    console.log('Selected lensa:', selectedValue);
+    
+    if (selectedValue) {
+        let selectedOption = $(this).find('option:selected');
+        let stok = selectedOption.data('stok');
+        let index = selectedOption.data('index');
+        let type = selectedOption.data('type');
+        let harga = selectedOption.data('harga');
+        
+        console.log('Stock for selected lensa:', stok);
+        
+        // Tampilkan info detail
+        let infoText = '✓ Stok: ' + stok + ' unit';
+        if (index && index !== '-') {
+            infoText += ' | Ukuran: ' + index;
+        }
+        if (type && type !== '-') {
+            infoText += ' | Type: ' + type;
+        }
+        if (harga) {
+            infoText += ' | Harga: Rp ' + parseInt(harga).toLocaleString('id-ID');
+        }
+        
+        $('#lensa_stok_info').html(infoText);
+        $('#lensa_stok_info').css('color', '#28a745');
+    } else {
+        $('#lensa_stok_info').html('').css('color', '#666');
+    }
+});
+
+// Event handler: Submit form ganti lensa
+$(document).on('submit', '#form-replace-lensa', function(e) {
+    e.preventDefault();
+    
+    let detailId = $('#detail_id').val();
+    let newLensaId = $('#new_lensa_id').val();
+    let reason = $('#reason').val();
+    let penjualanId = {{ $penjualan->id }};
+    let csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+    console.log('Form submitted:', { detailId, newLensaId, reason, penjualanId, csrfToken });
+
+    if (!newLensaId) {
+        Swal.fire('Peringatan!', 'Silakan pilih lensa pengganti terlebih dahulu', 'warning');
+        return;
+    }
+
+    Swal.fire({
+        title: 'Konfirmasi',
+        text: 'Lensa akan diganti dan stok akan diupdate. Lanjutkan?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Ganti Lensa',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '/penjualan/' + penjualanId + '/replace-lensa-damaged',
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify({
+                    detail_id: detailId,
+                    new_lensa_id: newLensaId,
+                    reason: reason
+                }),
+                success: function(response) {
+                    console.log('Success response:', response);
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            html: '<strong>Lensa Lama:</strong> ' + response.old_lensa.merk + '<br>' +
+                                  '<strong>Lensa Baru:</strong> ' + response.new_lensa.merk + '<br>' +
+                                  '<strong>Harga:</strong> Rp ' + response.new_lensa.harga.toLocaleString('id-ID') + '<br><br>' +
+                                  'Stok sudah diupdate otomatis.',
+                            icon: 'success'
+                        }).then(() => {
+                            location.reload();
+                        });
+                        $('#modal-replace-lensa').modal('hide');
+                    } else {
+                        Swal.fire('Gagal!', response.message || 'Gagal mengganti lensa', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error:', xhr);
+                    let message = 'Gagal mengganti lensa. Silakan coba lagi.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    } else if (xhr.status === 403) {
+                        message = 'Anda tidak memiliki izin untuk mengganti lensa';
+                    } else if (xhr.status === 422) {
+                        message = 'Data tidak valid atau stok tidak cukup';
+                    } else if (xhr.status === 500) {
+                        message = 'Error server. Cek console untuk detail.';
+                    }
+                    console.log('Response Text:', xhr.responseText);
+                    Swal.fire('Gagal!', message, 'error');
+                }
+            });
+        }
+    });
+});
 </script>
 @endpush
+
+<!-- Modal Ganti Lensa Rusak -->
+<div class="modal fade" id="modal-replace-lensa" tabindex="-1" role="dialog" aria-labelledby="modal-replace-lensa-label">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="modal-replace-lensa-label">Ganti Lensa Rusak</h4>
+            </div>
+            <form id="form-replace-lensa">
+                @csrf
+                <input type="hidden" id="detail_id" name="detail_id" value="">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Lensa Lama:</label>
+                        <input type="text" id="old_lensa_name" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_lensa_id">Pilih Lensa Pengganti: <span class="text-danger">*</span></label>
+                        <select id="new_lensa_id" name="new_lensa_id" class="form-control" required>
+                            <option value="">-- Pilih Lensa --</option>
+                        </select>
+                        <small class="form-text text-muted" id="lensa_stok_info"></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="reason">Alasan Penggantian:</label>
+                        <textarea id="reason" name="reason" class="form-control" rows="3" placeholder="Misalnya: Lensa pecah saat pengerjaan, cacat produksi, dll"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Ganti Lensa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection 

@@ -1363,6 +1363,114 @@ class PenjualanController extends Controller
         }
     }
 
+    /**
+     * Replace damaged lensa with new lensa from stock
+     */
+    public function replaceLensaDamaged(Request $request, $penjualanId)
+    {
+        $user = auth()->user();
+        
+        $request->validate([
+            'detail_id' => 'required|integer|exists:penjualan_detail,id',
+            'new_lensa_id' => 'required|integer|exists:lensa,id',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $penjualan = Penjualan::findOrFail($penjualanId);
+            
+            // Verify user access
+            if (!$user->isSuperAdmin() && !$user->isAdmin() && (int) $penjualan->branch_id !== (int) $user->branch_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses ke transaksi ini.'
+                ], 403);
+            }
+
+            // Get old lensa detail
+            $detail = PenjualanDetail::findOrFail($request->detail_id);
+            
+            // Verify it's a lensa
+            if ($detail->itemable_type !== 'App\\Models\\Lensa') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Item bukan lensa.'
+                ], 422);
+            }
+
+            // Get old lensa
+            $oldLensa = Lensa::findOrFail($detail->itemable_id);
+            
+            // Get new lensa
+            $newLensa = Lensa::findOrFail($request->new_lensa_id);
+            
+            // Check new lensa stock
+            if ($newLensa->stok < $detail->quantity) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Stok lensa pengganti tidak cukup. Tersedia: ' . $newLensa->stok . ' unit.'
+                ], 422);
+            }
+
+            // Restore old lensa stock
+            $oldLensa->increment('stok', $detail->quantity);
+            
+            // Reduce new lensa stock
+            $newLensa->decrement('stok', $detail->quantity);
+            
+            // Update detail with new lensa
+            $detail->itemable_id = $newLensa->id;
+            $detail->price = $newLensa->harga_jual_lensa;
+            $detail->subtotal = $newLensa->harga_jual_lensa * $detail->quantity;
+            $detail->save();
+
+            // Log the replacement
+            Log::info('Lensa Damage Replacement', [
+                'penjualan_id' => $penjualanId,
+                'detail_id' => $detail->id,
+                'old_lensa_id' => $oldLensa->id,
+                'old_lensa_merk' => $oldLensa->merk_lensa,
+                'new_lensa_id' => $newLensa->id,
+                'new_lensa_merk' => $newLensa->merk_lensa,
+                'quantity' => $detail->quantity,
+                'reason' => $request->reason,
+                'replaced_by_user_id' => $user->id,
+                'replaced_by_user_name' => $user->name,
+                'timestamp' => now()
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Lensa berhasil diganti. Stok sudah diupdate.',
+                'old_lensa' => [
+                    'merk' => $oldLensa->merk_lensa,
+                    'kode' => $oldLensa->kode_lensa,
+                ],
+                'new_lensa' => [
+                    'merk' => $newLensa->merk_lensa,
+                    'kode' => $newLensa->kode_lensa,
+                    'harga' => $newLensa->harga_jual_lensa,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Replace lensa damaged error: ' . $e->getMessage(), [
+                'penjualan_id' => $penjualanId,
+                'user_id' => $user->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengganti lensa: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function getLensa()
     {
         $user = auth()->user();

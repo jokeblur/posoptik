@@ -135,6 +135,7 @@ Route::middleware([
     Route::post('/penjualan/debug-frame-data', [PenjualanController::class, 'debugFrameData'])->name('penjualan.debug_frame_data');
     Route::post('/penjualan/fix-bpjs-prices', [PenjualanController::class, 'fixBpjsPrices'])->name('penjualan.fix_bpjs_prices');
     Route::post('/penjualan/{id}/update-status-pengerjaan', [PenjualanController::class, 'updateStatusPengerjaan'])->name('penjualan.update_status_pengerjaan');
+    Route::post('/penjualan/{penjualanId}/replace-lensa-damaged', [PenjualanController::class, 'replaceLensaDamaged'])->name('penjualan.replace_lensa_damaged');
     Route::resource('penjualan', App\Http\Controllers\PenjualanController::class);
 
     Route::get('/laporan-pos', [App\Http\Controllers\LaporanPosController::class, 'index'])->name('laporan.pos')->middleware('role:admin,super admin');

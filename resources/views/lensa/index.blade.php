@@ -221,11 +221,11 @@
             {data: 'DT_RowIndex', searchable: false, orderable: false},
             {data: 'kode_lensa', name: 'kode_lensa', orderable: true},
             {data: 'merk_lensa', name: 'merk_lensa', orderable: true},
-            {data: 'branch_name', searchable: false, orderable: false},
+            {data: 'branch_name', name: 'branches.name', orderable: true},
             {data: 'type', name: 'type', orderable: true},
-            {data: 'index', name: 'index', orderable: true},
-            {data: 'add', searchable: false, orderable: false},
-            {data: 'cly', searchable: false, orderable: false},
+            {data: 'lens_index', name: 'lensa.index', orderable: true},
+            {data: 'add', searchable: true, orderable: false},
+            {data: 'cly', searchable: true, orderable: false},
             {data: 'coating', name: 'coating', orderable: true}
         ];
         
@@ -238,7 +238,7 @@
             {data: 'harga_jual_lensa', name: 'harga_jual_lensa', orderable: true},
             {data: 'stok', name: 'stok', orderable: true},
             {data: 'stock_status', searchable: false, orderable: false},
-            {data: 'sales_name', searchable: false, orderable: false},
+            {data: 'sales_name', name: 'sales.nama_sales', orderable: true},
            
             {data: 'aksi', searchable: false, orderable: false}
         );

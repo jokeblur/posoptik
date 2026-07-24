@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Lensa;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB; // Import DB facade
 use App\Imports\LensaImport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\LensaExport;
@@ -39,9 +40,18 @@ class LensaController extends Controller
     public function data(Request $request)
     {
         $user = auth()->user();
-        $query = Lensa::with(['branch', 'sales'])->accessibleByUser($user);
+        $query = Lensa::query()
+            ->select([
+                'lensa.*',
+                'branches.name as branch_name',
+                'sales.nama_sales as sales_name',
+                DB::raw('lensa.`index` as lens_index'),
+            ])
+            ->leftJoin('branches', 'branches.id', '=', 'lensa.branch_id')
+            ->leftJoin('sales', 'sales.id_sales', '=', 'lensa.sales_id')
+            ->accessibleByUser($user);
         if ($request->filled('branch_id')) {
-            $query->where('branch_id', $request->branch_id);
+            $query->where('lensa.branch_id', $request->branch_id);
         }
         if ($request->filled('stock_type')) {
             if ($request->stock_type === 'ready') {
@@ -56,34 +66,52 @@ class LensaController extends Controller
         }
         $lensa = $query;
         return datatables()->of($lensa)
+            ->filterColumn('branch_name', function ($query, $keyword) {
+                $query->where('branches.name', 'like', '%' . $keyword . '%');
+            })
+            ->filterColumn('sales_name', function ($query, $keyword) {
+                $query->where('sales.nama_sales', 'like', '%' . $keyword . '%');
+            })
+            ->filterColumn('lens_index', function ($query, $keyword) {
+                $query->where('lensa.index', 'like', '%' . $keyword . '%');
+            })
+            ->orderColumn('branch_name', function ($query, $order) {
+                $query->orderBy('branches.name', $order);
+            })
+            ->orderColumn('sales_name', function ($query, $order) {
+                $query->orderBy('sales.nama_sales', $order);
+            })
+            ->orderColumn('lens_index', function ($query, $order) {
+                $query->orderBy('lensa.index', $order);
+            })
             ->addColumn('select_all', function ($lensa) {
                 return '<input type="checkbox" name="selected_lensa[]" value="' . $lensa->id . '">';
             })
-            ->addColumn('kode_lensa', function ($lensa) {
+            ->editColumn('kode_lensa', function ($lensa) {
                 return $lensa->kode_lensa;
             })
-            ->addColumn('merk_lensa', function ($lensa) {
+            ->editColumn('merk_lensa', function ($lensa) {
                 return $lensa->merk_lensa;
             })
             ->addColumn('branch_name', function ($lensa) {
-                return $lensa->branch ? $lensa->branch->name : '-';
+                return $lensa->branch_name ?: '-';
             })
-            ->addColumn('type', function ($lensa) {
+            ->editColumn('type', function ($lensa) {
                 return $lensa->type ?? '-';
             })
-            ->addColumn('index', function ($lensa) {
-                return $lensa->index ?? '-';
+            ->addColumn('lens_index', function ($lensa) {
+                return $lensa->lens_index ?? '-';
             })
-            ->addColumn('coating', function ($lensa) {
+            ->editColumn('coating', function ($lensa) {
                 return $lensa->coating ?? '-';
             })
-            ->addColumn('harga_beli_lensa', function ($lensa) {
+            ->editColumn('harga_beli_lensa', function ($lensa) {
                 return format_uang($lensa->harga_beli_lensa);
             })
-            ->addColumn('harga_jual_lensa', function ($lensa) {
+            ->editColumn('harga_jual_lensa', function ($lensa) {
                 return format_uang($lensa->harga_jual_lensa);
             })
-            ->addColumn('stok', function ($lensa) {
+            ->editColumn('stok', function ($lensa) {
                 return format_uang($lensa->stok);
             })
             ->addColumn('stock_status', function ($lensa) {
@@ -91,12 +119,12 @@ class LensaController extends Controller
                 return '<span class="badge ' . $badge . '">' . $lensa->stock_status . '</span>';
             })
             ->addColumn('sales_name', function ($lensa) {
-                return $lensa->sales ? $lensa->sales->nama_sales : '-';
+                return $lensa->sales_name ?: '-';
             })
-            ->addColumn('add', function ($lensa) {
+            ->editColumn('add', function ($lensa) {
                 return $lensa->add ? substr($lensa->add, 0, 50) . (strlen($lensa->add) > 50 ? '...' : '') : '-';
             })
-            ->addColumn('cly', function ($lensa) {
+            ->editColumn('cly', function ($lensa) {
                 return $lensa->cly ? substr($lensa->cly, 0, 50) . (strlen($lensa->cly) > 50 ? '...' : '') : '-';
             })
             ->addIndexColumn()

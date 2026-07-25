@@ -128,8 +128,10 @@
             body {
                 margin: 0.5cm;
             }
-            .print-button-container {
-                display: none; /* Hide button when printing */
+            .no-print,
+            .no-print * {
+                display: none !important;
+                visibility: hidden !important;
             }
         }
     </style>
@@ -335,7 +337,7 @@
 
         <hr class="dashed">
 
-        <div class="print-button-container" style="text-align: center; margin-top: 20px;">
+        <div class="print-button-container no-print" style="text-align: center; margin-top: 20px;">
             <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Cetak Sekarang</button>
         </div>
 

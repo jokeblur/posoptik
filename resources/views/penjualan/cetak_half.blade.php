@@ -267,7 +267,11 @@
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            .no-print { display: none; }
+            .no-print,
+            .no-print * {
+                display: none !important;
+                visibility: hidden !important;
+            }
             
             /* Ensure background logo prints */
             body::before {

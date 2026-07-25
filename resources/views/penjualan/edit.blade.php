@@ -96,9 +96,11 @@
                                             <thead>
                                                 <tr class="bg-gray">
                                                     <th class="text-center" style="width: 20%;">Mata</th>
-                                                    <th class="text-center" style="width: 20%;">SPH</th>
-                                                    <th class="text-center" style="width: 20%;">CYL</th>
-                                                    <th class="text-center" style="width: 20%;">AXIS</th>
+                                                    <th class="text-center" style="width: 16%;">SPH</th>
+                                                    <th class="text-center" style="width: 16%;">CYL</th>
+                                                    <th class="text-center" style="width: 16%;">AXIS</th>
+                                                    <th class="text-center" style="width: 16%;">ADD</th>
+                                                    <th class="text-center" style="width: 16%;">PD</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -107,12 +109,16 @@
                                                     <td>{{ $latestPrescription->od_sph ?? '-' }}</td>
                                                     <td>{{ $latestPrescription->od_cyl ?? '-' }}</td>
                                                     <td>{{ $latestPrescription->od_axis ?? '-' }}</td>
+                                                    <td>{{ $latestPrescription->add_kanan ?? $latestPrescription->add ?? '-' }}</td>
+                                                    <td>{{ $latestPrescription->pd_kanan ?? $latestPrescription->pd ?? '-' }}</td>
                                                 </tr>
                                                 <tr>
                                                     <td><strong>OS (Kiri)</strong></td>
                                                     <td>{{ $latestPrescription->os_sph ?? '-' }}</td>
                                                     <td>{{ $latestPrescription->os_cyl ?? '-' }}</td>
                                                     <td>{{ $latestPrescription->os_axis ?? '-' }}</td>
+                                                    <td>{{ $latestPrescription->add_kiri ?? $latestPrescription->add ?? '-' }}</td>
+                                                    <td>{{ $latestPrescription->pd_kiri ?? $latestPrescription->pd ?? '-' }}</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -136,6 +142,18 @@
             <div class="box">
                 <div class="box-header with-border">
                     <h3 class="box-title">Item Transaksi</h3>
+                    <div class="btn-group pull-right" style="margin-left: 8px;">
+                        <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-frames">Cari Frame</button>
+                    </div>
+                    <div class="btn-group pull-right" style="margin-left: 8px;">
+                        <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-lenses">Cari Lensa Stok</button>
+                    </div>
+                    <div class="btn-group pull-right" style="margin-left: 8px;">
+                        <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-lenses-gosok">Cari Lensa Gosok</button>
+                    </div>
+                    <div class="btn-group pull-right">
+                        <button type="button" class="btn btn-sm btn-custom" data-toggle="modal" data-target="#modal-aksesoris">Cari Aksesoris</button>
+                    </div>
                 </div>
                 <div class="box-body">
                     <div class="table-responsive">
@@ -149,41 +167,7 @@
                                     <th>Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                @if($penjualan->details && $penjualan->details->count() > 0)
-                                    @foreach($penjualan->details as $detail)
-                                    <tr>
-                                        <td>
-                                            @if($detail->itemable)
-                                                @if($detail->itemable_type === 'App\Models\Frame')
-                                                    {{ $detail->itemable->merk_frame ?? 'N/A' }} - {{ $detail->itemable->jenis_frame ?? 'N/A' }}
-                                                @elseif($detail->itemable_type === 'App\Models\Lensa')
-                                                    {{ $detail->itemable->merk_lensa ?? 'N/A' }} - {{ $detail->itemable->type ?? 'N/A' }}
-                                                @else
-                                                    {{ $detail->itemable->nama ?? 'N/A' }}
-                                                @endif
-                                            @else
-                                                Item tidak ditemukan
-                                            @endif
-                                        </td>
-                                        <td>Rp. {{ number_format($detail->price ?? 0, 0, ',', '.') }}</td>
-                                        <td>{{ $detail->quantity ?? 1 }}</td>
-                                        <td>Rp. {{ number_format($detail->subtotal ?? 0, 0, ',', '.') }}</td>
-                                        <td>
-                                            <button type="button" class="btn btn-xs btn-danger" onclick="removeItem(this)">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                @else
-                                    <tr>
-                                        <td colspan="5" class="text-center text-muted">
-                                            <i class="fa fa-info-circle"></i> Tidak ada item transaksi
-                                        </td>
-                                    </tr>
-                                @endif
-                            </tbody>
+                            <tbody id="cart-table"></tbody>
                         </table>
                     </div>
                 </div>
@@ -200,16 +184,21 @@
                 </div>
                 <div class="box-body">
                     <div class="form-group col-md-4">
-                        <label for="total">Total Transaksi</label>
-                        <input type="text" class="form-control" name="total" value="Rp. {{ number_format($penjualan->total, 0, ',', '.') }}" readonly>
+                        <label for="total-display">Total Transaksi</label>
+                        <input type="text" class="form-control" id="total-display" value="Rp. {{ number_format($penjualan->total, 0, ',', '.') }}" readonly>
+                        <input type="hidden" name="total" id="total" value="{{ (int) $penjualan->total }}">
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="diskon">Diskon</label>
+                        <input type="number" class="form-control" id="diskon" name="diskon" value="{{ (int) $penjualan->diskon }}" min="0">
                     </div>
                     <div class="form-group col-md-4">
                         <label for="bayar">Jumlah Bayar</label>
-                        <input type="number" class="form-control" name="bayar" value="{{ $penjualan->bayar }}" required>
+                        <input type="number" class="form-control" id="bayar" name="bayar" value="{{ (int) $penjualan->bayar }}" required>
                     </div>
                     <div class="form-group col-md-4">
                         <label for="kekurangan">Kekurangan</label>
-                        <input type="text" class="form-control" name="kekurangan" value="{{ $penjualan->kekurangan }}" readonly>
+                        <input type="text" class="form-control" id="kekurangan" name="kekurangan" value="{{ (int) $penjualan->kekurangan }}" readonly>
                     </div>
                     <div class="form-group col-md-4">
                         <label for="status">Status Pembayaran</label>
@@ -227,10 +216,20 @@
                             <option value="Sudah Diambil" {{ $penjualan->status_pengerjaan == 'Sudah Diambil' ? 'selected' : '' }}>Sudah Diambil</option>
                         </select>
                     </div>
+                    <div class="form-group col-md-4">
+                        <label for="transaction_status_display">Status Transaksi (BPJS)</label>
+                        <input type="text" class="form-control" id="transaction_status_display" value="{{ $penjualan->transaction_status ?? 'Normal' }}" readonly>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="total_additional_cost_display">Biaya Tambahan BPJS</label>
+                        <input type="text" class="form-control" id="total_additional_cost_display" value="Rp. {{ number_format((float) ($penjualan->total_additional_cost ?? 0), 0, ',', '.') }}" readonly>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <input type="hidden" name="items" id="items-input">
 
     {{-- BPJS Evidence Section --}}
     <div class="row" id="bpjs-edit-section" style="display: none;">
@@ -297,33 +296,386 @@
     </div>
 </form>
 
-{{-- Include necessary modals and scripts --}}
-{{-- Modals will be added here if needed --}}
+@include('penjualan.modal_frame')
+@include('penjualan.modal_lensa')
+@include('penjualan.modal_lensa_gosok')
+@include('penjualan.modal_aksesoris')
+@include('penjualan.modal_pasien')
 
 @endsection
 
 @push('scripts')
 <script>
 $(document).ready(function() {
-    // Initialize form with existing data
     initializeForm();
-    
-    // Handle payment calculation
-    $('#bayar').on('input', function() {
-        calculatePayment();
+    initModalDataTables();
+
+    $('#diskon, #bayar').on('input', function() {
+        renderCartAndTotals();
     });
-    
-    // Handle status change
+
     $('#status').on('change', function() {
         if ($(this).val() === 'Lunas') {
-            $('#bayar').val($('#total').val().replace('Rp. ', '').replace(/\./g, ''));
-            calculatePayment();
+            $('#bayar').val($('#total').val());
+            renderCartAndTotals();
         }
     });
+
+    $('#refresh-lensa-stok').on('click', function() {
+        $('#search-lensa-stok').val('');
+        if (lensaStokTable) {
+            lensaStokTable.ajax.reload();
+        }
+    });
+
+    $('#search-lensa-stok').on('keyup', function() {
+        if (lensaStokTable) {
+            lensaStokTable.ajax.reload();
+        }
+    });
+
+    $(document).on('click', '.add-to-cart', function(e) {
+        e.preventDefault();
+
+        const type = ($(this).data('type') || '').toString();
+        const id = Number($(this).data('id'));
+        const name = ($(this).data('name') || '').toString();
+        const price = Number($(this).data('price')) || 0;
+
+        if (!id || !type || !name) {
+            return;
+        }
+
+        if (type === 'frame') {
+            const existingFrame = cart.find((item) => item.type === 'frame');
+            if (existingFrame) {
+                alert('Frame pada transaksi hanya boleh satu. Hapus frame lama terlebih dahulu.');
+                return;
+            }
+        }
+
+        const existingIndex = cart.findIndex((item) => item.type === type && Number(item.id) === id);
+        if (existingIndex !== -1) {
+            cart[existingIndex].quantity += 1;
+        } else {
+            cart.push({
+                id: id,
+                type: type,
+                name: name,
+                price: price,
+                quantity: 1,
+                jenis_frame: ($(this).data('jenis-frame') || '').toString(),
+                lensaType: ($(this).data('lensa-jenis') || '').toString(),
+                index: ($(this).data('index') || '').toString(),
+                coating: ($(this).data('coating') || '').toString(),
+                cly: ($(this).data('cly') || '').toString(),
+                axis: ($(this).data('axis') || '').toString(),
+                add: ($(this).data('add') || '').toString(),
+            });
+        }
+
+        renderCartAndTotals();
+    });
+
+    $(document).on('change', '.cart-qty', function() {
+        const index = Number($(this).data('index'));
+        const quantity = Math.max(1, Number($(this).val()) || 1);
+        if (typeof cart[index] !== 'undefined') {
+            cart[index].quantity = quantity;
+            renderCartAndTotals();
+        }
+    });
+
+    $(document).on('click', '.remove-cart-item', function() {
+        const index = Number($(this).data('index'));
+        if (typeof cart[index] !== 'undefined') {
+            cart.splice(index, 1);
+            renderCartAndTotals();
+        }
+    });
+
+    $(document).on('click', '.select-pasien', function() {
+        const id = $(this).data('id');
+        const name = $(this).data('name');
+        let url = "{{ route('pasien.details', ['id' => ':id']) }}";
+        url = url.replace(':id', id);
+
+        $('#pasien_id').val(id);
+        $('#pasien_name').val(name);
+        $('#modal-pasien').modal('hide');
+
+        $.get(url)
+            .done(function(response) {
+                $('#detail-nama').text(response.nama_pasien || '-');
+                $('#detail-alamat').text(response.alamat || '-');
+                $('#detail-nohp').text(response.nohp || '-');
+                $('#detail-jenis_layanan').text(response.service_type || '-');
+                $('#detail-no-bpjs').text(response.no_bpjs || '-');
+                $('#detail-dokter').text(response.dokter_nama || '-');
+                $('#pasien-details-container').show();
+                toggleBpjsEditSection();
+                renderCartAndTotals();
+            })
+            .fail(function() {
+                alert('Gagal mengambil detail pasien.');
+            });
+    });
+
+    $('#form-penjualan').on('submit', function() {
+        $('#items-input').val(JSON.stringify(cart));
+    });
+
+    $(document).on('click', '#btn-reset-gosok-modal', function() {
+        const form = $('#form-lensa-gosok-modal')[0];
+        if (form) {
+            form.reset();
+        }
+        $('#gosok_quantity_modal').val(1);
+    });
+
+    $(document).on('click', '#btn-add-gosok-modal', function() {
+        const form = $('#form-lensa-gosok-modal')[0];
+        if (!form) {
+            return;
+        }
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const merk = $('#gosok_merk_modal').val();
+        const lensaType = $('#gosok_type_modal').val() || '-';
+        const indexValue = $('#gosok_index_modal').val() || '-';
+        const coating = $('#gosok_coating_modal').val() || '-';
+        const cly = $('#gosok_cly_modal').val() || '-';
+        const axis = $('#gosok_axis_modal').val() || '-';
+        const add = $('#gosok_add_modal').val() || '-';
+        const harga = parseInt($('#gosok_harga_modal').val(), 10) || 0;
+        const quantity = parseInt($('#gosok_quantity_modal').val(), 10) || 1;
+        const catatan = $('#gosok_catatan_modal').val() || '';
+
+        if (harga <= 0 || quantity <= 0) {
+            alert('Harga dan jumlah lensa gosok harus lebih dari 0.');
+            return;
+        }
+
+        cart.push({
+            id: 'gosok_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+            type: 'lensa_gosok',
+            name: `Lensa Gosok - ${merk}`,
+            price: harga,
+            quantity: quantity,
+            catatan: catatan,
+            merk: merk,
+            lensaType: lensaType,
+            index: indexValue,
+            coating: coating,
+            cly: cly,
+            axis: axis,
+            add: add
+        });
+
+        form.reset();
+        $('#gosok_quantity_modal').val(1);
+        $('#modal-lenses-gosok').modal('hide');
+        renderCartAndTotals();
+    });
+
+    renderCartAndTotals();
 });
 
+@php
+    $initialEditCart = ($penjualan->details ?? collect())
+        ->map(function ($detail) {
+            if (!$detail->itemable) {
+                return null;
+            }
+
+            $type = 'aksesoris';
+            $name = $detail->itemable->nama_produk ?? 'Produk';
+
+            if ($detail->itemable_type === \App\Models\Frame::class) {
+                $type = 'frame';
+                $name = ($detail->itemable->merk_frame ?? 'Frame') . ' - ' . ($detail->itemable->jenis_frame ?? '-');
+            } elseif ($detail->itemable_type === \App\Models\Lensa::class) {
+                $type = 'lensa';
+                $name = ($detail->itemable->merk_lensa ?? 'Lensa') . ' - ' . ($detail->itemable->type ?? '-');
+            }
+
+            return [
+                'id' => $detail->itemable_id,
+                'type' => $type,
+                'name' => $name,
+                'price' => (float) ($detail->price ?? 0),
+                'quantity' => (int) ($detail->quantity ?? 1),
+                'jenis_frame' => $detail->itemable->jenis_frame ?? '',
+                'lensaType' => $detail->itemable->type ?? '',
+                'index' => $detail->itemable->index ?? '',
+                'coating' => $detail->itemable->coating ?? '',
+                'cly' => $detail->itemable->cly ?? '',
+                'axis' => $detail->itemable->axis ?? '',
+                'add' => $detail->itemable->add ?? '',
+            ];
+        })
+        ->filter()
+        ->values()
+        ->all();
+@endphp
+
+let cart = @json($initialEditCart);
+
+let renderVersion = 0;
+let lensaStokTable = null;
+
+function initModalDataTables() {
+    if ($.fn.DataTable.isDataTable('#table-frames')) {
+        $('#table-frames').DataTable().destroy();
+    }
+    $('#table-frames').DataTable();
+
+    if ($.fn.DataTable.isDataTable('#table-aksesoris')) {
+        $('#table-aksesoris').DataTable().destroy();
+    }
+    $('#table-aksesoris').DataTable();
+}
+
+function formatRupiah(value) {
+    return 'Rp. ' + Number(value || 0).toLocaleString('id-ID');
+}
+
+function isBpjsPatient() {
+    const serviceType = ($('#detail-jenis_layanan').text() || '').toUpperCase();
+    return serviceType.includes('BPJS');
+}
+
+function getBpjsDefaultPrice() {
+    const serviceType = ($('#detail-jenis_layanan').text() || '').toUpperCase();
+    if (serviceType.includes('BPJS III') || serviceType.includes('BPJS 3')) return 165000;
+    if (serviceType.includes('BPJS II') || serviceType.includes('BPJS 2')) return 220000;
+    if (serviceType.includes('BPJS I') || serviceType.includes('BPJS 1')) return 330000;
+    return 0;
+}
+
+function renderCartRows(frameCalculatedPrice = null) {
+    const tbody = $('#cart-table');
+    tbody.empty();
+
+    if (!Array.isArray(cart) || cart.length === 0) {
+        tbody.append('<tr><td colspan="5" class="text-center text-muted"><i class="fa fa-info-circle"></i> Keranjang kosong</td></tr>');
+        return { subtotal: 0, total: 0, frameAdditionalCost: 0, transactionStatus: 'Normal' };
+    }
+
+    const isBpjs = isBpjsPatient();
+    let subtotal = 0;
+    let total = 0;
+    let frameAdditionalCost = 0;
+    let transactionStatus = 'Normal';
+
+    cart.forEach((item, index) => {
+        const quantity = Math.max(1, Number(item.quantity) || 1);
+        const normalPrice = Number(item.price) || 0;
+
+        let effectivePrice = normalPrice;
+        if (isBpjs && item.type === 'frame' && frameCalculatedPrice !== null) {
+            effectivePrice = Number(frameCalculatedPrice) || 0;
+        }
+
+        const itemSubtotal = effectivePrice * quantity;
+        subtotal += normalPrice * quantity;
+        total += itemSubtotal;
+
+        const row = `
+            <tr>
+                <td>${item.name}</td>
+                <td>${formatRupiah(effectivePrice)}</td>
+                <td><input type="number" min="1" class="form-control cart-qty" data-index="${index}" value="${quantity}" style="width: 90px;"></td>
+                <td>${formatRupiah(itemSubtotal)}</td>
+                <td>
+                    <button type="button" class="btn btn-xs btn-danger remove-cart-item" data-index="${index}">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+
+        tbody.append(row);
+    });
+
+    if (isBpjs) {
+        const defaultPrice = getBpjsDefaultPrice();
+        const frameItem = cart.find((item) => item.type === 'frame');
+        if (frameItem && frameCalculatedPrice !== null) {
+            const normalFramePrice = Number(frameItem.price) || 0;
+            frameAdditionalCost = Math.max(0, (normalFramePrice - defaultPrice) * (Number(frameItem.quantity) || 1));
+            transactionStatus = frameAdditionalCost > 0 ? 'Naik Kelas' : 'Normal';
+        }
+    }
+
+    return { subtotal, total, frameAdditionalCost, transactionStatus };
+}
+
+function applyTotalsToUi(subtotal, total, frameAdditionalCost, transactionStatus) {
+    const diskon = Math.max(0, Number($('#diskon').val()) || 0);
+    const bayar = Math.max(0, Number($('#bayar').val()) || 0);
+    const finalTotal = Math.max(0, total - diskon);
+    const kekurangan = finalTotal - bayar;
+
+    $('#total').val(Math.round(finalTotal));
+    $('#total-display').val(formatRupiah(finalTotal));
+    $('#kekurangan').val(Math.round(kekurangan));
+    $('#transaction_status_display').val(transactionStatus);
+    $('#total_additional_cost_display').val(formatRupiah(frameAdditionalCost));
+
+    if (kekurangan <= 0) {
+        $('#status').val('Lunas');
+    } else {
+        $('#status').val('Belum Lunas');
+    }
+}
+
+function renderCartAndTotals() {
+    const currentVersion = ++renderVersion;
+    const isBpjs = isBpjsPatient();
+    const pasienId = $('#pasien_id').val();
+    const frameItem = cart.find((item) => item.type === 'frame');
+
+    if (isBpjs && pasienId && frameItem) {
+        $.ajax({
+            url: '{{ route("penjualan.calculate_bpjs_price") }}',
+            method: 'POST',
+            data: {
+                pasien_id: pasienId,
+                frame_id: frameItem.id,
+                _token: '{{ csrf_token() }}'
+            }
+        }).done(function(response) {
+            if (currentVersion !== renderVersion) {
+                return;
+            }
+
+            const frameCalculatedPrice = response.success ? Number(response.data.calculated_price || 0) : null;
+            const state = renderCartRows(frameCalculatedPrice);
+            if (response.success) {
+                state.frameAdditionalCost = Number(response.data.additional_cost || 0) * (Number(frameItem.quantity) || 1);
+                state.transactionStatus = state.frameAdditionalCost > 0 ? 'Naik Kelas' : 'Normal';
+            }
+            applyTotalsToUi(state.subtotal, state.total, state.frameAdditionalCost, state.transactionStatus);
+        }).fail(function() {
+            if (currentVersion !== renderVersion) {
+                return;
+            }
+            const state = renderCartRows(null);
+            applyTotalsToUi(state.subtotal, state.total, state.frameAdditionalCost, state.transactionStatus);
+        });
+        return;
+    }
+
+    const state = renderCartRows(null);
+    applyTotalsToUi(state.subtotal, state.total, state.frameAdditionalCost, state.transactionStatus);
+}
+
 function initializeForm() {
-    // Set initial values and states
     if ($('#pasien_id').val()) {
         $('#pasien-details-container').show();
     }
@@ -337,6 +689,86 @@ function toggleBpjsEditSection() {
     const isBpjs = serviceTypeText.includes('bpjs');
     $('#bpjs-edit-section').toggle(isBpjs);
 }
+
+function initLensaStokTable() {
+    if ($.fn.DataTable.isDataTable('#table-lenses-stok')) {
+        $('#table-lenses-stok').DataTable().destroy();
+    }
+
+    lensaStokTable = $('#table-lenses-stok').DataTable({
+        processing: true,
+        serverSide: false,
+        ajax: {
+            url: '{{ route("penjualan.lensa-stok") }}',
+            type: 'GET',
+            data: function(d) {
+                d.search = $('#search-lensa-stok').val();
+            }
+        },
+        columns: [
+            { data: 'kode_lensa', name: 'kode_lensa' },
+            { data: 'merk_lensa', name: 'merk_lensa' },
+            { data: 'type', name: 'type' },
+            { data: 'index', name: 'index' },
+            { data: 'coating', name: 'coating' },
+            { data: 'cly', name: 'cly' },
+            { data: 'add', name: 'add' },
+            {
+                data: 'stok',
+                name: 'stok',
+                render: function(data) {
+                    return '<span class="label label-success">' + data + '</span>';
+                }
+            },
+            { data: 'harga_formatted', name: 'harga_formatted' },
+            {
+                data: 'id',
+                name: 'action',
+                orderable: false,
+                searchable: false,
+                render: function(data, type, row) {
+                    return '<a href="#" class="btn btn-primary btn-sm add-to-cart" ' +
+                           'data-id="' + data + '" ' +
+                           'data-name="' + row.merk_lensa + '" ' +
+                           'data-price="' + row.harga_jual_lensa + '" ' +
+                           'data-type="lensa" ' +
+                           'data-lensa-jenis="' + (row.type || '') + '" ' +
+                           'data-index="' + (row.index || '') + '" ' +
+                           'data-coating="' + (row.coating || '') + '" ' +
+                           'data-cly="' + (row.cly || '') + '" ' +
+                           'data-axis="' + (row.axis || '') + '" ' +
+                           'data-add="' + (row.add || '') + '">' +
+                           '<i class="fa fa-plus"></i> Pilih</a>';
+                }
+            }
+        ],
+        order: [[1, 'asc']],
+        pageLength: 10,
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+        dom: 'rtip',
+        responsive: true,
+        language: {
+            processing: 'Memproses...',
+            lengthMenu: 'Tampilkan _MENU_ data per halaman',
+            zeroRecords: 'Tidak ada data lensa stok',
+            info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
+            infoEmpty: 'Menampilkan 0 sampai 0 dari 0 data',
+            infoFiltered: '(disaring dari _MAX_ total data)',
+            paginate: {
+                first: 'Pertama',
+                last: 'Terakhir',
+                next: 'Selanjutnya',
+                previous: 'Sebelumnya'
+            }
+        }
+    });
+}
+
+$('#modal-lenses').on('shown.bs.modal', function() {
+    setTimeout(function() {
+        initLensaStokTable();
+    }, 100);
+});
 
 function initSignatureCanvas() {
     const canvas = document.getElementById('signature-canvas');
@@ -404,18 +836,5 @@ function initSignatureCanvas() {
     });
 }
 
-function calculatePayment() {
-    const total = parseFloat($('#total').val().replace('Rp. ', '').replace(/\./g, ''));
-    const bayar = parseFloat($('#bayar').val()) || 0;
-    const kekurangan = total - bayar;
-    
-    $('#kekurangan').val(kekurangan.toFixed(0));
-}
-
-function removeItem(button) {
-    if (confirm('Apakah Anda yakin ingin menghapus item ini?')) {
-        $(button).closest('tr').remove();
-    }
-}
 </script>
 @endpush

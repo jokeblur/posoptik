@@ -91,7 +91,6 @@
             gap: 10px;
             justify-content: center;
             margin-bottom: 15px;
-            no-print: true;
         }
         
         button {
@@ -124,12 +123,16 @@
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            .button-container { display: none; }
+            .no-print,
+            .no-print * {
+                display: none !important;
+                visibility: hidden !important;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="button-container" style="position: absolute; top: 10px; left: 10px; z-index: 1000;">
+    <div class="button-container no-print" style="position: absolute; top: 10px; left: 10px; z-index: 1000;">
         <a href="{{ route('penjualan.show', $penjualan->id) }}" style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 4px; font-size: 12px;">Kembali</a>
         <button onclick="window.print()" style="margin-left: 5px;">Cetak Barcode</button>
     </div>

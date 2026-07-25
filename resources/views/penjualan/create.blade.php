@@ -192,12 +192,18 @@
                                     <div class="row" style="margin-bottom: 10px;">
                                         <div class="col-md-6 text-center">
                                             <div class="resep-card">
-                                                <strong style="color: #28a745;">➕ ADD:</strong> <span id="resep-add" style="color: #28a745;"></span>
+                                                <strong style="color: #28a745;">➕ ADD (R/L):</strong>
+                                                <span id="resep-add-kanan" style="color: #28a745;"></span>
+                                                /
+                                                <span id="resep-add-kiri" style="color: #28a745;"></span>
                                         </div>
                                         </div>
                                         <div class="col-md-6 text-center">
                                             <div class="pd-card">
-                                                <strong style="color: #856404;">📏 PD:</strong> <span id="resep-pd" style="color: #856404;"></span>
+                                                <strong style="color: #856404;">📏 PD (R/L):</strong>
+                                                <span id="resep-pd-kanan" style="color: #856404;"></span>
+                                                /
+                                                <span id="resep-pd-kiri" style="color: #856404;"></span>
                                     </div>
                                         </div>
                                     </div>
@@ -448,6 +454,12 @@ $(function() {
             @php
                 $latestPrescription = $selected_pasien->prescriptions->last();
             @endphp
+            @php
+                $selectedAddKanan = $latestPrescription->add_kanan ?? $latestPrescription->add ?? '-';
+                $selectedAddKiri = $latestPrescription->add_kiri ?? $latestPrescription->add ?? '-';
+                $selectedPdKanan = $latestPrescription->pd_kanan ?? $latestPrescription->pd ?? '-';
+                $selectedPdKiri = $latestPrescription->pd_kiri ?? $latestPrescription->pd ?? '-';
+            @endphp
             $('#resep-tanggal').text('{{ $latestPrescription->tanggal }}');
             $('#resep-od-sph').text('{{ $latestPrescription->od_sph ?? "-" }}');
             $('#resep-od-cyl').text('{{ $latestPrescription->od_cyl ?? "-" }}');
@@ -455,13 +467,15 @@ $(function() {
             $('#resep-os-sph').text('{{ $latestPrescription->os_sph ?? "-" }}');
             $('#resep-os-cyl').text('{{ $latestPrescription->os_cyl ?? "-" }}');
             $('#resep-os-axis').text('{{ $latestPrescription->os_axis ?? "-" }}');
-            $('#resep-add').text('{{ $latestPrescription->add ?? "-" }}');
-            $('#resep-pd').text('{{ $latestPrescription->pd ?? "-" }}');
+            $('#resep-add-kanan').text('{{ $selectedAddKanan }}');
+            $('#resep-add-kiri').text('{{ $selectedAddKiri }}');
+            $('#resep-pd-kanan').text('{{ $selectedPdKanan }}');
+            $('#resep-pd-kiri').text('{{ $selectedPdKiri }}');
             $('#resep-dokter').text('{{ $latestPrescription->dokter_manual ?? ($latestPrescription->dokter->nama_dokter ?? "-") }}');
             $('#detail-dokter').text('{{ $latestPrescription->dokter_manual ?? ($latestPrescription->dokter->nama_dokter ?? "-") }}');
         @else
             $('#resep-tanggal').text('N/A');
-            $('#resep-od-sph, #resep-od-cyl, #resep-od-axis, #resep-os-sph, #resep-os-cyl, #resep-os-axis, #resep-add, #resep-pd, #resep-dokter').text('-');
+            $('#resep-od-sph, #resep-od-cyl, #resep-od-axis, #resep-os-sph, #resep-os-cyl, #resep-os-axis, #resep-add-kanan, #resep-add-kiri, #resep-pd-kanan, #resep-pd-kiri, #resep-dokter').text('-');
             $('#detail-dokter').text('-');
         @endif
         
@@ -539,6 +553,10 @@ $(function() {
                 // Tampilkan resep dengan format baru
                 if (response.prescriptions && response.prescriptions.length > 0) {
                     let resep = response.prescriptions[response.prescriptions.length - 1]; // Ambil resep terakhir
+                    const addKanan = resep.add_kanan || resep.add || '-';
+                    const addKiri = resep.add_kiri || resep.add || '-';
+                    const pdKanan = resep.pd_kanan || resep.pd || '-';
+                    const pdKiri = resep.pd_kiri || resep.pd || '-';
                     
                     $('#resep-tanggal').text(resep.tanggal);
                     $('#resep-od-sph').text(resep.od_sph || '-');
@@ -547,14 +565,16 @@ $(function() {
                     $('#resep-os-sph').text(resep.os_sph || '-');
                     $('#resep-os-cyl').text(resep.os_cyl || '-');
                     $('#resep-os-axis').text(resep.os_axis || '-');
-                    $('#resep-add').text(resep.add || '-');
-                    $('#resep-pd').text(resep.pd || '-');
+                    $('#resep-add-kanan').text(addKanan);
+                    $('#resep-add-kiri').text(addKiri);
+                    $('#resep-pd-kanan').text(pdKanan);
+                    $('#resep-pd-kiri').text(pdKiri);
                     $('#resep-dokter').text(response.prescriptions?.[response.prescriptions.length-1]?.dokter_nama || '-');
 
                 } else {
                     // Jika tidak ada resep, kosongkan semua field
                     $('#resep-tanggal').text('N/A');
-                    $('#resep-od-sph, #resep-od-cyl, #resep-od-axis, #resep-os-sph, #resep-os-cyl, #resep-os-axis, #resep-add, #resep-pd, #resep-dokter').text('-');
+                    $('#resep-od-sph, #resep-od-cyl, #resep-od-axis, #resep-os-sph, #resep-os-cyl, #resep-os-axis, #resep-add-kanan, #resep-add-kiri, #resep-pd-kanan, #resep-pd-kiri, #resep-dokter').text('-');
                 }
 
                 // Tampilkan kontainer detail
@@ -1181,13 +1201,6 @@ $(function() {
         cart = [];
         $('#bayar').data('user-has-changed', false);
         renderCartAndTotals();
-    });
-
-    // Event listener untuk perubahan diskon atau bayar
-    $('#diskon, #bayar').on('keyup change', function() {
-        // Hanya update display, tidak recalculate pricing
-        let currentTotal = parseFloat($('#total-input').val()) || 0;
-        updateTotalDisplay(currentTotal);
     });
 
     renderCartAndTotals(); // Initial render

@@ -75,7 +75,22 @@ class BpjsPricingService
      */
     private function isMatchingService(string $serviceType, string $frameType): bool
     {
-        return $serviceType === $frameType;
+        return $this->normalizeServiceLabel($serviceType) === $this->normalizeServiceLabel($frameType);
+    }
+
+    /**
+     * Normalize BPJS label so comparison is resilient to case and spacing variants.
+     */
+    private function normalizeServiceLabel(?string $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        $normalized = strtoupper(trim(preg_replace('/\s+/', ' ', $value)));
+        $normalized = str_replace(['BPJS 1', 'BPJS 2', 'BPJS 3'], ['BPJS I', 'BPJS II', 'BPJS III'], $normalized);
+
+        return $normalized;
     }
 
     /**

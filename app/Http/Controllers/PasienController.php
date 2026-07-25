@@ -13,6 +13,65 @@ use Maatwebsite\Excel\Facades\Excel;
 class PasienController extends Controller
 {
     /**
+     * Ensure legacy add/pd fields are filled from right/left values when needed.
+     */
+    private function normalizePrescriptionData(array $prescriptionData): array
+    {
+        if (empty($prescriptionData['add'])) {
+            $prescriptionData['add'] = $prescriptionData['add_kanan'] ?? $prescriptionData['add_kiri'] ?? null;
+        }
+
+        if (empty($prescriptionData['pd'])) {
+            $prescriptionData['pd'] = $prescriptionData['pd_kanan'] ?? $prescriptionData['pd_kiri'] ?? null;
+        }
+
+        return $prescriptionData;
+    }
+
+    /**
+     * Remove exact duplicate prescriptions and append doctor display name.
+     */
+    private function sanitizePrescriptionsForDetail(array $prescriptions, bool $descendingByDate = false): array
+    {
+        $collection = collect($prescriptions)
+            ->sortBy(function ($rx) {
+                return sprintf('%s|%s', $rx['tanggal'] ?? '', $rx['id'] ?? 0);
+            })
+            ->values();
+
+        if ($descendingByDate) {
+            $collection = $collection->reverse()->values();
+        }
+
+        return $collection
+            ->map(function ($rx) {
+                $rx['dokter_nama'] = $rx['dokter']['nama_dokter'] ?? ($rx['dokter_manual'] ?? '-');
+                return $rx;
+            })
+            ->unique(function ($rx) {
+                return implode('|', [
+                    $rx['id_pasien'] ?? '',
+                    $rx['tanggal'] ?? '',
+                    $rx['od_sph'] ?? '',
+                    $rx['od_cyl'] ?? '',
+                    $rx['od_axis'] ?? '',
+                    $rx['os_sph'] ?? '',
+                    $rx['os_cyl'] ?? '',
+                    $rx['os_axis'] ?? '',
+                    $rx['add'] ?? '',
+                    $rx['add_kanan'] ?? '',
+                    $rx['add_kiri'] ?? '',
+                    $rx['pd'] ?? '',
+                    $rx['pd_kanan'] ?? '',
+                    $rx['pd_kiri'] ?? '',
+                    $rx['catatan'] ?? '',
+                ]);
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
@@ -75,6 +134,7 @@ class PasienController extends Controller
             $pasien = Pasien::create($pasienData);
 
             $prescriptionData = $request->only(['od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis', 'add', 'add_kanan', 'add_kiri', 'pd', 'pd_kanan', 'pd_kiri', 'catatan', 'dokter_id']);
+            $prescriptionData = $this->normalizePrescriptionData($prescriptionData);
             $prescriptionData['id_pasien'] = $pasien->id_pasien;
             $prescriptionData['tanggal'] = now();
             if ($request->input('dokter_id') === 'manual') {
@@ -101,6 +161,7 @@ class PasienController extends Controller
             $pasien = Pasien::create($pasienData);
 
             $prescriptionData = $request->only(['od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis', 'add', 'add_kanan', 'add_kiri', 'pd', 'pd_kanan', 'pd_kiri', 'catatan', 'dokter_id']);
+            $prescriptionData = $this->normalizePrescriptionData($prescriptionData);
             $prescriptionData['id_pasien'] = $pasien->id_pasien;
             $prescriptionData['tanggal'] = now();
             if ($request->input('dokter_id') === 'manual') {
@@ -133,16 +194,8 @@ class PasienController extends Controller
         $pasien = Pasien::with(['prescriptions.dokter'])->findOrFail($id);
         if (request()->ajax()) {
             $data = $pasien->toArray();
-            // Tambahkan nama dokter ke setiap prescription dan pastikan tidak ada duplikasi
             if (!empty($data['prescriptions'])) {
-                // Sort prescriptions by date to ensure proper order
-                usort($data['prescriptions'], function($a, $b) {
-                    return strtotime($a['tanggal']) - strtotime($b['tanggal']);
-                });
-                
-                foreach ($data['prescriptions'] as $i => $rx) {
-                    $data['prescriptions'][$i]['dokter_nama'] = $rx['dokter']['nama_dokter'] ?? '-';
-                }
+                $data['prescriptions'] = $this->sanitizePrescriptionsForDetail($data['prescriptions']);
             }
             return response()->json($data);
         }
@@ -174,11 +227,19 @@ class PasienController extends Controller
         DB::beginTransaction();
         try {
             $pasien = Pasien::findOrFail($id);
-            $pasienData = $request->only(['nama_pasien', 'alamat', 'nohp', 'service_type']);
+            $pasienData = $request->only(['nama_pasien', 'alamat', 'nohp', 'service_type', 'no_bpjs']);
             $pasien->update($pasienData);
 
-            if ($request->filled('od_sph')) {
+            $hasPrescriptionInput = collect([
+                'od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis',
+                'add', 'add_kanan', 'add_kiri', 'pd', 'pd_kanan', 'pd_kiri', 'catatan'
+            ])->contains(function ($field) use ($request) {
+                return $request->filled($field);
+            });
+
+            if ($hasPrescriptionInput) {
                 $prescriptionData = $request->only(['od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis', 'add', 'add_kanan', 'add_kiri', 'pd', 'pd_kanan', 'pd_kiri', 'catatan']);
+                $prescriptionData = $this->normalizePrescriptionData($prescriptionData);
                 $prescriptionData['id_pasien'] = $pasien->id_pasien;
                 $prescriptionData['tanggal'] = now();
                 
@@ -231,16 +292,10 @@ class PasienController extends Controller
         
         $data = $pasien->toArray();
         
-        // Tambahkan nama dokter ke setiap prescription dan pastikan tidak ada duplikasi
         if (!empty($data['prescriptions'])) {
-            // Sort prescriptions by date to ensure proper order
-            usort($data['prescriptions'], function($a, $b) {
-                return strtotime($b['tanggal']) - strtotime($a['tanggal']); // Urutkan dari yang terbaru
-            });
-            
+            $data['prescriptions'] = $this->sanitizePrescriptionsForDetail($data['prescriptions'], true);
+
             foreach ($data['prescriptions'] as $i => $rx) {
-                $data['prescriptions'][$i]['dokter_nama'] = $rx['dokter']['nama_dokter'] ?? ($rx['dokter_manual'] ?? '-');
-                // Format tanggal untuk display
                 $data['prescriptions'][$i]['tanggal'] = date('d/m/Y', strtotime($rx['tanggal']));
             }
             

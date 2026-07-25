@@ -188,14 +188,38 @@
 
         $.get(url)
             .done((response) => {
+                const normalizeDate = (value) => {
+                    const date = new Date(value);
+                    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+                };
+
+                const uniquePrescriptions = Array.isArray(response.prescriptions)
+                    ? response.prescriptions.filter((rx, idx, arr) => {
+                        const key = [
+                            rx.tanggal || '', rx.od_sph || '', rx.od_cyl || '', rx.od_axis || '',
+                            rx.os_sph || '', rx.os_cyl || '', rx.os_axis || '',
+                            rx.add || '', rx.add_kanan || '', rx.add_kiri || '',
+                            rx.pd || '', rx.pd_kanan || '', rx.pd_kiri || '',
+                            rx.catatan || ''
+                        ].join('|');
+                        return idx === arr.findIndex((row) => [
+                            row.tanggal || '', row.od_sph || '', row.od_cyl || '', row.od_axis || '',
+                            row.os_sph || '', row.os_cyl || '', row.os_axis || '',
+                            row.add || '', row.add_kanan || '', row.add_kiri || '',
+                            row.pd || '', row.pd_kanan || '', row.pd_kiri || '',
+                            row.catatan || ''
+                        ].join('|') === key);
+                    })
+                    : [];
+
                 $('#detail-nama').text(response.nama_pasien);
                 $('#detail-alamat').text(response.alamat);
                 $('#detail-nohp').text(response.nohp);
                 $('#detail-service_type').text(response.service_type);
                 $('#detail-no-bpjs').text(response.no_bpjs || '-');
                 let dokterNama = '-';
-                if (response.prescriptions && response.prescriptions.length > 0) {
-                    const latestPrescription = response.prescriptions[response.prescriptions.length - 1];
+                if (uniquePrescriptions.length > 0) {
+                    const latestPrescription = [...uniquePrescriptions].sort((a, b) => normalizeDate(a.tanggal) - normalizeDate(b.tanggal)).pop();
                     if (latestPrescription.dokter_manual && latestPrescription.dokter_manual !== '') {
                         dokterNama = latestPrescription.dokter_manual;
                     } else {
@@ -218,22 +242,21 @@
                 let prescriptionsContainer = $('#detail-prescriptions-container');
                 prescriptionsContainer.empty(); // Clear previous data
 
-                if (response.prescriptions && response.prescriptions.length > 0) {
-                    // Sort prescriptions by date to ensure proper order
-                    const sortedPrescriptions = response.prescriptions.sort((a, b) => 
-                        new Date(a.tanggal) - new Date(b.tanggal)
-                    );
-                    
-                    // Debug: log the prescriptions to check for duplicates
-                    console.log('Prescriptions data:', sortedPrescriptions);
-                    
+                if (uniquePrescriptions.length > 0) {
+                    const sortedPrescriptions = [...uniquePrescriptions].sort((a, b) => normalizeDate(a.tanggal) - normalizeDate(b.tanggal));
+
                     sortedPrescriptions.forEach(function(rx) {
+                        const addKanan = rx.add_kanan || rx.add || '-';
+                        const addKiri = rx.add_kiri || rx.add || '-';
+                        const pdKanan = rx.pd_kanan || rx.pd || '-';
+                        const pdKiri = rx.pd_kiri || rx.pd || '-';
+
                         const prescriptionHtml = `
                             <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px;">
                                 <div class="row">
-                                    <div class="col-sm-6"><strong>Tanggal:</strong> ${rx.tanggal}</div>
-                                    <div class="col-sm-3"><strong>ADD:</strong> ${rx.add || '-'}</div>
-                                    <div class="col-sm-3"><strong>PD:</strong> ${rx.pd || '-'}</div>
+                                    <div class="col-sm-4"><strong>Tanggal:</strong> ${rx.tanggal}</div>
+                                    <div class="col-sm-4"><strong>ADD (R/L):</strong> ${addKanan} / ${addKiri}</div>
+                                    <div class="col-sm-4"><strong>PD (R/L):</strong> ${pdKanan} / ${pdKiri}</div>
                                 </div>
                                 <table class="table table-bordered table-condensed" style="margin-top: 10px;">
                                     <thead>
@@ -306,15 +329,23 @@
                     $('#form-no-bpjs').hide();
                 }
                 if (response.prescriptions && response.prescriptions.length > 0) {
-                    const latestPrescription = response.prescriptions[response.prescriptions.length - 1];
+                    const latestPrescription = [...response.prescriptions]
+                        .sort((a, b) => {
+                            const dateA = new Date(a.tanggal);
+                            const dateB = new Date(b.tanggal);
+                            return (Number.isNaN(dateA.getTime()) ? 0 : dateA.getTime()) - (Number.isNaN(dateB.getTime()) ? 0 : dateB.getTime());
+                        })
+                        .pop();
                     $('#modal-form [name=od_sph]').val(latestPrescription.od_sph);
                     $('#modal-form [name=od_cyl]').val(latestPrescription.od_cyl);
                     $('#modal-form [name=od_axis]').val(latestPrescription.od_axis);
                     $('#modal-form [name=os_sph]').val(latestPrescription.os_sph);
                     $('#modal-form [name=os_cyl]').val(latestPrescription.os_cyl);
                     $('#modal-form [name=os_axis]').val(latestPrescription.os_axis);
-                    $('#modal-form [name=add]').val(latestPrescription.add);
-                    $('#modal-form [name=pd]').val(latestPrescription.pd);
+                    $('#modal-form [name=add_kanan]').val(latestPrescription.add_kanan || latestPrescription.add || '');
+                    $('#modal-form [name=add_kiri]').val(latestPrescription.add_kiri || latestPrescription.add || '');
+                    $('#modal-form [name=pd_kanan]').val(latestPrescription.pd_kanan || latestPrescription.pd || '');
+                    $('#modal-form [name=pd_kiri]').val(latestPrescription.pd_kiri || latestPrescription.pd || '');
                     $('#modal-form [name=catatan]').val(latestPrescription.catatan);
                     $('#modal-form [name=dokter_id]').val(latestPrescription.dokter_id || '');
                 } else {

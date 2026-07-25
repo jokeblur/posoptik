@@ -819,18 +819,14 @@ class PenjualanController extends Controller
                 }
             }
 
-            // Rumus biaya tambahan BPJS:
-            // total biaya tambahan = total harga jual produk - plafon BPJS sesuai kelas (minimum 0)
+            // Untuk BPJS, status naik kelas ditentukan dari hasil kalkulasi frame.
+            // Jangan override dengan total seluruh produk agar lensa/aksesoris tidak salah memicu naik kelas.
             if ($pasien && $this->isBpjsServiceType($pasien->service_type)) {
-                $totalHargaJualProduk = $totalHargaJualProduk ?? 0;
-                $totalAdditionalCost = max(0, $totalHargaJualProduk - $bpjsDefaultPrice);
-                $transactionStatus = $totalAdditionalCost > 0 ? 'Naik Kelas' : 'Normal';
-
-                \Log::info('BPJS Additional Cost Recalculated (Store):', [
+                \Log::info('BPJS Additional Cost (Store):', [
                     'penjualan_id' => $penjualan->id,
                     'service_type' => $pasien->service_type,
                     'bpjs_default_price' => $bpjsDefaultPrice,
-                    'total_harga_jual_produk' => $totalHargaJualProduk,
+                    'total_harga_jual_produk' => $totalHargaJualProduk ?? 0,
                     'total_additional_cost' => $totalAdditionalCost,
                     'transaction_status' => $transactionStatus,
                 ]);
@@ -908,6 +904,11 @@ class PenjualanController extends Controller
         
         $dokters = \App\Models\Dokter::all();
         $pasiens = \App\Models\Pasien::all();
+
+        $branchId = $penjualan->branch_id;
+        $frames = \App\Models\Frame::where('branch_id', $branchId)->where('stok', '>', 0)->get();
+        $lenses = \App\Models\Lensa::where('branch_id', $branchId)->where('stok', '>', 0)->get();
+        $aksesoris = \App\Models\Aksesoris::where('branch_id', $branchId)->where('stok', '>', 0)->orderBy('nama_produk')->get();
         
         // Get latest prescription for the patient
         $latestPrescription = null;
@@ -924,15 +925,16 @@ class PenjualanController extends Controller
             'details_data' => $penjualan->details ? $penjualan->details->toArray() : null
         ]);
         
-        return view('penjualan.edit', compact('penjualan', 'dokters', 'pasiens', 'latestPrescription'));
+        return view('penjualan.edit', compact('penjualan', 'dokters', 'pasiens', 'latestPrescription', 'frames', 'lenses', 'aksesoris'));
     }
 
     public function update(Request $request, $id)
     {
         $request->validate([
             'pasien_id' => 'required',
+            'items' => 'required|json',
+            'diskon' => 'required|numeric|min:0',
             'bayar' => 'required|numeric|min:0',
-            'status' => 'required|in:Belum Lunas,Lunas',
             'status_pengerjaan' => 'required|in:Menunggu Pengerjaan,Sedang Dikerjakan,Selesai Dikerjakan,Sudah Diambil',
             'photo_bpjs' => 'nullable|image|max:3072',
             'signature_bpjs' => 'nullable|string',
@@ -949,16 +951,172 @@ class PenjualanController extends Controller
         try {
             DB::beginTransaction();
 
-            $penjualan = Penjualan::findOrFail($id);
+            $penjualan = Penjualan::with('details.itemable')->findOrFail($id);
+            $items = json_decode($request->items, true);
+
+            if (!is_array($items) || empty($items)) {
+                throw new \Exception('Keranjang transaksi tidak valid atau kosong.');
+            }
+
+            $pasien = Pasien::find($request->pasien_id);
+            $isBpjs = $pasien && $this->isBpjsServiceType($pasien->service_type);
+            $bpjsDefaultPrice = $isBpjs ? $this->bpjsPricingService->getDefaultPrice($pasien->service_type) : 0;
+            $transactionStatus = 'Normal';
+            $totalAdditionalCost = 0;
+            $calculatedTotal = 0;
+            $containsCleanerItem = false;
+
+            // Kembalikan stok item lama sebelum mengganti detail transaksi.
+            foreach ($penjualan->details as $oldDetail) {
+                if (!$oldDetail->itemable) {
+                    continue;
+                }
+
+                $isCustomLensa = $oldDetail->itemable_type === Lensa::class
+                    && $this->hasTableColumn('lensa', 'is_custom_order')
+                    && (bool) ($oldDetail->itemable->is_custom_order ?? false);
+
+                if (!$isCustomLensa) {
+                    $oldDetail->itemable->increment('stok', (int) $oldDetail->quantity);
+                }
+            }
+
+            // Hapus detail lama, lalu isi ulang dari keranjang baru.
+            $penjualan->details()->delete();
+
+            foreach ($items as $itemData) {
+                $itemType = $itemData['type'] ?? null;
+                $itemId = $itemData['id'] ?? null;
+                $quantity = max(1, (int) ($itemData['quantity'] ?? 1));
+
+                if (!$itemType || !$itemId) {
+                    continue;
+                }
+
+                $itemModel = null;
+                $price = (float) ($itemData['price'] ?? 0);
+                $additionalCost = 0;
+
+                if ($itemType === 'frame') {
+                    $itemModel = Frame::find($itemId);
+                    if ($itemModel && $isBpjs) {
+                        $pricing = $this->bpjsPricingService->calculateFramePrice($pasien, $itemModel);
+                        $price = (float) $pricing['price'];
+                        $additionalCost = (float) $pricing['additional_cost'];
+                        $totalAdditionalCost += ($additionalCost * $quantity);
+
+                        if ($pricing['status'] === 'Naik Kelas') {
+                            $transactionStatus = 'Naik Kelas';
+                        }
+                    } elseif ($itemModel) {
+                        $price = (float) ($itemModel->harga_jual_frame ?? $price);
+                    }
+                } elseif ($itemType === 'lensa') {
+                    $itemModel = Lensa::find($itemId);
+                    if ($itemModel) {
+                        $price = (float) ($itemModel->harga_jual_lensa ?? $price);
+                    }
+                } elseif ($itemType === 'lensa_gosok') {
+                    $kodeLensaGosok = 'GSK-' . now()->format('YmdHis') . '-' . strtoupper(substr(md5(uniqid((string) mt_rand(), true)), 0, 4));
+
+                    $lensaData = [
+                        'kode_lensa' => $kodeLensaGosok,
+                        'merk_lensa' => $itemData['merk'] ?? ($itemData['name'] ?? 'Lensa Gosok'),
+                        'type' => $itemData['lensaType'] ?? null,
+                        'index' => $itemData['index'] ?? null,
+                        'coating' => $itemData['coating'] ?? null,
+                        'cly' => $itemData['cly'] ?? null,
+                        'axis' => $itemData['axis'] ?? null,
+                        'add' => $itemData['add'] ?? null,
+                        'harga_beli_lensa' => 0,
+                        'harga_jual_lensa' => $price,
+                        'stok' => 0,
+                        'is_custom_order' => true,
+                        'sales_id' => null,
+                        'branch_id' => $penjualan->branch_id,
+                    ];
+
+                    $itemModel = Lensa::create(
+                        $this->filterDataByExistingColumns('lensa', $lensaData)
+                    );
+                } elseif ($itemType === 'aksesoris') {
+                    $itemModel = Aksesoris::find($itemId);
+                    if ($itemModel) {
+                        $price = (float) ($itemModel->harga_jual ?? $price);
+                        $containsCleanerItem = $containsCleanerItem || str_contains(strtolower($itemModel->nama_produk ?? ''), 'cleaner');
+                    }
+                }
+
+                if (!$itemModel) {
+                    continue;
+                }
+
+                $subtotal = $price * $quantity;
+                $calculatedTotal += $subtotal;
+
+                $penjualan->details()->create([
+                    'itemable_id' => $itemModel->id,
+                    'itemable_type' => get_class($itemModel),
+                    'quantity' => $quantity,
+                    'price' => $price,
+                    'subtotal' => $subtotal,
+                    'additional_cost' => $additionalCost,
+                ]);
+
+                $isCustomLensa = $itemModel instanceof Lensa
+                    && $this->hasTableColumn('lensa', 'is_custom_order')
+                    && (bool) ($itemModel->is_custom_order ?? false);
+
+                if (!$isCustomLensa) {
+                    $itemModel->decrement('stok', $quantity);
+                }
+            }
+
+            if (!($isBpjs) && !$containsCleanerItem) {
+                $cleanerItem = $this->findFreeCleanerAksesoris((int) $penjualan->branch_id);
+                if ($cleanerItem) {
+                    $penjualan->details()->create([
+                        'itemable_id' => $cleanerItem->id,
+                        'itemable_type' => get_class($cleanerItem),
+                        'quantity' => 1,
+                        'price' => 0,
+                        'subtotal' => 0,
+                        'additional_cost' => 0,
+                    ]);
+
+                    $cleanerItem->decrement('stok', 1);
+                }
+            }
+
+            $diskon = (float) $request->diskon;
+            $finalTotal = max(0, $calculatedTotal - $diskon);
+            $bayar = (float) $request->bayar;
+            $kekurangan = $finalTotal - $bayar;
+            $statusPembayaran = $kekurangan <= 0 ? 'Lunas' : 'Belum Lunas';
+
+            if ($isBpjs) {
+                $transactionStatus = $totalAdditionalCost > 0 ? 'Naik Kelas' : 'Normal';
+            } else {
+                $totalAdditionalCost = 0;
+                $transactionStatus = 'Normal';
+                $bpjsDefaultPrice = 0;
+            }
             
             // Update basic information
             $penjualan->pasien_id = $request->pasien_id;
             $penjualan->dokter_id = $request->dokter_id ?: null;
             $penjualan->dokter_manual = $request->dokter_manual;
             $penjualan->tanggal_siap = $request->tanggal_siap;
-            $penjualan->bayar = $request->bayar;
-            $penjualan->status = $request->status;
+            $penjualan->diskon = $diskon;
+            $penjualan->total = $finalTotal;
+            $penjualan->bayar = $bayar;
+            $penjualan->status = $statusPembayaran;
             $penjualan->status_pengerjaan = $request->status_pengerjaan;
+            $penjualan->kekurangan = $kekurangan;
+            $penjualan->pasien_service_type = $isBpjs ? $pasien->service_type : null;
+            $penjualan->bpjs_default_price = $bpjsDefaultPrice;
+            $penjualan->total_additional_cost = $totalAdditionalCost;
+            $penjualan->transaction_status = $transactionStatus;
 
             if ($hasJenisTransaksiColumn) {
                 $penjualan->jenis_transaksi = $request->jenis_transaksi;
@@ -975,9 +1133,6 @@ class PenjualanController extends Controller
                 $penjualan->signature_bpjs = $request->signature_bpjs;
                 $penjualan->signature_date = now();
             }
-            
-            // Calculate kekurangan
-            $penjualan->kekurangan = $penjualan->total - $request->bayar;
             
             $penjualan->save();
 

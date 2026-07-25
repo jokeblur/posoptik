@@ -47,25 +47,30 @@ class FrameController extends Controller
     public function data(Request $request)
     {
         $user = auth()->user();
-        if ($user->isSuperAdmin() || $user->isAdmin()) {
-            $query = Frame::with('branch', 'sales');
-        } else {
-            $query = Frame::with('branch', 'sales')->accessibleByUser($user);
+
+        $query = Frame::query()
+            ->leftJoin('branches', 'frames.branch_id', '=', 'branches.id')
+            ->leftJoin('sales', 'frames.id_sales', '=', 'sales.id_sales')
+            ->select('frames.*', 'branches.name as branch_name', 'sales.nama_sales as sales_name');
+
+        if (!($user->isSuperAdmin() || $user->isAdmin())) {
+            $query->where('frames.branch_id', $user->branch_id);
         }
+
         if ($request->filled('jenis_frame')) {
-            $query->where('jenis_frame', $request->jenis_frame);
+            $query->where('frames.jenis_frame', $request->jenis_frame);
         }
-        $frame = $query;
+
         return datatables()
-            ->of($frame)
+            ->of($query)
             ->addColumn('checkbox', function ($frame) {
                 return '<input type="checkbox" name="selected_frame[]" value="' . $frame->id . '">';
             })
-            ->addColumn('branch_name', function ($frame) {
-                return $frame->branch?->name ?? '-';
+            ->editColumn('branch_name', function ($frame) {
+                return $frame->branch_name ?? '-';
             })
-            ->addColumn('sales_name', function ($frame) {
-                return $frame->sales?->nama_sales ?? '-';
+            ->editColumn('sales_name', function ($frame) {
+                return $frame->sales_name ?? '-';
             })
             ->addColumn('harga_beli_frame', function ($frame) {
                 return format_uang($frame->harga_beli_frame);
@@ -87,6 +92,10 @@ class FrameController extends Controller
                 </div>';
             })
             ->rawColumns(['aksi', 'checkbox'])
+            ->filterColumn('branch_name', function ($query, $keyword) {
+                $query->where('branches.name', 'like', "%{$keyword}%");
+            })
+            ->orderColumn('branch_name', 'branches.name $1')
             ->make(true);
     }
 

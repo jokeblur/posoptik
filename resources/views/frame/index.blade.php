@@ -252,7 +252,7 @@
             {data: 'harga_jual_frame', name: 'harga_jual_frame', orderable: true},
             {data: 'stok', name: 'stok', orderable: true},
             {data: 'jenis_frame', name: 'jenis_frame', orderable: true},
-            {data: 'branch_name', searchable: false, orderable: false},
+            {data: 'branch_name', name: 'branch_name', searchable: true, orderable: true},
             {data: 'aksi', searchable: false, orderable: false},
         ];
         var $lowStockFrameTable = $('#table-low-stock-frame');

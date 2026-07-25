@@ -37,6 +37,34 @@ class PenjualanController extends Controller
         return in_array($serviceType, self::BPJS_SERVICE_TYPES, true);
     }
 
+    /**
+     * Resolve branch id for transaction context with safe fallback for admin roles.
+     */
+    private function resolveBranchIdForUser($user): ?int
+    {
+        if (!($user->isSuperAdmin() || $user->isAdmin())) {
+            return $user->branch_id ? (int) $user->branch_id : null;
+        }
+
+        $sessionBranchId = session('active_branch_id');
+        if (!empty($sessionBranchId)) {
+            return (int) $sessionBranchId;
+        }
+
+        if (!empty($user->branch_id)) {
+            session(['active_branch_id' => (int) $user->branch_id]);
+            return (int) $user->branch_id;
+        }
+
+        $firstBranchId = \App\Models\Branch::query()->value('id');
+        if (!empty($firstBranchId)) {
+            session(['active_branch_id' => (int) $firstBranchId]);
+            return (int) $firstBranchId;
+        }
+
+        return null;
+    }
+
     private function findFreeCleanerAksesoris(int $branchId): ?Aksesoris
     {
         return Aksesoris::query()
@@ -503,27 +531,19 @@ class PenjualanController extends Controller
     public function create(Request $request)
     {
         $user = auth()->user();
-        
-        // Tentukan branch_id berdasarkan role
-        if ($user->isSuperAdmin() || $user->isAdmin()) {
-            $branch_id = session('active_branch_id', $user->branch_id);
-            
-            // Jika admin/super admin belum memilih cabang aktif
-            if (!$branch_id || $branch_id == $user->branch_id) {
-                $branches = \App\Models\Branch::all();
-                return view('penjualan.create', [
-                    'error_message' => 'Silakan pilih cabang aktif terlebih dahulu di dropdown navbar sebelum melakukan transaksi.',
-                    'branches' => $branches,
-                    'pasiens' => collect(),
-                    'dokters' => collect(),
-                    'frames' => collect(),
-                    'lenses' => collect(),
-                    'aksesoris' => collect(),
-                    'selected_pasien' => null
-                ]);
-            }
-        } else {
-            $branch_id = $user->branch_id;
+
+        $branch_id = $this->resolveBranchIdForUser($user);
+        if (!$branch_id) {
+            return view('penjualan.create', [
+                'error_message' => 'Data cabang belum tersedia. Silakan buat cabang terlebih dahulu.',
+                'branches' => \App\Models\Branch::all(),
+                'pasiens' => collect(),
+                'dokters' => collect(),
+                'frames' => collect(),
+                'lenses' => collect(),
+                'aksesoris' => collect(),
+                'selected_pasien' => null
+            ]);
         }
         
         $today = now()->toDateString();
@@ -567,12 +587,10 @@ class PenjualanController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
-        
-        // Tentukan branch_id berdasarkan role
-        if ($user->isSuperAdmin() || $user->isAdmin()) {
-            $branch_id = session('active_branch_id', $user->branch_id);
-        } else {
-            $branch_id = $user->branch_id;
+
+        $branch_id = $this->resolveBranchIdForUser($user);
+        if (!$branch_id) {
+            return response()->json(['message' => 'Cabang tidak ditemukan. Silakan konfigurasi cabang terlebih dahulu.'], 422);
         }
         
         $today = now()->toDateString();

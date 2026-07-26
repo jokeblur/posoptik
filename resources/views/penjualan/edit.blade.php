@@ -197,6 +197,25 @@
                         <input type="number" class="form-control" id="bayar" name="bayar" value="{{ (int) $penjualan->bayar }}" required>
                     </div>
                     <div class="form-group col-md-4">
+                        <label for="metode_pembayaran">Cara Pembayaran</label>
+                        <select name="metode_pembayaran" id="metode_pembayaran" class="form-control" required>
+                            <option value="cash" {{ strtolower((string) ($penjualan->metode_pembayaran ?? 'cash')) === 'cash' ? 'selected' : '' }}>Cash</option>
+                            <option value="transfer" {{ strtolower((string) ($penjualan->metode_pembayaran ?? '')) === 'transfer' ? 'selected' : '' }}>Transfer</option>
+                            <option value="qris" {{ strtolower((string) ($penjualan->metode_pembayaran ?? '')) === 'qris' ? 'selected' : '' }}>QRIS</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-4" id="bank_transfer_group" style="display: none;">
+                        <label for="bank_transfer">Bank Transfer</label>
+                        <select name="bank_transfer" id="bank_transfer" class="form-control" disabled>
+                            <option value="">Pilih Bank Transfer</option>
+                            <option value="BNI" {{ strtoupper((string) ($penjualan->bank_transfer ?? '')) === 'BNI' ? 'selected' : '' }}>BNI</option>
+                            <option value="BRI" {{ strtoupper((string) ($penjualan->bank_transfer ?? '')) === 'BRI' ? 'selected' : '' }}>BRI</option>
+                            <option value="MANDIRI" {{ strtoupper((string) ($penjualan->bank_transfer ?? '')) === 'MANDIRI' ? 'selected' : '' }}>MANDIRI</option>
+                            <option value="BSI" {{ strtoupper((string) ($penjualan->bank_transfer ?? '')) === 'BSI' ? 'selected' : '' }}>BSI</option>
+                            <option value="BCA" {{ strtoupper((string) ($penjualan->bank_transfer ?? '')) === 'BCA' ? 'selected' : '' }}>BCA</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-4">
                         <label for="kekurangan">Kekurangan</label>
                         <input type="text" class="form-control" id="kekurangan" name="kekurangan" value="{{ (int) $penjualan->kekurangan }}" readonly>
                     </div>
@@ -310,6 +329,25 @@ $(document).ready(function() {
     initializeForm();
     initModalDataTables();
 
+    function toggleBankTransferField() {
+        const metodePembayaran = ($('#metode_pembayaran').val() || '').toLowerCase();
+        const isTransfer = metodePembayaran === 'transfer';
+
+        $('#bank_transfer_group').toggle(isTransfer);
+        $('#bank_transfer').prop('disabled', !isTransfer);
+        $('#bank_transfer').prop('required', isTransfer);
+
+        if (!isTransfer) {
+            $('#bank_transfer').val('');
+        }
+    }
+
+    $('#metode_pembayaran').on('change', function() {
+        toggleBankTransferField();
+    });
+
+    toggleBankTransferField();
+
     $('#diskon, #bayar').on('input', function() {
         renderCartAndTotals();
     });
@@ -421,7 +459,21 @@ $(document).ready(function() {
             });
     });
 
-    $('#form-penjualan').on('submit', function() {
+    $('#form-penjualan').on('submit', function(e) {
+        const metodePembayaran = ($('#metode_pembayaran').val() || '').toLowerCase();
+
+        if (!metodePembayaran) {
+            e.preventDefault();
+            alert('Cara pembayaran wajib dipilih.');
+            return;
+        }
+
+        if (metodePembayaran === 'transfer' && !$('#bank_transfer').val()) {
+            e.preventDefault();
+            alert('Silakan pilih bank transfer.');
+            return;
+        }
+
         $('#items-input').val(JSON.stringify(cart));
     });
 

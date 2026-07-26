@@ -351,6 +351,39 @@ class PenjualanController extends Controller
                     return '<span class="label label-success">' . ($penjualan->transaction_status ?? 'Normal') . '</span>';
                 }
             })
+            ->addColumn('metode_pembayaran', function ($penjualan) {
+                $metode = strtolower((string) ($penjualan->metode_pembayaran ?? ''));
+                $bank = strtoupper((string) ($penjualan->bank_transfer ?? ''));
+
+                if ($metode === 'transfer') {
+                    $label = 'Transfer' . ($bank !== '' ? ' - ' . $bank : '');
+                    return '<span class="label label-info">' . e($label) . '</span>';
+                }
+
+                if ($metode === 'qris') {
+                    return '<span class="label label-primary">QRIS</span>';
+                }
+
+                if ($metode === 'cash') {
+                    return '<span class="label label-success">Cash</span>';
+                }
+
+                return '<span class="label label-default">-</span>';
+            })
+            ->addColumn('status_pembayaran', function ($penjualan) {
+                $serviceType = strtoupper((string) ($penjualan->pasien_service_type ?? ($penjualan->pasien->service_type ?? '')));
+                $isBpjs = in_array($serviceType, self::BPJS_SERVICE_TYPES, true);
+
+                if ($isBpjs) {
+                    return '<span class="label label-info">Claim BPJS</span>';
+                }
+
+                if (($penjualan->status ?? '') === 'Lunas') {
+                    return '<span class="label label-success">Lunas</span>';
+                }
+
+                return '<span class="label label-warning">Belum Lunas</span>';
+            })
             ->addColumn('jenis_transaksi', function ($penjualan) {
                 $jenis = $penjualan->jenis_transaksi ?? 'Stock';
                 $labelClass = $jenis === 'Gosok' ? 'label-warning' : 'label-info';
@@ -414,7 +447,7 @@ class PenjualanController extends Controller
             ->addColumn('barcode', function ($penjualan) {
                 return $penjualan->barcode ?? null;
             })
-            ->rawColumns(['aksi', 'kode_penjualan', 'status_pengerjaan', 'status_transaksi', 'jenis_transaksi', 'total_harga', 'jenis_layanan'])
+            ->rawColumns(['aksi', 'kode_penjualan', 'status_pengerjaan', 'status_transaksi', 'status_pembayaran', 'metode_pembayaran', 'jenis_transaksi', 'total_harga', 'jenis_layanan'])
             ->make(true);
     }
     public function searchProduct(Request $request)
@@ -998,6 +1031,9 @@ class PenjualanController extends Controller
 
     public function update(Request $request, $id)
     {
+        $hasMetodePembayaranColumn = $this->hasTableColumn('penjualan', 'metode_pembayaran');
+        $hasBankTransferColumn = $this->hasTableColumn('penjualan', 'bank_transfer');
+
         $request->validate([
             'pasien_id' => 'required',
             'items' => 'required|json',
@@ -1007,6 +1043,18 @@ class PenjualanController extends Controller
             'photo_bpjs' => 'nullable|image|max:3072',
             'signature_bpjs' => 'nullable|string',
         ]);
+
+        if ($hasMetodePembayaranColumn) {
+            $request->validate([
+                'metode_pembayaran' => 'required|in:cash,transfer,qris',
+            ]);
+        }
+
+        if ($hasBankTransferColumn) {
+            $request->validate([
+                'bank_transfer' => 'nullable|required_if:metode_pembayaran,transfer|in:BNI,BRI,MANDIRI,BSI,BCA',
+            ]);
+        }
 
         $hasJenisTransaksiColumn = Schema::hasColumn('penjualan', 'jenis_transaksi');
 
@@ -1185,6 +1233,16 @@ class PenjualanController extends Controller
             $penjualan->bpjs_default_price = $bpjsDefaultPrice;
             $penjualan->total_additional_cost = $totalAdditionalCost;
             $penjualan->transaction_status = $transactionStatus;
+
+            if ($hasMetodePembayaranColumn) {
+                $penjualan->metode_pembayaran = strtolower((string) $request->metode_pembayaran);
+            }
+
+            if ($hasBankTransferColumn) {
+                $penjualan->bank_transfer = strtolower((string) $request->metode_pembayaran) === 'transfer'
+                    ? strtoupper((string) $request->bank_transfer)
+                    : null;
+            }
 
             if ($hasJenisTransaksiColumn) {
                 $penjualan->jenis_transaksi = $request->jenis_transaksi;

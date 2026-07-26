@@ -98,6 +98,8 @@
                             <th>Jenis Layanan</th>
                             <th>Jenis Transaksi</th>
                             <th>Status Transaksi</th>
+                            <th>Metode Pembayaran</th>
+                            <th>Status Pembayaran</th>
                             <th>Status Pengerjaan</th>
                             <th width="15%"><i class="fa fa-cog"></i></th>
                         </tr>
@@ -151,6 +153,8 @@
                 { data: 'jenis_layanan', name: 'jenis_layanan' },
                 { data: 'jenis_transaksi', name: 'jenis_transaksi' },
                 { data: 'status_transaksi', name: 'status_transaksi' },
+                { data: 'metode_pembayaran', name: 'metode_pembayaran' },
+                { data: 'status_pembayaran', name: 'status_pembayaran' },
                 { data: 'status_pengerjaan', name: 'status_pengerjaan' },
                 { data: 'aksi', name: 'aksi', orderable: false, searchable: false }
             ],

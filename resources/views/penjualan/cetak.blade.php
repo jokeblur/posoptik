@@ -329,10 +329,56 @@
             </tr>
         </table>
         @elseif(!$hanyaAksesoris)
-        <!-- Untuk BPJS, tambahkan pesan khusus -->
+        @php
+            $isNaikKelas = strtolower((string) ($penjualan->transaction_status ?? '')) === 'naik kelas';
+            $totalBiayaPenambahan = (float) ($penjualan->total_additional_cost ?? 0);
+            if ($totalBiayaPenambahan <= 0) {
+                $totalBiayaPenambahan = (float) $penjualan->details->sum('additional_cost');
+            }
+            $serviceTypeBpjs = strtoupper((string) ($penjualan->pasien->service_type ?? ''));
+            $biayaDitanggungBpjs = (float) ($penjualan->bpjs_default_price ?? 0);
+            if ($biayaDitanggungBpjs <= 0) {
+                if ($serviceTypeBpjs === 'BPJS I') {
+                    $biayaDitanggungBpjs = 330000;
+                } elseif ($serviceTypeBpjs === 'BPJS II') {
+                    $biayaDitanggungBpjs = 220000;
+                } elseif ($serviceTypeBpjs === 'BPJS III') {
+                    $biayaDitanggungBpjs = 165000;
+                }
+            }
+            $dpTambahan = min((float) ($penjualan->bayar ?? 0), $totalBiayaPenambahan);
+            $sisaTambahan = max(0, $totalBiayaPenambahan - $dpTambahan);
+            $statusPembayaranTambahan = $sisaTambahan <= 0 ? 'Lunas' : 'Belum Lunas';
+        @endphp
+
+        @if($isNaikKelas && $totalBiayaPenambahan > 0)
+        <table class="summary">
+            <tr>
+                <td class="label">Total Biaya Penambahan</td>
+                <td class="value">Rp {{ format_uang($totalBiayaPenambahan) }}</td>
+            </tr>
+            <tr>
+                <td class="label">Status Pembayaran</td>
+                <td class="value"><strong>{{ $statusPembayaranTambahan }}</strong></td>
+            </tr>
+            @if($statusPembayaranTambahan !== 'Lunas')
+            <tr>
+                <td class="label">DP</td>
+                <td class="value">Rp {{ format_uang($dpTambahan) }}</td>
+            </tr>
+            <tr>
+                <td class="label">Sisa</td>
+                <td class="value">Rp {{ format_uang($sisaTambahan) }}</td>
+            </tr>
+            @endif
+        </table>
+        @else
+        <!-- Untuk BPJS normal, tambahkan pesan khusus -->
         <div style="text-align: center; margin: 10px 0; font-style: italic;">
-            <p>Layanan ditanggung oleh {{ strtoupper($penjualan->pasien->service_type) }}</p>
+            <p>Biaya ditanggung oleh {{ strtoupper($penjualan->pasien->service_type) }}</p>
+            <p>Rp {{ format_uang($biayaDitanggungBpjs) }}</p>
         </div>
+        @endif
         @endif
 
         <hr class="dashed">

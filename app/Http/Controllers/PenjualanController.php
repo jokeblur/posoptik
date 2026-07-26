@@ -633,6 +633,9 @@ class PenjualanController extends Controller
             $bpjsDefaultPrice = 0;
             $totalAdditionalCost = 0;
             $pasienServiceType = null;
+            $bpjsFrameSaleTotal = 0;
+            $bpjsLensSaleTotal = 0;
+            $firstFrameDetailId = null;
 
             $items = json_decode($request->items, true);
             $hanyaAksesoris = !empty($items) && collect($items)->every(function($item) {
@@ -788,10 +791,20 @@ class PenjualanController extends Controller
                     }
                 }
 
+                if ($pasien && $this->isBpjsServiceType($pasien->service_type ?? null)) {
+                    $quantity = (int) ($itemData['quantity'] ?? 0);
+                    if ($itemData['type'] === 'frame') {
+                        $bpjsFrameSaleTotal += ($normalUnitPrice * $quantity);
+                    }
+                    if (in_array($itemData['type'], ['lensa', 'lensa_gosok'])) {
+                        $bpjsLensSaleTotal += ($normalUnitPrice * $quantity);
+                    }
+                }
+
                 $totalHargaJualProduk = ($totalHargaJualProduk ?? 0) + ($normalUnitPrice * ($itemData['quantity'] ?? 0));
 
                 if ($itemModel) {
-                    $penjualan->details()->create([
+                    $detail = $penjualan->details()->create([
                         'itemable_id' => $itemModel->id,
                         'itemable_type' => get_class($itemModel),
                         'quantity' => $itemData['quantity'],
@@ -799,6 +812,10 @@ class PenjualanController extends Controller
                         'subtotal' => $price * $itemData['quantity'],
                         'additional_cost' => $additionalCost, // Simpan biaya tambahan
                     ]);
+
+                    if (($itemData['type'] ?? null) === 'frame' && $firstFrameDetailId === null) {
+                        $firstFrameDetailId = $detail->id;
+                    }
 
                     // Update stok untuk item inventori (bukan lensa gosok manual/custom)
                     if ($itemData['type'] !== 'lensa_gosok') {
@@ -840,6 +857,17 @@ class PenjualanController extends Controller
             // Untuk BPJS, status naik kelas ditentukan dari hasil kalkulasi frame.
             // Jangan override dengan total seluruh produk agar lensa/aksesoris tidak salah memicu naik kelas.
             if ($pasien && $this->isBpjsServiceType($pasien->service_type)) {
+                if ($transactionStatus === 'Naik Kelas') {
+                    // Naik kelas: biaya tambahan = (harga frame + harga lensa) - default BPJS.
+                    $totalAdditionalCost = max(0, ($bpjsFrameSaleTotal + $bpjsLensSaleTotal) - $bpjsDefaultPrice);
+
+                    // Simpan biaya tambahan total pada satu baris frame agar total detail tetap konsisten.
+                    $penjualan->details()->update(['additional_cost' => 0]);
+                    if ($firstFrameDetailId) {
+                        $penjualan->details()->where('id', $firstFrameDetailId)->update(['additional_cost' => $totalAdditionalCost]);
+                    }
+                }
+
                 \Log::info('BPJS Additional Cost (Store):', [
                     'penjualan_id' => $penjualan->id,
                     'service_type' => $pasien->service_type,
@@ -847,6 +875,8 @@ class PenjualanController extends Controller
                     'total_harga_jual_produk' => $totalHargaJualProduk ?? 0,
                     'total_additional_cost' => $totalAdditionalCost,
                     'transaction_status' => $transactionStatus,
+                    'bpjs_frame_sale_total' => $bpjsFrameSaleTotal,
+                    'bpjs_lens_sale_total' => $bpjsLensSaleTotal,
                 ]);
             }
             
@@ -1716,6 +1746,7 @@ class PenjualanController extends Controller
                 'success' => true,
                 'data' => [
                     'pasien_service_type' => $pasien->service_type,
+                    'status' => $pricing['status'],
                     'frame_type' => $frame->jenis_frame,
                     'original_price' => $frame->harga_jual_frame,
                     'calculated_price' => $pricing['price'],

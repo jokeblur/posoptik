@@ -772,24 +772,28 @@ $(function() {
         }
     }
     
-    function showBPJSSummary(pasienServiceType, calculatedPrice, lensaItems, aksesorisItems) {
-        let summary = `<p><strong>Jenis Layanan:</strong> ${pasienServiceType}</p>`;
-        summary += `<p><strong>Harga Dihitung:</strong> Rp ${calculatedPrice.toLocaleString('id-ID')}</p>`;
-        
-        if (lensaItems.length > 0) {
-            summary += `<p><strong>Lensa:</strong> ${lensaItems.length} item`;
-            if (lensaItems.length > 1) {
-                summary += ` (${lensaItems.map(l => l.name).join(', ')})`;
-            } else {
-                summary += ` (${lensaItems[0].name})`;
-            }
-            summary += `</p>`;
+    function formatCurrency(amount) {
+        return 'Rp ' + (Number(amount) || 0).toLocaleString('id-ID');
+    }
+
+    function showBPJSSummary(summaryData) {
+        const pasienBayar = Number(summaryData.pasienBayar ?? ((summaryData.showUpgradeFormula ? summaryData.totalWithoutAksesoris : 0) + (summaryData.aksesorisTotal || 0))) || 0;
+        const klaimBpjs = Number(summaryData.klaimBpjs ?? (summaryData.defaultPrice || 0)) || 0;
+
+        let summary = `<p><strong>Jenis Layanan:</strong> ${summaryData.pasienServiceType || '-'}</p>`;
+        summary += `<p><strong>Status Transaksi:</strong> ${summaryData.status || 'Normal'}</p>`;
+        summary += `<p><strong>Default BPJS:</strong> ${formatCurrency(summaryData.defaultPrice)}</p>`;
+        summary += `<p><strong>Nilai Klaim BPJS:</strong> ${formatCurrency(klaimBpjs)}</p>`;
+
+        if (summaryData.showUpgradeFormula) {
+            summary += `<p><strong>Rumus Naik Kelas:</strong> (Frame + Lensa) - Default BPJS</p>`;
+            summary += `<p><strong>Perhitungan:</strong> (${formatCurrency(summaryData.frameTotal)} + ${formatCurrency(summaryData.lensaTotal)}) - ${formatCurrency(summaryData.defaultPrice)} = ${formatCurrency(summaryData.totalWithoutAksesoris)}</p>`;
         }
-        
-        if (aksesorisItems.length > 0) {
-            summary += `<p><strong>Aksesoris:</strong> ${aksesorisItems.length} item</p>`;
+
+        if ((summaryData.aksesorisTotal || 0) > 0) {
+            summary += `<p><strong>+ Aksesoris:</strong> ${formatCurrency(summaryData.aksesorisTotal)}</p>`;
         }
-        
+
         $('#bpjs-summary-details').html(summary);
         $('#bpjs-summary').show();
     }
@@ -886,34 +890,55 @@ $(function() {
                             success: function(response) {
                                 console.log('BPJS pricing API response:', response);
                                 if (response.success) {
-                                    // Update harga frame berdasarkan hasil API
-                                    frameItem.price = response.data.calculated_price;
-                                    
-                                    // Hitung total dengan harga yang sudah dikalkulasi
+                                    let frameQty = parseInt(frameItem.quantity, 10) || 1;
+                                    let totalFramePrice = (Number(response.data.original_price) || 0) * frameQty;
                                     let totalLensaPrice = 0;
                                     lensaItems.forEach(lensa => {
                                         totalLensaPrice += lensa.price * lensa.quantity;
                                     });
-                                    
-                                    total = response.data.calculated_price + totalLensaPrice;
-                                    
-                                    // Tambahkan harga aksesoris
+
+                                    let totalAksesorisPrice = 0;
                                     aksesorisItems.forEach(item => {
-                                        total += item.price * item.quantity;
+                                        totalAksesorisPrice += item.price * item.quantity;
                                     });
+
+                                    let isNaikKelas = (response.data.status || '').toLowerCase() === 'naik kelas';
+                                    let bpjsBaseTotal = 0;
+
+                                    // Naik kelas: (frame + lensa) - default BPJS
+                                    if (isNaikKelas) {
+                                        bpjsBaseTotal = Math.max(0, (totalFramePrice + totalLensaPrice) - defaultPrice);
+                                    } else {
+                                        bpjsBaseTotal = ((Number(response.data.calculated_price) || 0) * frameQty) + totalLensaPrice;
+                                    }
+                                    
+                                    total = bpjsBaseTotal + totalAksesorisPrice;
                                     
                                     console.log('BPJS total calculated:', {
-                                        calculated_price: response.data.calculated_price,
+                                        status: response.data.status,
+                                        frame_price_total: totalFramePrice,
+                                        default_price: defaultPrice,
                                         lensa_price: totalLensaPrice,
-                                        aksesoris_price: aksesorisItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                                        aksesoris_price: totalAksesorisPrice,
+                                        bpjs_base_total: bpjsBaseTotal,
                                         final_total: total
                                     });
                                     
                                     // Tampilkan informasi pricing
-                                    displayBPJSPricingInfo(response.data, defaultPrice, lensaItems, aksesorisItems);
+                                    displayBPJSPricingInfo(response.data, defaultPrice, lensaItems, aksesorisItems, {
+                                        status: response.data.status || 'Normal',
+                                        frameTotal: totalFramePrice,
+                                        lensaTotal: totalLensaPrice,
+                                        aksesorisTotal: totalAksesorisPrice,
+                                        totalWithoutAksesoris: bpjsBaseTotal,
+                                        finalTotalBeforeDiscount: total,
+                                        showUpgradeFormula: isNaikKelas,
+                                        pasienBayar: (isNaikKelas ? bpjsBaseTotal : 0) + totalAksesorisPrice,
+                                        klaimBpjs: defaultPrice,
+                                    });
                                     
                                     // Update total di UI
-                                    updateTotalDisplay(total);
+                                    updateTotalDisplay(total, total);
                                 } else {
                                     console.error('BPJS pricing API error:', response.message);
                                     console.log('Using fallback pricing with default price:', defaultPrice);
@@ -954,13 +979,24 @@ $(function() {
 
                         displayBPJSPricingInfo({
                             pasien_service_type: 'BPJS ' + bpjsLevel,
+                            status: 'Normal',
                             frame_type: 'Frame Sendiri',
                             calculated_price: total,
                             additional_cost: 0,
                             reason: 'Frame pasien sendiri, gunakan harga default BPJS + lensa'
-                        }, defaultPrice, lensaItems, aksesorisItems);
+                        }, defaultPrice, lensaItems, aksesorisItems, {
+                            status: 'Normal',
+                            frameTotal: 0,
+                            lensaTotal: totalLensaPrice,
+                            aksesorisTotal: aksesorisItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                            totalWithoutAksesoris: defaultPrice + totalLensaPrice,
+                            finalTotalBeforeDiscount: total,
+                            showUpgradeFormula: false,
+                            pasienBayar: aksesorisItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                            klaimBpjs: defaultPrice,
+                        });
 
-                        updateTotalDisplay(total);
+                        updateTotalDisplay(total, total);
                         return;
                     }
 
@@ -975,13 +1011,24 @@ $(function() {
                     // Tampilkan informasi pricing default
                     displayBPJSPricingInfo({
                         pasien_service_type: 'BPJS ' + bpjsLevel,
+                        status: 'Normal',
                         frame_type: 'N/A',
                         calculated_price: defaultPrice,
                         additional_cost: 0,
                         reason: 'Harga default BPJS ' + bpjsLevel
-                    }, defaultPrice, [], aksesorisItems);
+                    }, defaultPrice, [], aksesorisItems, {
+                        status: 'Normal',
+                        frameTotal: 0,
+                        lensaTotal: 0,
+                        aksesorisTotal: aksesorisItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                        totalWithoutAksesoris: defaultPrice,
+                        finalTotalBeforeDiscount: total,
+                        showUpgradeFormula: false,
+                        pasienBayar: aksesorisItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                        klaimBpjs: defaultPrice,
+                    });
                     
-                    updateTotalDisplay(total);
+                    updateTotalDisplay(total, total);
                 }
             } else {
                 // Non-BPJS: gunakan subtotal normal
@@ -1001,112 +1048,113 @@ $(function() {
             aksesorisItems: aksesorisItems
         });
         
-        let frameItem = frameItems[0];
-        let frameJenis = frameItem.jenis_frame || '';
-        let isFrameBPJS = frameJenis.includes('BPJS');
+        let frameItem = frameItems[0] || null;
+        let frameJenis = (frameItem && frameItem.jenis_frame) ? frameItem.jenis_frame : '';
+        let totalFramePrice = frameItems.reduce((sum, item) => {
+            return sum + ((item.price || 0) * (item.quantity || 0));
+        }, 0);
+        let totalLensaPrice = lensaItems.reduce((sum, item) => {
+            return sum + ((item.price || 0) * (item.quantity || 0));
+        }, 0);
+        let totalAksesorisPrice = aksesorisItems.reduce((sum, item) => {
+            return sum + ((item.price || 0) * (item.quantity || 0));
+        }, 0);
+
+        const levelRank = { 'III': 1, 'II': 2, 'I': 3 };
+        const frameTypeUpper = (frameJenis || '').toUpperCase();
         let frameLevel = null;
-        
-        if (isFrameBPJS) {
-            if (frameJenis.includes('BPJS III')) frameLevel = 'III';
-            else if (frameJenis.includes('BPJS II')) frameLevel = 'II';
-            else if (frameJenis.includes('BPJS I')) frameLevel = 'I';
+        if (frameTypeUpper.includes('BPJS III')) frameLevel = 'III';
+        else if (frameTypeUpper.includes('BPJS II')) frameLevel = 'II';
+        else if (frameTypeUpper.includes('BPJS I')) frameLevel = 'I';
+
+        let isNaikKelas = false;
+        if (frameLevel && levelRank[bpjsLevel] && levelRank[frameLevel]) {
+            isNaikKelas = levelRank[frameLevel] > levelRank[bpjsLevel];
+        } else if (frameItem) {
+            isNaikKelas = totalFramePrice > defaultPrice;
         }
 
-        let total = 0;
-        if (isFrameBPJS && frameLevel) {
-            // Logika penambahan untuk frame BPJS
-            let additionalCost = 0;
-            
-            if (bpjsLevel === 'III') {
-                if (frameLevel === 'II') additionalCost = 55000;
-                else if (frameLevel === 'I') additionalCost = 165000;
-            } else if (bpjsLevel === 'II' && frameLevel === 'I') {
-                additionalCost = 110000;
-            }
-            
-            total = defaultPrice + additionalCost;
-            console.log('BPJS Frame calculation:', {
-                frameJenis: frameJenis,
-                frameLevel: frameLevel,
-                bpjsLevel: bpjsLevel,
-                additionalCost: additionalCost,
-                total: total
-            });
+        let totalWithoutAksesoris = 0;
+        let reason = '';
+        if (isNaikKelas) {
+            totalWithoutAksesoris = Math.max(0, (totalFramePrice + totalLensaPrice) - defaultPrice);
+            reason = 'Fallback naik kelas: (frame + lensa) - default BPJS';
         } else {
-            // Frame umum: gunakan harga default BPJS (bukan harga frame asli)
-            let totalLensaPrice = 0;
-            lensaItems.forEach(lensa => {
-                totalLensaPrice += lensa.price * lensa.quantity;
-            });
-            total = defaultPrice + totalLensaPrice; // Gunakan defaultPrice, bukan frameItem.price
-            console.log('BPJS Umum calculation:', {
-                frameJenis: frameJenis,
-                defaultPrice: defaultPrice,
-                totalLensaPrice: totalLensaPrice,
-                total: total
-            });
+            totalWithoutAksesoris = defaultPrice + totalLensaPrice;
+            reason = 'Fallback normal: default BPJS + lensa';
         }
-        
-        // Tambahkan harga aksesoris
-        let totalAksesorisPrice = 0;
-        aksesorisItems.forEach(item => {
-            totalAksesorisPrice += item.price * item.quantity;
-            total += item.price * item.quantity;
+
+        let total = totalWithoutAksesoris + totalAksesorisPrice;
+
+        console.log('BPJS Final fallback calculation:', {
+            status: isNaikKelas ? 'Naik Kelas' : 'Normal',
+            frameJenis: frameJenis,
+            totalFramePrice: totalFramePrice,
+            totalLensaPrice: totalLensaPrice,
+            defaultPrice: defaultPrice,
+            totalAksesorisPrice: totalAksesorisPrice,
+            totalWithoutAksesoris: totalWithoutAksesoris,
+            total: total
         });
-        
-        console.log('BPJS Final calculation:', {
-            total: total,
-            totalAksesorisPrice: totalAksesorisPrice
-        });
-        
-        // Tampilkan informasi pricing fallback
+
         displayBPJSPricingInfo({
             pasien_service_type: 'BPJS ' + bpjsLevel,
+            status: isNaikKelas ? 'Naik Kelas' : 'Normal',
             frame_type: frameJenis || 'Umum',
             calculated_price: total,
-            additional_cost: isFrameBPJS && frameLevel ? (total - defaultPrice) : 0,
-            reason: isFrameBPJS && frameLevel ? 'Frame BPJS dengan penambahan biaya' : 'Harga default BPJS dengan lensa'
-        }, defaultPrice, lensaItems, aksesorisItems);
+            additional_cost: isNaikKelas ? totalWithoutAksesoris : 0,
+            reason: reason
+        }, defaultPrice, lensaItems, aksesorisItems, {
+            status: isNaikKelas ? 'Naik Kelas' : 'Normal',
+            frameTotal: totalFramePrice,
+            lensaTotal: totalLensaPrice,
+            aksesorisTotal: totalAksesorisPrice,
+            totalWithoutAksesoris: totalWithoutAksesoris,
+            finalTotalBeforeDiscount: total,
+            showUpgradeFormula: isNaikKelas,
+            pasienBayar: (isNaikKelas ? totalWithoutAksesoris : 0) + totalAksesorisPrice,
+            klaimBpjs: defaultPrice,
+        });
         
-        updateTotalDisplay(total);
+        updateTotalDisplay(total, total);
     }
     
-    function displayBPJSPricingInfo(apiData, defaultPrice, lensaItems, aksesorisItems) {
-        let cartTable = $('#cart-table');
-        
-        // Tampilkan informasi pricing di cart
-        let pricingInfo = `<tr class="info"><td colspan="3"><strong>Pricing BPJS:</strong></td><td colspan="2">${apiData.pasien_service_type} - ${apiData.reason}</td></tr>`;
-        cartTable.append(pricingInfo);
-        
-        // Tampilkan informasi tambahan jika ada penambahan biaya
-        if (apiData.additional_cost > 0) {
-            let additionalInfo = '';
-            if (apiData.frame_type === 'Umum') {
-                additionalInfo = `<tr class="warning"><td colspan="3"><strong>BPJS Menanggung:</strong></td><td colspan="2">Rp ${apiData.additional_cost.toLocaleString('id-ID')}</td></tr>`;
-            } else {
-                additionalInfo = `<tr class="warning"><td colspan="3"><strong>Penambahan Biaya:</strong></td><td colspan="2">+ Rp ${apiData.additional_cost.toLocaleString('id-ID')}</td></tr>`;
-            }
-            cartTable.append(additionalInfo);
-        }
-        
-        // Tampilkan informasi jumlah lensa
-        if (lensaItems.length > 1) {
-            let lensaInfo = `<tr class="info"><td colspan="3"><strong>Jumlah Lensa:</strong></td><td colspan="2">${lensaItems.length} lensa</td></tr>`;
-            cartTable.append(lensaInfo);
-        }
-        
+    function displayBPJSPricingInfo(apiData, defaultPrice, lensaItems, aksesorisItems, summaryData = null) {
         // Tampilkan ringkasan BPJS
-        showBPJSSummary(apiData.pasien_service_type, apiData.calculated_price, lensaItems, aksesorisItems);
+        const autoSummaryData = summaryData || {
+            pasienServiceType: apiData.pasien_service_type,
+            status: apiData.status || 'Normal',
+            defaultPrice: defaultPrice,
+            frameTotal: 0,
+            lensaTotal: lensaItems.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0),
+            aksesorisTotal: aksesorisItems.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0),
+            totalWithoutAksesoris: apiData.calculated_price || 0,
+            finalTotalBeforeDiscount: apiData.calculated_price || 0,
+            showUpgradeFormula: (apiData.status || '').toLowerCase() === 'naik kelas',
+            pasienBayar: ((apiData.status || '').toLowerCase() === 'naik kelas' ? Number(apiData.calculated_price || 0) : 0) + aksesorisItems.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0),
+            klaimBpjs: defaultPrice,
+            reason: apiData.reason || '',
+        };
+
+        autoSummaryData.pasienServiceType = autoSummaryData.pasienServiceType || apiData.pasien_service_type;
+        autoSummaryData.defaultPrice = Number(autoSummaryData.defaultPrice ?? defaultPrice) || 0;
+        autoSummaryData.reason = autoSummaryData.reason || apiData.reason || '';
+
+        showBPJSSummary(autoSummaryData);
     }
     
-    function updateTotalDisplay(total) {
+    function updateTotalDisplay(total, bpjsAutoBayar = null) {
         let diskon = parseFloat($('#diskon').val()) || 0;
         total = total - diskon;
 
         // Atur default jumlah bayar sama dengan total, hanya jika belum diubah manual oleh user
         let bayarInput = $('#bayar');
         if (!bayarInput.data('user-has-changed')) {
-            bayarInput.val(total);
+            if (bpjsAutoBayar !== null && bpjsAutoBayar !== undefined) {
+                bayarInput.val(Math.max(0, Number(bpjsAutoBayar) || 0));
+            } else {
+                bayarInput.val(total);
+            }
         }
         
         let bayar = parseFloat(bayarInput.val()) || 0;

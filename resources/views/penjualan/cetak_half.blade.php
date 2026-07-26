@@ -703,10 +703,56 @@
             @endif
         </div>
         @elseif(!$hanyaAksesoris)
-        <!-- Pesan khusus untuk BPJS -->
-        <div style="text-align: center; margin: 8px 0; font-style: italic; padding: 5px; border: 1px dashed #000; font-size: 8px;">
-            <strong>Layanan ditanggung oleh {{ strtoupper($penjualan->pasien->service_type) }}</strong>
+        @php
+            $isNaikKelas = strtolower((string) ($penjualan->transaction_status ?? '')) === 'naik kelas';
+            $totalBiayaPenambahan = (float) ($penjualan->total_additional_cost ?? 0);
+            if ($totalBiayaPenambahan <= 0) {
+                $totalBiayaPenambahan = (float) $penjualan->details->sum('additional_cost');
+            }
+            $serviceTypeBpjs = strtoupper((string) ($penjualan->pasien->service_type ?? ''));
+            $biayaDitanggungBpjs = (float) ($penjualan->bpjs_default_price ?? 0);
+            if ($biayaDitanggungBpjs <= 0) {
+                if ($serviceTypeBpjs === 'BPJS I') {
+                    $biayaDitanggungBpjs = 330000;
+                } elseif ($serviceTypeBpjs === 'BPJS II') {
+                    $biayaDitanggungBpjs = 220000;
+                } elseif ($serviceTypeBpjs === 'BPJS III') {
+                    $biayaDitanggungBpjs = 165000;
+                }
+            }
+            $dpTambahan = min((float) ($penjualan->bayar ?? 0), $totalBiayaPenambahan);
+            $sisaTambahan = max(0, $totalBiayaPenambahan - $dpTambahan);
+            $statusPembayaranTambahan = $sisaTambahan <= 0 ? 'Lunas' : 'Belum Lunas';
+        @endphp
+
+        @if($isNaikKelas && $totalBiayaPenambahan > 0)
+        <div class="total-section">
+            <div class="total-row">
+                <span class="total-label">Biaya Penambahan:</span>
+                <span class="total-value">Rp {{ number_format($totalBiayaPenambahan, 0, ',', '.') }}</span>
+            </div>
+            <div class="total-row">
+                <span class="total-label">Status Pembayaran:</span>
+                <span class="total-value"><strong>{{ $statusPembayaranTambahan }}</strong></span>
+            </div>
+            @if($statusPembayaranTambahan !== 'Lunas')
+            <div class="total-row">
+                <span class="total-label">DP:</span>
+                <span class="total-value">Rp {{ number_format($dpTambahan, 0, ',', '.') }}</span>
+            </div>
+            <div class="total-row">
+                <span class="total-label">Sisa:</span>
+                <span class="total-value">Rp {{ number_format($sisaTambahan, 0, ',', '.') }}</span>
+            </div>
+            @endif
         </div>
+        @else
+        <!-- Pesan khusus untuk BPJS normal -->
+        <div style="text-align: center; margin: 8px 0; font-style: italic; padding: 5px; border: 1px dashed #000; font-size: 8px;">
+            <strong>Biaya ditanggung oleh {{ strtoupper($penjualan->pasien->service_type) }}</strong><br>
+            <strong>Rp {{ number_format($biayaDitanggungBpjs, 0, ',', '.') }}</strong>
+        </div>
+        @endif
         @endif
 
         <!-- Footer -->

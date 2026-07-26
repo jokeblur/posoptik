@@ -100,6 +100,26 @@
                                 <td>{{ $penjualan->user->name ?? 'N/A' }}</td>
                             </tr>
                             <tr>
+                                <th>Cara Pembayaran</th>
+                                <td>
+                                    @php
+                                        $metodePembayaran = strtolower((string) ($penjualan->metode_pembayaran ?? ''));
+                                        $metodePembayaranLabel = $metodePembayaran === 'cash'
+                                            ? 'Cash'
+                                            : ($metodePembayaran === 'transfer'
+                                                ? 'Transfer'
+                                                : ($metodePembayaran === 'qris' ? 'QRIS' : '-'));
+                                    @endphp
+                                    {{ $metodePembayaranLabel }}
+                                </td>
+                            </tr>
+                            @if(strtolower((string) ($penjualan->metode_pembayaran ?? '')) === 'transfer')
+                            <tr>
+                                <th>Bank Transfer</th>
+                                <td>{{ strtoupper((string) ($penjualan->bank_transfer ?? '-')) }}</td>
+                            </tr>
+                            @endif
+                            <tr>
                                 <th>Cabang</th>
                                 <td>{{ $penjualan->branch->name ?? 'N/A' }}</td>
                             </tr>

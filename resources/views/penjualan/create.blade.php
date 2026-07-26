@@ -297,6 +297,25 @@
                                 <input type="number" name="diskon" id="diskon" class="form-control" value="0">
                             </div>
                             <div class="form-group">
+                                <label for="metode_pembayaran">Cara Pembayaran</label>
+                                <select name="metode_pembayaran" id="metode_pembayaran" class="form-control" required>
+                                    <option value="cash" selected>Cash</option>
+                                    <option value="transfer">Transfer</option>
+                                    <option value="qris">QRIS</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="bank_transfer_group" style="display: none;">
+                                <label for="bank_transfer">Bank Transfer</label>
+                                <select name="bank_transfer" id="bank_transfer" class="form-control" disabled>
+                                    <option value="">Pilih Bank Transfer</option>
+                                    <option value="BNI">BNI</option>
+                                    <option value="BRI">BRI</option>
+                                    <option value="MANDIRI">MANDIRI</option>
+                                    <option value="BSI">BSI</option>
+                                    <option value="BCA">BCA</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label for="bayar">Jumlah Bayar (Rp)</label>
                                 <input type="number" name="bayar" id="bayar" class="form-control" value="0">
                             </div>
@@ -1201,6 +1220,25 @@ $(function() {
         }
     }
 
+    function toggleBankTransferField() {
+        const metodePembayaran = ($('#metode_pembayaran').val() || '').toLowerCase();
+        const isTransfer = metodePembayaran === 'transfer';
+
+        $('#bank_transfer_group').toggle(isTransfer);
+        $('#bank_transfer').prop('disabled', !isTransfer);
+        $('#bank_transfer').prop('required', isTransfer);
+
+        if (!isTransfer) {
+            $('#bank_transfer').val('');
+        }
+    }
+
+    $('#metode_pembayaran').on('change', function() {
+        toggleBankTransferField();
+    });
+
+    toggleBankTransferField();
+
     // Tandai jika user sudah mengubah input bayar secara manual
     $('#bayar').on('input', function() {
         $(this).data('user-has-changed', true);
@@ -1281,6 +1319,25 @@ $(function() {
                 icon: 'error',
                 title: 'Error!',
                 text: 'Keranjang tidak boleh kosong.',
+            });
+            return;
+        }
+
+        const metodePembayaran = ($('#metode_pembayaran').val() || '').toLowerCase();
+        if (!metodePembayaran) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: 'Cara pembayaran wajib dipilih.',
+            });
+            return;
+        }
+
+        if (metodePembayaran === 'transfer' && !$('#bank_transfer').val()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: 'Silakan pilih bank transfer.',
             });
             return;
         }

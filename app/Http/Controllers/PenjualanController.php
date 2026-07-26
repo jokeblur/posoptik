@@ -600,6 +600,8 @@ class PenjualanController extends Controller
         }
         // Validasi dasar
             $hasJenisTransaksiColumn = $this->hasTableColumn('penjualan', 'jenis_transaksi');
+            $hasMetodePembayaranColumn = $this->hasTableColumn('penjualan', 'metode_pembayaran');
+            $hasBankTransferColumn = $this->hasTableColumn('penjualan', 'bank_transfer');
 
             $rules = [
             'kode_penjualan' => 'required|unique:penjualan,kode_penjualan',
@@ -609,6 +611,14 @@ class PenjualanController extends Controller
             'bayar' => 'required|numeric|min:0',
             'kekurangan' => 'required|numeric',
         ];
+
+        if ($hasMetodePembayaranColumn) {
+            $rules['metode_pembayaran'] = 'required|in:cash,transfer,qris';
+        }
+
+        if ($hasBankTransferColumn) {
+            $rules['bank_transfer'] = 'nullable|required_if:metode_pembayaran,transfer|in:BNI,BRI,MANDIRI,BSI,BCA';
+        }
 
         if ($hasJenisTransaksiColumn) {
             $rules['jenis_transaksi'] = 'required|in:Stock,Gosok';
@@ -699,6 +709,16 @@ class PenjualanController extends Controller
                 'status_pengerjaan' => $hanyaAksesoris ? 'Sudah Diambil' : 'Menunggu Pengerjaan',
                 'waktu_sudah_diambil' => $hanyaAksesoris ? now() : null,
             ];
+
+            if ($hasMetodePembayaranColumn) {
+                $penjualanData['metode_pembayaran'] = strtolower((string) $request->metode_pembayaran);
+            }
+
+            if ($hasBankTransferColumn) {
+                $penjualanData['bank_transfer'] = strtolower((string) $request->metode_pembayaran) === 'transfer'
+                    ? strtoupper((string) $request->bank_transfer)
+                    : null;
+            }
 
             if ($hasJenisTransaksiColumn) {
                 $penjualanData['jenis_transaksi'] = $jenisTransaksi ?? 'Stock';

@@ -181,7 +181,8 @@ class DashboardController extends Controller
             
             $omsetUmum = $umumTransactions->sum('total');
 
-            // Rekap penerimaan kasir berdasarkan metode pembayaran (nominal uang diterima).
+            // Rekap penerimaan kasir berdasarkan metode pembayaran.
+            // Khusus cash: hanya pasien umum + biaya tambahan BPJS naik kelas.
             $cashTransactions = $kasirTransactions->filter(function ($transaksi) {
                 $metode = strtolower((string) ($transaksi->metode_pembayaran ?? ''));
                 return $metode === '' || $metode === 'cash';
@@ -192,10 +193,51 @@ class DashboardController extends Controller
                 return $metode === 'transfer';
             });
 
-            $uangCashDiterima = (float) $cashTransactions->sum('bayar');
-            $uangTransferDiterima = (float) $transferTransactions->sum('bayar');
-            $jumlahTransaksiCash = $cashTransactions->count();
-            $jumlahTransaksiTransfer = $transferTransactions->count();
+            $transferTransactionsForReceipt = $transferTransactions->filter(function ($transaksi) {
+                $serviceType = strtoupper((string) ($transaksi->pasien->service_type ?? $transaksi->pasien_service_type ?? 'UMUM'));
+                $isBpjs = in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'], true);
+
+                if (!$isBpjs) {
+                    return true;
+                }
+
+                return strtolower((string) ($transaksi->transaction_status ?? 'normal')) === 'naik kelas';
+            });
+
+            $cashTransactionsForReceipt = $cashTransactions->filter(function ($transaksi) {
+                $serviceType = strtoupper((string) ($transaksi->pasien->service_type ?? $transaksi->pasien_service_type ?? 'UMUM'));
+                $isBpjs = in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'], true);
+
+                if (!$isBpjs) {
+                    return true;
+                }
+
+                return strtolower((string) ($transaksi->transaction_status ?? 'normal')) === 'naik kelas';
+            });
+
+            $uangCashDiterima = (float) $cashTransactionsForReceipt->sum(function ($transaksi) {
+                $serviceType = strtoupper((string) ($transaksi->pasien->service_type ?? $transaksi->pasien_service_type ?? 'UMUM'));
+                $isBpjs = in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'], true);
+
+                if ($isBpjs && strtolower((string) ($transaksi->transaction_status ?? 'normal')) === 'naik kelas') {
+                    return max(0, (float) ($transaksi->total_additional_cost ?? 0));
+                }
+
+                return (float) ($transaksi->bayar ?? 0);
+            });
+
+            $uangTransferDiterima = (float) $transferTransactionsForReceipt->sum(function ($transaksi) {
+                $serviceType = strtoupper((string) ($transaksi->pasien->service_type ?? $transaksi->pasien_service_type ?? 'UMUM'));
+                $isBpjs = in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'], true);
+
+                if ($isBpjs && strtolower((string) ($transaksi->transaction_status ?? 'normal')) === 'naik kelas') {
+                    return max(0, (float) ($transaksi->total_additional_cost ?? 0));
+                }
+
+                return (float) ($transaksi->bayar ?? 0);
+            });
+            $jumlahTransaksiCash = $cashTransactionsForReceipt->count();
+            $jumlahTransaksiTransfer = $transferTransactionsForReceipt->count();
             
             // Conditional debug logging untuk membantu troubleshooting
             if (config('app.debug')) {
@@ -209,6 +251,10 @@ class DashboardController extends Controller
                 'uang_transfer_diterima' => $uangTransferDiterima,
                 'jumlah_transaksi_cash' => $jumlahTransaksiCash,
                 'jumlah_transaksi_transfer' => $jumlahTransaksiTransfer,
+                'cash_total_transactions_raw' => $cashTransactions->count(),
+                'cash_total_transactions_filtered' => $cashTransactionsForReceipt->count(),
+                'transfer_total_transactions_raw' => $transferTransactions->count(),
+                'transfer_total_transactions_filtered' => $transferTransactionsForReceipt->count(),
                 'total_kasir_transactions' => $kasirTransactions->count(),
                 'bpjs_transactions_count' => $bpjsTransactions->count(),
                 'umum_transactions_count' => $umumTransactions->count(),

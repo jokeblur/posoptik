@@ -2,6 +2,8 @@
 
 $(document).ready(function() {
     console.log('Mobile DataTables optimization loaded');
+    const dataTablesLangUrl = window.DATATABLES_LANG_URL || 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/id.json';
+    const hasResponsivePlugin = !!($.fn.dataTable && $.fn.dataTable.Responsive && $.fn.dataTable.Responsive.display);
     
     // Function to initialize mobile-optimized DataTables
     function initMobileDataTable(selector, options = {}) {
@@ -9,7 +11,7 @@ $(document).ready(function() {
             responsive: true,
             pageLength: 10,
             language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json'
+                url: dataTablesLangUrl
             },
             columnDefs: [
                 { targets: '_all', defaultContent: '-' }
@@ -121,7 +123,7 @@ $(document).ready(function() {
     }
     
     // Initialize all existing DataTables with mobile optimization
-    $('.datatable, .table').each(function() {
+    $('.datatable, table[data-mobile-datatable="true"]').each(function() {
         const $table = $(this);
         
         // Skip if already initialized
@@ -135,14 +137,17 @@ $(document).ready(function() {
         }
         
         // Initialize with mobile options
-        initMobileDataTable($table, {
+        const mobileOptions = {
             pageLength: $(window).width() <= 768 ? 5 : 10,
-            responsive: {
+        };
+
+        if (hasResponsivePlugin) {
+            mobileOptions.responsive = {
                 details: {
                     display: $.fn.dataTable.Responsive.display.modal({
                         header: function (row) {
-                            var data = row.data();
-                            return 'Details for ' + data[1];
+                            var data = row.data() || [];
+                            return 'Details for ' + (data[1] || 'Item');
                         }
                     }),
                     renderer: function (api, rowIdx, columns) {
@@ -154,14 +159,16 @@ $(document).ready(function() {
                                 '</tr>' :
                                 '';
                         }).join('');
-                        
+
                         return data ?
                             $('<table/>').append(data) :
                             false;
                     }
                 }
-            }
-        });
+            };
+        }
+
+        initMobileDataTable($table, mobileOptions);
     });
     
     // Handle window resize
@@ -231,7 +238,9 @@ $(document).ready(function() {
 
 // Global function to reinitialize tables after AJAX updates
 window.reinitMobileTables = function() {
-    $('.datatable, .table').each(function() {
+    const dataTablesLangUrl = window.DATATABLES_LANG_URL || 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/id.json';
+
+    $('.datatable, table[data-mobile-datatable="true"]').each(function() {
         const $table = $(this);
         
         if ($.fn.DataTable.isDataTable($table)) {
@@ -243,7 +252,7 @@ window.reinitMobileTables = function() {
             responsive: true,
             pageLength: $(window).width() <= 768 ? 5 : 10,
             language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json'
+                url: dataTablesLangUrl
             },
             columnDefs: [
                 { targets: '_all', defaultContent: '-' }

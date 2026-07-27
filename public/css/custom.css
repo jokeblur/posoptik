@@ -3900,12 +3900,12 @@ body.modal-open .modal-backdrop {
         margin: 0 1px !important;
     }
 
-    /* Hide less important columns on mobile */
-    .table th:nth-child(n + 6),
-    .table td:nth-child(n + 6),
-    .dataTable th:nth-child(n + 6),
-    .dataTable td:nth-child(n + 6) {
-        display: none !important;
+    /* Keep all columns visible; users can scroll horizontally. */
+    .table th,
+    .table td,
+    .dataTable th,
+    .dataTable td {
+        display: table-cell !important;
     }
 }
 
@@ -3927,12 +3927,12 @@ body.modal-open .modal-backdrop {
         padding: 6px !important;
     }
 
-    /* Hide even more columns on very small screens */
-    .table th:nth-child(n + 4),
-    .table td:nth-child(n + 4),
-    .dataTable th:nth-child(n + 4),
-    .dataTable td:nth-child(n + 4) {
-        display: none !important;
+    /* Keep all columns visible; users can scroll horizontally. */
+    .table th,
+    .table td,
+    .dataTable th,
+    .dataTable td {
+        display: table-cell !important;
     }
 
     .dataTables_filter input {
@@ -4388,8 +4388,46 @@ body.modal-open .modal-backdrop {
 .table-responsive {
     border: none !important;
     border-radius: 8px !important;
-    overflow: hidden !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Global safety net: prevent table clipping on mobile/tablet. */
+@media (max-width: 1024px) {
+    .table-responsive,
+    .dataTables_wrapper {
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    .table-responsive .table,
+    .table-responsive .dataTable,
+    .dataTables_wrapper .table,
+    .dataTables_wrapper .dataTable {
+        min-width: 640px !important;
+        white-space: nowrap !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .table-responsive .table,
+    .table-responsive .dataTable,
+    .dataTables_wrapper .table,
+    .dataTables_wrapper .dataTable {
+        min-width: 560px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .table-responsive .table,
+    .table-responsive .dataTable,
+    .dataTables_wrapper .table,
+    .dataTables_wrapper .dataTable {
+        min-width: 480px !important;
+    }
 }
 
 /* Fix for any remaining positioning issues */

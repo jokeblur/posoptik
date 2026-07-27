@@ -1540,7 +1540,7 @@ $(document).ready(function() {
         pageLength: 10,
         order: [],
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json'
+            url: '{{ asset('js/datatables-id.json') }}'
         },
         columnDefs: [
             { targets: '_all', defaultContent: '-' }
@@ -1573,7 +1573,7 @@ $(document).ready(function() {
                     pageLength: 10,
                     order: [[8, 'desc']], // Sort by date column
                     language: {
-                        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json'
+                        url: '{{ asset('js/datatables-id.json') }}'
                     },
                     columnDefs: [
                         { targets: '_all', defaultContent: '-' },

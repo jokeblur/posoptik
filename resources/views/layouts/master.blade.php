@@ -8,16 +8,17 @@
     <meta name="description" content="Aplikasi manajemen optik dan resep kacamata Optik Melati">
     <meta name="theme-color" content="#e74c3c">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Optik Melati">
     <meta name="msapplication-TileColor" content="#e74c3c">
-    <meta name="msapplication-config" content="/browserconfig.xml">
+    <meta name="msapplication-config" content="{{ url('browserconfig.xml') }}">
     <!-- Tell the browser to be responsive to screen width -->
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
-    <link rel="icon" type="image/png" sizes="32x32" href="/image/optik-melati.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/image/optik-melati.png">
-    <link rel="apple-touch-icon" href="/image/optik-melati.png">
-    <link rel="manifest" href="/manifest.json?v=1.1.1">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url('image/optik-melati.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url('image/optik-melati.png') }}">
+    <link rel="apple-touch-icon" href="{{ url('image/optik-melati.png') }}">
+    <link rel="manifest" href="{{ url('manifest.json') }}?v=1.1.1">
     <!-- Bootstrap 3.3.7 -->
     <link rel="stylesheet" href="{{ asset('AdminLTE2/bower_components/bootstrap/dist/css/bootstrap.min.css') }}">
     <!-- Font Awesome -->
@@ -28,8 +29,8 @@
     <link rel="stylesheet" href="{{ asset('AdminLTE2/dist/css/AdminLTE.min.css') }}">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Poppins" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/mobile-responsive-tables.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}?v={{ @filemtime(public_path('css/custom.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/mobile-responsive-tables.css') }}?v={{ @filemtime(public_path('css/mobile-responsive-tables.css')) }}">
     <style>
         .btn-icon-only {
             padding: 6px 8px !important;
@@ -260,11 +261,14 @@
 <script src="{{ asset('AdminLTE2/bower_components/jquery-slimscroll/jquery.slimscroll.min.js') }}"></script>
 <script src="{{ asset('AdminLTE2/bower_components/fastclick/lib/fastclick.js') }}"></script>
 <script src="{{ asset('AdminLTE2/dist/js/adminlte.min.js') }}"></script>
-<script src="{{ asset('AdminLTE2/dist/js/pages/dashboard.js') }}"></script>
 <script src="{{ asset('AdminLTE2/dist/js/demo.js') }}"></script>
 <script src="{{ asset('AdminLTE2/bower_components/chart.js/Chart.js') }}"></script>
 <script src="{{ asset('js/validator.min.js') }}"></script>
 <script src="{{ asset('js/sweetalert-config.js') }}"></script>
+<script>
+    window.APP_BASE_URL = '{{ url('') }}';
+    window.DATATABLES_LANG_URL = '{{ asset('js/datatables-id.json') }}';
+</script>
 <script src="{{ asset('js/pwa.js') }}?v=1.1.1" defer></script>
 
 <script>

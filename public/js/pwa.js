@@ -3,7 +3,17 @@ class PWAInstaller {
     constructor() {
         this.deferredPrompt = null;
         this.installButton = null;
+        this.baseUrl = (window.APP_BASE_URL || "").replace(/\/$/, "");
         this.init();
+    }
+
+    withBasePath(path) {
+        const normalizedPath = String(path || "").replace(/^\/+/, "");
+        if (!this.baseUrl) {
+            return "/" + normalizedPath;
+        }
+
+        return this.baseUrl + "/" + normalizedPath;
     }
 
     init() {
@@ -20,7 +30,7 @@ class PWAInstaller {
         if ("serviceWorker" in navigator) {
             try {
                 const registration = await navigator.serviceWorker.register(
-                    "/sw.js"
+                    this.withBasePath("sw.js")
                 );
                 console.log(
                     "Service Worker registered successfully:",
@@ -271,9 +281,11 @@ class PWAInstaller {
         if (this.shouldShowSplash()) {
             const splash = document.createElement("div");
             splash.className = "pwa-splash";
+            const logoApp = this.withBasePath("image/logoapp.png");
+            const logoLogin = this.withBasePath("image/logologin.png");
             splash.innerHTML = `
-                <img src="/image/logoapp.png" alt="Optik Melati" class="logo" 
-                     onerror="this.src='/image/logologin.png'; this.onerror=function(){this.style.display='none'; document.getElementById('splash-fallback').style.display='block';}">
+                <img src="${logoApp}" alt="Optik Melati" class="logo" 
+                     onerror="this.src='${logoLogin}'; this.onerror=function(){this.style.display='none'; document.getElementById('splash-fallback').style.display='block';}">
                 <div id="splash-fallback" class="logo-fallback" style="display: none;">
                     <div class="fallback-icon">👓</div>
                 </div>

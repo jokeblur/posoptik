@@ -16,16 +16,17 @@
     <meta name="description" content="Aplikasi manajemen optik dan resep kacamata Optik Melati">
     <meta name="theme-color" content="#e74c3c">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Optik Melati">
     <meta name="msapplication-TileColor" content="#e74c3c">
-    <meta name="msapplication-config" content="/browserconfig.xml">
+    <meta name="msapplication-config" content="{{ url('browserconfig.xml') }}">
 
     <!-- PWA Icons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/image/optik-melati.png?v={{ time() }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="/image/optik-melati.png?v={{ time() }}">
-    <link rel="apple-touch-icon" href="/image/optik-melati.png?v={{ time() }}">
-    <link rel="manifest" href="/manifest.json?v={{ time() }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url('image/optik-melati.png') }}?v={{ time() }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url('image/optik-melati.png') }}?v={{ time() }}">
+    <link rel="apple-touch-icon" href="{{ url('image/optik-melati.png') }}?v={{ time() }}">
+    <link rel="manifest" href="{{ url('manifest.json') }}?v={{ time() }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -110,6 +111,10 @@
     </div>
 
     <!-- PWA Scripts -->
+    <script>
+        window.APP_BASE_URL = '{{ url('') }}';
+        window.DATATABLES_LANG_URL = '{{ asset('js/datatables-id.json') }}';
+    </script>
     <script src="{{ asset('js/pwa.js') }}?v={{ time() }}" defer></script>
     
     <!-- Custom Scripts -->

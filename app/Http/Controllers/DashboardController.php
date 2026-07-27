@@ -58,6 +58,10 @@ class DashboardController extends Controller
         $omsetKasir = null;
         $omsetBpjs = null;
         $omsetUmum = null;
+        $uangCashDiterima = null;
+        $uangTransferDiterima = null;
+        $jumlahTransaksiCash = null;
+        $jumlahTransaksiTransfer = null;
         $transaksiKasir = null;
         $jumlahPasien = null;
         $jumlahLensa = null;
@@ -176,6 +180,22 @@ class DashboardController extends Controller
             });
             
             $omsetUmum = $umumTransactions->sum('total');
+
+            // Rekap penerimaan kasir berdasarkan metode pembayaran (nominal uang diterima).
+            $cashTransactions = $kasirTransactions->filter(function ($transaksi) {
+                $metode = strtolower((string) ($transaksi->metode_pembayaran ?? ''));
+                return $metode === '' || $metode === 'cash';
+            });
+
+            $transferTransactions = $kasirTransactions->filter(function ($transaksi) {
+                $metode = strtolower((string) ($transaksi->metode_pembayaran ?? ''));
+                return $metode === 'transfer';
+            });
+
+            $uangCashDiterima = (float) $cashTransactions->sum('bayar');
+            $uangTransferDiterima = (float) $transferTransactions->sum('bayar');
+            $jumlahTransaksiCash = $cashTransactions->count();
+            $jumlahTransaksiTransfer = $transferTransactions->count();
             
             // Conditional debug logging untuk membantu troubleshooting
             if (config('app.debug')) {
@@ -185,6 +205,10 @@ class DashboardController extends Controller
                 'omset_kasir' => $omsetKasir,
                 'omset_bpjs' => $omsetBpjs,
                 'omset_umum' => $omsetUmum,
+                'uang_cash_diterima' => $uangCashDiterima,
+                'uang_transfer_diterima' => $uangTransferDiterima,
+                'jumlah_transaksi_cash' => $jumlahTransaksiCash,
+                'jumlah_transaksi_transfer' => $jumlahTransaksiTransfer,
                 'total_kasir_transactions' => $kasirTransactions->count(),
                 'bpjs_transactions_count' => $bpjsTransactions->count(),
                 'umum_transactions_count' => $umumTransactions->count(),
@@ -346,6 +370,7 @@ class DashboardController extends Controller
             'jumlahFrame', 'jumlahLensa', 'jumlahAksesoris', 'jumlahPasien', 'jumlahTransaksiAktif',
             'detailFrame', 'detailLensa', 'detailAksesoris', 'detailPasien', 'detailTransaksiAktif',
             'rekapOmset', 'omsetKasir', 'omsetBpjs', 'omsetUmum', 'transaksiKasir', 'chartData',
+            'uangCashDiterima', 'uangTransferDiterima', 'jumlahTransaksiCash', 'jumlahTransaksiTransfer',
             'topFrameBrands',
             'lowStockLensa', 'lowStockFrame', 'lowStockAksesoris', 'batasStok',
             'transaksiMenungguPengerjaan', 'transaksiSelesaiBulanIni',

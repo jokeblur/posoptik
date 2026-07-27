@@ -594,7 +594,9 @@ function initWAHandlers() {
                 url: generateUrl,
                 type: 'POST',
                 data: {
-                    _token: $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'
+                    _token: $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}',
+                    auto_send: 1,
+                    phone: phone
                 },
                 timeout: 30000
             });
@@ -605,10 +607,28 @@ function initWAHandlers() {
                 throw new Error(result.message || 'Gagal membuat barcode');
             }
 
+            Swal.close();
+            const wa = result.whatsapp || null;
+
+            if (wa && wa.channel === 'gateway' && wa.success) {
+                Swal.fire('Berhasil', wa.message || 'QR code berhasil dikirim otomatis ke WhatsApp pasien.', 'success');
+                return;
+            }
+
+            if (wa && wa.open_link && wa.link) {
+                Swal.fire({
+                    title: 'Gateway Tidak Aktif',
+                    text: wa.message || 'Dialihkan ke WhatsApp untuk kirim manual.',
+                    icon: 'info',
+                    confirmButtonText: 'Lanjut Buka WhatsApp'
+                }).then(() => {
+                    window.open(wa.link, '_blank');
+                });
+                return;
+            }
+
             const message = `Halo ${pasien}, berikut QR code nota Anda (${kode}): ${result.image_url}`;
             const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-
-            Swal.close();
             window.open(waUrl, '_blank');
         } catch (error) {
             console.error('Error:', error);

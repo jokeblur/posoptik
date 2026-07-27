@@ -1,7 +1,5 @@
-const CACHE_NAME = "optik-melati-v1.1.1";
+const CACHE_NAME = "optik-melati-v1.1.2";
 const urlsToCache = [
-    "/",
-    "/login",
     "/offline.html",
     "/css/app.css",
     "/css/pwa.css",
@@ -13,6 +11,19 @@ const urlsToCache = [
     "/AdminLTE2/bower_components/jquery/dist/jquery.min.js",
     "/AdminLTE2/bower_components/bootstrap/dist/js/bootstrap.min.js",
 ];
+
+const AUTH_PATH_PREFIXES = [
+    "/login",
+    "/logout",
+    "/forgot-password",
+    "/reset-password",
+    "/register",
+    "/two-factor-challenge",
+];
+
+function isAuthPath(pathname) {
+    return AUTH_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
+}
 
 // Install event - cache resources
 self.addEventListener("install", (event) => {
@@ -29,6 +40,35 @@ self.addEventListener("install", (event) => {
 // Fetch event - serve from cache when offline
 self.addEventListener("fetch", (event) => {
     if (event.request.method !== "GET") {
+        return;
+    }
+
+    const requestUrl = new URL(event.request.url);
+    const isSameOrigin = requestUrl.origin === self.location.origin;
+    const acceptHeader = event.request.headers.get("accept") || "";
+    const isHtmlRequest = event.request.mode === "navigate" || acceptHeader.includes("text/html");
+
+    // Route auth harus selalu fresh dari server untuk menghindari CSRF token basi.
+    if (isSameOrigin && isAuthPath(requestUrl.pathname)) {
+        event.respondWith(
+            fetch(event.request, { cache: "no-store" }).catch(() => {
+                return caches.match("/offline.html");
+            })
+        );
+        return;
+    }
+
+    // Halaman HTML gunakan network-first agar token/session terbaru selalu dipakai.
+    if (isHtmlRequest) {
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => response)
+                .catch(() => {
+                    return caches.match(event.request).then((cachedResponse) => {
+                        return cachedResponse || caches.match("/offline.html");
+                    });
+                })
+        );
         return;
     }
 

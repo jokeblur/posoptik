@@ -528,17 +528,17 @@
         <div class="col-md-12">
             <div class="text-center">
                 <div class="btn-group-vertical btn-group-lg" role="group" style="display: inline-block;">
-                    <a href="{{ route('penjualan.create') }}" class="btn btn-primary" style="padding: 15px 30px; font-size: 16px; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin: 5px; min-width: 250px;">
-                        <i class="fa fa-plus-circle" style="margin-right: 8px;"></i>
-                        Transaksi Penjualan Baru
+                    <a href="{{ route('penjualan.create') }}" class="btn btn-primary" style="padding: 15px 30px; font-size: 16px; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin: 5px; min-width: 250px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fa fa-plus-circle"></i>
+                        <span>Transaksi Penjualan Baru</span>
                     </a>
-                    <a href="{{ route('penjualan.index') }}" class="btn btn-info" style="padding: 15px 30px; font-size: 16px; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin: 5px; min-width: 250px;">
-                        <i class="fa fa-list" style="margin-right: 8px;"></i>
-                        Daftar Transaksi
+                    <a href="{{ route('penjualan.index') }}" class="btn btn-info" style="padding: 15px 30px; font-size: 16px; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin: 5px; min-width: 250px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fa fa-list"></i>
+                        <span>Daftar Transaksi</span>
                     </a>
-                    <a href="{{ route('pasien.index') }}" class="btn btn-success" style="padding: 15px 30px; font-size: 16px; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin: 5px; min-width: 250px;">
-                        <i class="fa fa-users" style="margin-right: 8px;"></i>
-                        Data Pasien
+                    <a href="{{ route('pasien.index') }}" class="btn btn-success" style="padding: 15px 30px; font-size: 16px; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin: 5px; min-width: 250px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fa fa-users"></i>
+                        <span>Data Pasien</span>
                     </a>
                 </div>
             </div>
@@ -600,6 +600,33 @@
                 <div class="icon"><i class="fa fa-users"></i></div>
                 <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
                     {{ (isset($isOmsetToday) && $isOmsetToday) ? 'Auto refresh' : 'Data histori' }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" style="margin-bottom: 24px;">
+        <div class="col-md-6">
+            <div class="small-box bg-primary">
+                <div class="inner">
+                    <h3>Rp {{ number_format($uangCashDiterima ?? 0, 0, ',', '.') }}</h3>
+                    <p>Penerimaan Cash {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</p>
+                </div>
+                <div class="icon"><i class="fa fa-money"></i></div>
+                <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
+                    {{ $jumlahTransaksiCash ?? 0 }} transaksi cash
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="small-box bg-navy">
+                <div class="inner">
+                    <h3>Rp {{ number_format($uangTransferDiterima ?? 0, 0, ',', '.') }}</h3>
+                    <p>Penerimaan Transfer {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</p>
+                </div>
+                <div class="icon"><i class="fa fa-university"></i></div>
+                <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
+                    {{ $jumlahTransaksiTransfer ?? 0 }} transaksi transfer
                 </div>
             </div>
         </div>

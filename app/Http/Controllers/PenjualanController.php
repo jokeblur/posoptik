@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Schema;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Models\OpenDay;
 use Carbon\Carbon;
 
@@ -1321,25 +1322,45 @@ class PenjualanController extends Controller
                 mkdir($dir, 0755, true);
             }
 
-            // Generate QR code using online API (no imagick needed)
-            $qrCodeUrl = url('/barcode/scan/' . $penjualan->barcode);
-            $apiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($qrCodeUrl);
-            
-            // Download QR code from API
-            $response = Http::timeout(10)->get($apiUrl);
-            
-            if (!$response->successful()) {
-                throw new \Exception('Failed to generate QR code from API: ' . $response->status());
+            // Pasien diarahkan ke halaman profil perusahaan; scanner internal tetap bisa ambil barcode dari URL.
+            $barcodeValue = (string) ($penjualan->barcode ?: $penjualan->kode_penjualan);
+
+            if ($barcodeValue === '') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data barcode transaksi tidak valid.'
+                ], 400);
             }
 
-            $qrCodeData = $response->body();
-            
-            // Add logo to QR code
+            $qrPayload = route('public.company-profile.barcode', [
+                'barcode' => $barcodeValue,
+            ]);
+
+            // Generate QR lokal terlebih dulu; jika backend server belum mendukung (mis. Imagick), fallback ke API.
             try {
-                $qrCodeData = $this->addLogoToQRCode($qrCodeData);
-            } catch (\Exception $logoError) {
-                Log::warning('Failed to add logo to QR code: ' . $logoError->getMessage());
-                // Continue with QR code without logo if logo addition fails
+                $qrCodeData = QrCode::format('png')
+                    ->size(1024)
+                    ->margin(4)
+                    ->errorCorrection('H')
+                    ->generate($qrPayload);
+            } catch (\Throwable $qrError) {
+                Log::warning('Local QR generation failed, fallback to API.', [
+                    'penjualan_id' => $penjualan->id,
+                    'error' => $qrError->getMessage(),
+                ]);
+
+                $apiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&ecc=H&qzone=4&format=png&data=' . urlencode($qrPayload);
+                $apiResponse = Http::timeout(15)->get($apiUrl);
+
+                if (!$apiResponse->successful()) {
+                    throw new \Exception('Failed to generate QR code image from fallback API: ' . $apiResponse->status());
+                }
+
+                $qrCodeData = $apiResponse->body();
+            }
+
+            if (empty($qrCodeData)) {
+                throw new \Exception('Failed to generate QR code image data');
             }
 
             // Store with unique filename
@@ -1367,10 +1388,47 @@ class PenjualanController extends Controller
                 'url' => $imageUrl
             ]);
 
+            $whatsapp = null;
+            if ($request->boolean('auto_send')) {
+                $rawPhone = (string) $request->input('phone', '');
+                $normalizedPhone = WhatsAppHelper::normalizePhoneNumber($rawPhone);
+
+                if (!$normalizedPhone) {
+                    $whatsapp = [
+                        'success' => false,
+                        'channel' => 'none',
+                        'message' => 'Nomor WhatsApp tidak valid untuk pengiriman otomatis.',
+                    ];
+                } else {
+                    $pasienName = $penjualan->nama_pasien ?: 'Pelanggan';
+                    $kode = $penjualan->kode_penjualan ?: '-';
+                    $waMessage = "Halo {$pasienName}, berikut QR code nota Anda ({$kode}): {$imageUrl}";
+
+                    $gatewayResult = WhatsAppHelper::sendViaGateway($normalizedPhone, $waMessage);
+                    if ($gatewayResult['success']) {
+                        $whatsapp = [
+                            'success' => true,
+                            'channel' => 'gateway',
+                            'message' => 'QR code berhasil dikirim otomatis ke WhatsApp pasien.',
+                        ];
+                    } else {
+                        $manualLink = WhatsAppHelper::buildShareLink($normalizedPhone, $waMessage);
+                        $whatsapp = [
+                            'success' => true,
+                            'channel' => 'wa_link',
+                            'message' => 'Gateway WhatsApp tidak aktif/menolak request. Dialihkan ke WhatsApp Web/App.',
+                            'open_link' => true,
+                            'link' => $manualLink,
+                        ];
+                    }
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'image_url' => $imageUrl,
-                'message' => 'Barcode berhasil dibuat.'
+                'message' => 'Barcode berhasil dibuat.',
+                'whatsapp' => $whatsapp,
             ]);
         } catch (\Exception $e) {
             Log::error('Generate barcode image error: ' . $e->getMessage(), [
@@ -1481,7 +1539,8 @@ class PenjualanController extends Controller
         // Display image in browser (not download)
         return response()->file($path, [
             'Content-Type' => 'image/png',
-            'Cache-Control' => 'public, max-age=86400'
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+            'Cache-Control' => 'public, max-age=86400, no-transform'
         ]);
     }
 

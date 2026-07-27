@@ -316,8 +316,31 @@ function onScanFailure(error) {
 }
 
 function processScannedCode(code) {
-    updateStatus('Memproses QR Code: ' + code);
-    searchTransaksi(code);
+    const normalizedCode = normalizeScannedCode(code);
+    updateStatus('Memproses QR Code: ' + normalizedCode);
+    searchTransaksi(normalizedCode);
+}
+
+function normalizeScannedCode(code) {
+    const raw = (code || '').trim();
+    if (!raw) {
+        return '';
+    }
+
+    if (!/^https?:\/\//i.test(raw)) {
+        return raw;
+    }
+
+    try {
+        const parsed = new URL(raw);
+        const segments = parsed.pathname.split('/').filter(Boolean);
+        const lastSegment = segments.length ? segments[segments.length - 1] : '';
+        return decodeURIComponent(lastSegment || raw);
+    } catch (error) {
+        const sanitized = raw.split('?')[0].split('#')[0].replace(/\/+$/, '');
+        const parts = sanitized.split('/');
+        return decodeURIComponent(parts[parts.length - 1] || raw);
+    }
 }
 
 function updateUI() {
@@ -663,11 +686,15 @@ const initCheckInterval = setInterval(() => {
 }, 100);
 
 function processScannedCode(code) {
+    const normalizedCode = (typeof normalizeScannedCode === 'function')
+        ? normalizeScannedCode(code)
+        : (code || '').trim();
+
     // Show loading
     showLoading('Memproses QR Code...');
     
     // Search for transaction
-    searchTransaksi(code);
+    searchTransaksi(normalizedCode);
 }
 
 function searchTransaksi(barcode) {

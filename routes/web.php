@@ -50,6 +50,17 @@ Route::get('/share/nota-image/{file}', [PenjualanController::class, 'shareNotaIm
 Route::get('/share/barcode-image/{token}', [PenjualanController::class, 'shareBarcodeImage'])
     ->name('penjualan.share-barcode-image');
 
+// Public company profile page used as QR destination for patients
+Route::get('/company-profile', function () {
+    return view('public.company_profile');
+})->name('public.company-profile');
+
+Route::get('/company-profile/{barcode}', function ($barcode) {
+    return view('public.company_profile', [
+        'barcode' => $barcode,
+    ]);
+})->where('barcode', '[A-Za-z0-9\-]+')->name('public.company-profile.barcode');
+
 // Route khusus untuk logout dengan redirect yang aman
 Route::post('/logout', function () {
     try {

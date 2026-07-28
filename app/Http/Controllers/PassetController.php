@@ -34,11 +34,20 @@ class PassetController extends Controller
             ->addColumn('tanggal', function ($transaksi) {
                 return tanggal_indonesia($transaksi->created_at, false);
             })
+            ->addColumn('tanggal_siap', function ($transaksi) {
+                return $transaksi->tanggal_siap ? tanggal_indonesia($transaksi->tanggal_siap, false) : '-';
+            })
             ->addColumn('pasien_name', function ($transaksi) {
                 return $transaksi->pasien->nama_pasien ?? 'N/A';
             })
             ->addColumn('cabang_name', function ($transaksi) {
                 return $transaksi->branch->name ?? 'Pusat';
+            })
+            ->addColumn('jenis_layanan', function ($transaksi) {
+                return $transaksi->pasien_service_type ?: '-';
+            })
+            ->addColumn('jenis_transaksi', function ($transaksi) {
+                return $transaksi->jenis_transaksi ?: '-';
             })
             ->editColumn('status_pengerjaan', function ($transaksi) {
                 $statusClass = $transaksi->status_pengerjaan == 'Selesai Dikerjakan' ? 'label-success' : 'label-warning';

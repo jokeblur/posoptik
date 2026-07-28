@@ -15,9 +15,12 @@
                         <tr>
                             <th width="5%">No</th>
                             <th>Tanggal Masuk</th>
+                            <th>Tanggal Siap</th>
                             <th>Kode Penjualan</th>
                             <th>Nama Pasien</th>
                             <th>Cabang</th>
+                            <th>Jenis Layanan</th>
+                            <th>Jenis Transaksi</th>
                             <th>Status Pengerjaan</th>
                             <th width="15%"><i class="fa fa-cog"></i></th>
                         </tr>
@@ -72,9 +75,12 @@
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'tanggal', name: 'tanggal' },
+                { data: 'tanggal_siap', name: 'tanggal_siap' },
                 { data: 'kode_penjualan', name: 'kode_penjualan' },
                 { data: 'pasien_name', name: 'pasien_name' },
                 { data: 'cabang_name', name: 'cabang_name' },
+                { data: 'jenis_layanan', name: 'jenis_layanan' },
+                { data: 'jenis_transaksi', name: 'jenis_transaksi' },
                 { data: 'status_pengerjaan', name: 'status_pengerjaan' },
                 { data: 'aksi', name: 'aksi', orderable: false, searchable: false }
             ]

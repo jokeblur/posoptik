@@ -30,4 +30,15 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'whatsapp' => [
+        'provider' => env('WHATSAPP_PROVIDER', 'generic'),
+        'gateway_url' => env('WHATSAPP_GATEWAY_URL'),
+        'gateway_token' => env('WHATSAPP_GATEWAY_TOKEN'),
+        'wablas_url' => env('WHATSAPP_WABLAS_URL', 'https://sby.wablas.com/api/send-message'),
+        'wablas_token' => env('WHATSAPP_WABLAS_TOKEN'),
+        'wablas_secret' => env('WHATSAPP_WABLAS_SECRET'),
+        'callmebot_url' => env('WHATSAPP_CALLMEBOT_URL', 'https://api.callmebot.com/whatsapp.php'),
+        'callmebot_apikey' => env('WHATSAPP_CALLMEBOT_APIKEY'),
+    ],
+
 ];

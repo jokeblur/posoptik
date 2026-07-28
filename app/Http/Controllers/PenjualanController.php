@@ -190,7 +190,7 @@ class PenjualanController extends Controller
         return [
             'success' => true,
             'channel' => 'wa_link',
-            'message' => 'WhatsApp gateway tidak aktif. Kirim pesan manual melalui link berikut.',
+            'message' => ($gatewayResult['message'] ?? 'WhatsApp gateway tidak aktif.') . ' Kirim pesan manual melalui link berikut.',
             'open_link' => true,
             'link' => $waLink,
         ];

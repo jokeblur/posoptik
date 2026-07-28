@@ -85,6 +85,8 @@ class PassetController extends Controller
         $transaksi->waktu_selesai_dikerjakan = now();
         $transaksi->save();
 
+        $notificationMessage = 'Status berhasil diubah menjadi Selesai.';
+
         // Kirim WhatsApp ke pasien bahwa kacamata sudah siap
         try {
             if ($transaksi->pasien && $transaksi->pasien->nohp) {
@@ -96,20 +98,34 @@ class PassetController extends Controller
                 $pesan .= "No. Kode: *" . $transaksi->kode_penjualan . "*\n\n";
                 $pesan .= "Terima kasih telah memilih Optik Melati. 😊";
 
-                $waLink = WhatsAppHelper::buildShareLink($phoneNumber, $pesan);
-                \Log::info('WhatsApp link generated for patient ready notification', [
+                if ($phoneNumber) {
+                    $gatewayResult = WhatsAppHelper::sendViaGateway($phoneNumber, $pesan);
+                    if ($gatewayResult['success']) {
+                        $notificationMessage .= ' Notifikasi WhatsApp berhasil dikirim otomatis ke pasien.';
+                    } else {
+                        $notificationMessage .= ' Notifikasi WhatsApp gagal otomatis, cek konfigurasi gateway.';
+                    }
+                } else {
+                    $notificationMessage .= ' Nomor WhatsApp pasien tidak valid.';
+                }
+
+                \Log::info('WhatsApp notification attempt for patient ready status', [
                     'transaksi_id' => $transaksi->id,
                     'pasien_id' => $transaksi->pasien_id,
-                    'phone' => $phoneNumber
+                    'phone' => $phoneNumber,
+                    'message' => $notificationMessage,
                 ]);
+            } else {
+                $notificationMessage .= ' Nomor WhatsApp pasien belum tersedia.';
             }
         } catch (\Exception $e) {
-            \Log::warning('Failed to generate WhatsApp link for patient notification', [
+            \Log::warning('Failed to send WhatsApp notification for patient', [
                 'error' => $e->getMessage(),
                 'transaksi_id' => $transaksi->id
             ]);
+            $notificationMessage .= ' Terjadi error saat proses kirim notifikasi WhatsApp.';
         }
 
-        return response()->json(['message' => 'Status berhasil diubah menjadi Selesai. Notifikasi WhatsApp akan dikirim ke pasien.']);
+        return response()->json(['message' => $notificationMessage]);
     }
 }

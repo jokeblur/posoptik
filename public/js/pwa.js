@@ -19,10 +19,79 @@ class PWAInstaller {
     init() {
         this.registerServiceWorker();
         this.setupInstallPrompt();
+        this.setupOrientationOverlay();
+        this.setupLandscapeMode();
         this.createInstallButton();
         this.setupOfflineIndicator();
         this.createSplashScreen();
         this.setupPushNotifications();
+    }
+
+    // Show a portrait overlay on tablet/mobile so users are guided to landscape mode
+    setupOrientationOverlay() {
+        const isSmallScreen = window.matchMedia && window.matchMedia("(max-width: 1024px)").matches;
+
+        if (!isSmallScreen) {
+            return;
+        }
+
+        if (!document.getElementById("landscape-overlay")) {
+            const overlay = document.createElement("div");
+            overlay.id = "landscape-overlay";
+            overlay.className = "landscape-overlay";
+            overlay.innerHTML = `
+                <div class="landscape-overlay-card">
+                    <div class="landscape-overlay-icon">⟳</div>
+                    <h3>Putar Device ke Landscape</h3>
+                    <p>Untuk tampilan yang lebih nyaman, silakan putar perangkat ke posisi horizontal.</p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        const updateOverlay = () => {
+            const overlay = document.getElementById("landscape-overlay");
+            if (!overlay) {
+                return;
+            }
+
+            const isPortrait = window.matchMedia && window.matchMedia("(orientation: portrait)").matches;
+            overlay.classList.toggle("active", isPortrait);
+        };
+
+        updateOverlay();
+        window.addEventListener("resize", updateOverlay);
+        window.addEventListener("orientationchange", updateOverlay);
+    }
+
+    // Best-effort landscape lock for mobile/tablet browsers that allow it
+    setupLandscapeMode() {
+        const isSmallScreen = window.matchMedia && window.matchMedia("(max-width: 1024px)").matches;
+
+        if (!isSmallScreen) {
+            return;
+        }
+
+        const lockLandscape = async () => {
+            try {
+                if (screen.orientation && typeof screen.orientation.lock === "function") {
+                    await screen.orientation.lock("landscape");
+                    console.log("Landscape orientation locked");
+                }
+            } catch (error) {
+                console.log("Landscape lock not supported or denied:", error);
+            }
+        };
+
+        // Try immediately, then retry once after first interaction for browsers that require a gesture.
+        lockLandscape();
+        const retryOnce = () => {
+            lockLandscape();
+            document.removeEventListener("click", retryOnce);
+            document.removeEventListener("touchstart", retryOnce);
+        };
+        document.addEventListener("click", retryOnce, { once: true });
+        document.addEventListener("touchstart", retryOnce, { once: true });
     }
 
     // Register Service Worker
@@ -281,7 +350,7 @@ class PWAInstaller {
         if (this.shouldShowSplash()) {
             const splash = document.createElement("div");
             splash.className = "pwa-splash";
-            const logoApp = this.withBasePath("image/logoapp.png");
+            const logoApp = this.withBasePath("image/Final Logo Optik Melati-24.png");
             const logoLogin = this.withBasePath("image/logologin.png");
             splash.innerHTML = `
                 <img src="${logoApp}" alt="Optik Melati" class="logo" 

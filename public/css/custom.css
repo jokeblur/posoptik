@@ -744,6 +744,195 @@ body.sidebar-open {
     }
 }
 
+/* Landscape optimization for tablet and mobile */
+@media (max-width: 1024px) and (orientation: landscape) {
+    .main-header {
+        height: 48px !important;
+    }
+
+    .navbar-static-top {
+        height: 48px !important;
+        padding: 0 12px !important;
+    }
+
+    .main-sidebar {
+        width: 170px !important;
+    }
+
+    .sidebar-collapse .main-sidebar {
+        width: 54px !important;
+    }
+
+    .content-wrapper {
+        margin-left: 170px !important;
+        margin-top: 48px !important;
+        padding-top: 10px !important;
+    }
+
+    .sidebar-collapse .content-wrapper {
+        margin-left: 54px !important;
+    }
+
+    .sidebar-header {
+        padding: 12px 10px !important;
+    }
+
+    .brand-name {
+        font-size: 15px !important;
+    }
+
+    .brand-tagline {
+        font-size: 9px !important;
+    }
+
+    .sidebar-menu li a {
+        padding: 10px 12px !important;
+        font-size: 13px !important;
+    }
+
+    .sidebar-menu .header {
+        padding: 8px 12px !important;
+        margin: 8px 6px 6px 6px !important;
+        font-size: 11px !important;
+    }
+
+    .content-header h1 {
+        font-size: 22px !important;
+        margin: 0 0 6px 0 !important;
+    }
+
+    .content-header .breadcrumb {
+        font-size: 11px !important;
+        margin-bottom: 6px !important;
+    }
+
+    .box,
+    .small-box {
+        margin-bottom: 12px !important;
+    }
+
+    .box-header {
+        padding: 10px 12px !important;
+    }
+
+    .box-body {
+        padding: 10px 12px !important;
+    }
+
+    .table-responsive,
+    .table-responsive-mobile {
+        margin-bottom: 12px !important;
+    }
+
+    .mobile-hamburger-fixed {
+        top: 12px !important;
+        left: 12px !important;
+        width: 42px !important;
+        height: 42px !important;
+    }
+}
+
+@media (max-width: 1024px) and (orientation: portrait) {
+    .content-wrapper {
+        margin-top: 70px !important;
+    }
+
+    .content-header h1 {
+        font-size: 20px !important;
+    }
+}
+
+/* Portrait overlay for mobile/tablet to encourage landscape usage */
+.landscape-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 20000 !important;
+    display: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.92), rgba(164, 25, 61, 0.92)) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    padding: 20px !important;
+}
+
+.landscape-overlay.active {
+    display: flex !important;
+}
+
+.landscape-overlay-card {
+    max-width: 360px !important;
+    width: 100% !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    color: #ffffff !important;
+    border-radius: 18px !important;
+    padding: 24px 20px !important;
+    text-align: center !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35) !important;
+}
+
+.landscape-overlay-icon {
+    width: 72px !important;
+    height: 72px !important;
+    margin: 0 auto 16px auto !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: linear-gradient(135deg, #ff6b6b, #a4193d) !important;
+    color: #fff !important;
+    font-size: 32px !important;
+    box-shadow: 0 10px 20px rgba(164, 25, 61, 0.3) !important;
+}
+
+.landscape-overlay-card h3 {
+    margin: 0 0 10px 0 !important;
+    font-size: 22px !important;
+    font-weight: 700 !important;
+}
+
+.landscape-overlay-card p {
+    margin: 0 !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+}
+
+/* Make PWA install/splash branding more red on phones/tablets */
+@media (max-width: 1024px) {
+    .pwa-splash .logo,
+    .pwa-splash .logo-fallback,
+    .pwa-install-btn {
+        filter: saturate(1.15) contrast(1.05) hue-rotate(-12deg) !important;
+    }
+
+    .pwa-splash .app-name {
+        color: #a4193d !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12) !important;
+    }
+
+    .pwa-splash .loading-progress {
+        background: linear-gradient(90deg, #ff6b6b, #a4193d) !important;
+    }
+}
+
+/* Extra landscape layout tightening for mobile/tablet */
+@media (max-width: 1024px) and (orientation: landscape) {
+    .content-wrapper {
+        min-height: calc(100vh - 48px) !important;
+    }
+
+    .box-title {
+        font-size: 16px !important;
+    }
+
+    .small-box .inner h3 {
+        font-size: 28px !important;
+        line-height: 1.1 !important;
+    }
+}
+
 /* Large screen enhancements */
 @media (min-width: 1025px) {
     .main-sidebar:not(.sidebar-collapse) {

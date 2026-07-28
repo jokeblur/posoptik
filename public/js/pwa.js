@@ -350,7 +350,7 @@ class PWAInstaller {
         if (this.shouldShowSplash()) {
             const splash = document.createElement("div");
             splash.className = "pwa-splash";
-            const logoApp = this.withBasePath("image/Final Logo Optik Melati-24.png");
+            const logoApp = this.withBasePath("image/optik-melati.png");
             const logoLogin = this.withBasePath("image/logologin.png");
             splash.innerHTML = `
                 <img src="${logoApp}" alt="Optik Melati" class="logo" 

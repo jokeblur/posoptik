@@ -336,6 +336,7 @@
                         <label for="photo_bpjs">Foto Bukti BPJS</label>
                         <div class="input-group">
                             <input type="file" name="photo_bpjs" id="photo_bpjs" class="form-control" accept="image/*" capture="environment">
+                            <input type="hidden" name="photo_bpjs_webcam" id="photo_bpjs_webcam">
                             <span class="input-group-btn">
                                 <button type="button" class="btn btn-default" id="btn-open-webcam" data-toggle="modal" data-target="#modal-webcam">
                                     <i class="fa fa-camera"></i> Buka Webcam
@@ -1397,6 +1398,12 @@ $(function() {
         startMobileCamera();
     });
 
+    $('#photo_bpjs').on('change', function() {
+        if (this.files && this.files.length > 0) {
+            $('#photo_bpjs_webcam').val('');
+        }
+    });
+
     // Switch camera button
     $('#btn-switch-camera').on('click', function() {
         switchCamera();
@@ -1602,21 +1609,69 @@ $(function() {
         useButton.style.display = 'inline-block';
     });
 
+    function getCompressedWebcamDataUrl(maxWidth = 1280, quality = 0.82) {
+        const sourceWidth = canvas.width || video.videoWidth;
+        const sourceHeight = canvas.height || video.videoHeight;
+
+        if (!sourceWidth || !sourceHeight) {
+            return null;
+        }
+
+        const ratio = sourceWidth > maxWidth ? (maxWidth / sourceWidth) : 1;
+        const targetWidth = Math.round(sourceWidth * ratio);
+        const targetHeight = Math.round(sourceHeight * ratio);
+
+        const outputCanvas = document.createElement('canvas');
+        outputCanvas.width = targetWidth;
+        outputCanvas.height = targetHeight;
+
+        const context = outputCanvas.getContext('2d');
+        context.drawImage(canvas, 0, 0, targetWidth, targetHeight);
+
+        return outputCanvas.toDataURL('image/jpeg', quality);
+    }
+
+    function dataUrlToBlob(dataUrl) {
+        const parts = dataUrl.split(',');
+        const mime = (parts[0].match(/:(.*?);/) || [])[1] || 'image/jpeg';
+        const binary = atob(parts[1] || '');
+        const array = new Uint8Array(binary.length);
+
+        for (let i = 0; i < binary.length; i++) {
+            array[i] = binary.charCodeAt(i);
+        }
+
+        return new Blob([array], { type: mime });
+    }
+
     useButton.addEventListener('click', function() {
-        // Konversi data canvas ke Blob (seperti file)
-        canvas.toBlob(function(blob) {
-            // Buat file baru dari blob
-            let file = new File([blob], "webcam_capture.png", { type: "image/png" });
+        const compressedDataUrl = getCompressedWebcamDataUrl();
+        if (!compressedDataUrl) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: 'Foto webcam tidak valid. Silakan jepret ulang.',
+            });
+            return;
+        }
 
-            // Gunakan DataTransfer untuk memasukkan file ke input
-            let dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            document.getElementById('photo_bpjs').files = dataTransfer.files;
+        document.getElementById('photo_bpjs_webcam').value = compressedDataUrl;
 
-            // Tutup modal dan hentikan stream
-            closeWebcamStream();
-            $('#modal-webcam').modal('hide');
-        }, 'image/png');
+        try {
+            if (typeof DataTransfer !== 'undefined') {
+                const blob = dataUrlToBlob(compressedDataUrl);
+                const file = new File([blob], 'webcam_capture.jpg', { type: 'image/jpeg' });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                document.getElementById('photo_bpjs').files = dataTransfer.files;
+            }
+        } catch (error) {
+            console.warn('DataTransfer tidak tersedia, fallback base64 akan dipakai.', error);
+        }
+
+        // Tutup modal dan hentikan stream
+        closeWebcamStream();
+        $('#modal-webcam').modal('hide');
     });
 
     closeButton.addEventListener('click', function() {

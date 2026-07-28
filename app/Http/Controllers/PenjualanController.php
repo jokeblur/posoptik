@@ -38,6 +38,34 @@ class PenjualanController extends Controller
         return in_array($serviceType, self::BPJS_SERVICE_TYPES, true);
     }
 
+    private function storeBase64ImageToPublicDisk(string $base64Image, string $directory = 'photos_bpjs'): ?string
+    {
+        if (!preg_match('/^data:image\/(png|jpe?g|webp);base64,/', $base64Image, $matches)) {
+            return null;
+        }
+
+        $base64Payload = substr($base64Image, strpos($base64Image, ',') + 1);
+        $binary = base64_decode($base64Payload, true);
+
+        if ($binary === false) {
+            return null;
+        }
+
+        if (strlen($binary) > (3 * 1024 * 1024)) {
+            throw new \RuntimeException('Ukuran foto BPJS melebihi batas 3MB.');
+        }
+
+        $extension = strtolower($matches[1]);
+        if ($extension === 'jpeg') {
+            $extension = 'jpg';
+        }
+
+        $relativePath = trim($directory, '/') . '/' . now()->format('YmdHis') . '-' . Str::random(10) . '.' . $extension;
+        Storage::disk('public')->put($relativePath, $binary);
+
+        return $relativePath;
+    }
+
     /**
      * Resolve branch id for transaction context with safe fallback for admin roles.
      */
@@ -644,6 +672,7 @@ class PenjualanController extends Controller
             'diskon' => 'required|numeric|min:0',
             'bayar' => 'required|numeric|min:0',
             'kekurangan' => 'required|numeric',
+            'photo_bpjs_webcam' => 'nullable|string',
         ];
 
         if ($hasMetodePembayaranColumn) {
@@ -762,6 +791,11 @@ class PenjualanController extends Controller
             if ($request->hasFile('photo_bpjs')) {
                 $path = $request->file('photo_bpjs')->store('photos_bpjs', 'public');
                 $penjualanData['photo_bpjs'] = $path;
+            } elseif ($request->filled('photo_bpjs_webcam')) {
+                $path = $this->storeBase64ImageToPublicDisk((string) $request->photo_bpjs_webcam, 'photos_bpjs');
+                if (!empty($path)) {
+                    $penjualanData['photo_bpjs'] = $path;
+                }
             }
 
             // Handle signature for BPJS patients

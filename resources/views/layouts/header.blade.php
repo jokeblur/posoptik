@@ -30,6 +30,13 @@
                 
                 <!-- Stock Transfer Notifications -->
                 @include('partials.stock-transfer-notifications')
+
+                <!-- Quick Reload Button -->
+                <li class="quick-reload-btn">
+                    <a href="#" onclick="window.location.reload(); return false;" class="reload-btn-primary" title="Reload Halaman">
+                        <i class="fa fa-refresh"></i> Reload
+                    </a>
+                </li>
                 
                 <!-- Quick Logout Buttons -->
                 <li class="quick-logout-btn">
@@ -106,6 +113,79 @@ $(document).ready(function() {
 
 <!-- CSS untuk tombol logout baru -->
 <style>
+.quick-reload-btn {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+}
+
+/* Navbar notification dropdown should stay solid (not transparent) */
+.navbar-nav > .notifications-menu.open > a,
+.navbar-nav > .notifications-menu > a:focus,
+.navbar-nav > .notifications-menu > a:hover {
+    background-color: #8b1532 !important;
+    color: #ffffff !important;
+}
+
+.navbar-nav > .notifications-menu > .dropdown-menu {
+    background-color: #ffffff !important;
+    border: 1px solid #d2d6de !important;
+}
+
+.navbar-nav > .notifications-menu > .dropdown-menu > li.header {
+    background-color: #f5f7fa !important;
+    color: #444444 !important;
+}
+
+.navbar-nav > .notifications-menu > .dropdown-menu > li.footer > a {
+    background-color: #ffffff !important;
+    color: #3c8dbc !important;
+}
+
+.navbar-nav > .notifications-menu > .dropdown-menu > li .menu > li > a {
+    background-color: #ffffff !important;
+    color: #444444 !important;
+}
+
+.navbar-nav > .notifications-menu > .dropdown-menu > li .menu > li > a:hover {
+    background-color: #f4f4f4 !important;
+    color: #111111 !important;
+}
+
+.quick-reload-btn a {
+    display: flex !important;
+    align-items: center !important;
+    background: linear-gradient(135deg, #17a2b8, #138496) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    margin: 8px 5px !important;
+    text-decoration: none !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(23, 162, 184, 0.3) !important;
+}
+
+.quick-reload-btn a:hover {
+    background: linear-gradient(135deg, #138496, #117a8b) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(23, 162, 184, 0.4) !important;
+    color: white !important;
+    text-decoration: none !important;
+}
+
+.quick-reload-btn a:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 4px rgba(23, 162, 184, 0.3) !important;
+}
+
+.quick-reload-btn a i {
+    margin-right: 5px !important;
+    font-size: 12px !important;
+}
+
 .quick-logout-btn {
     display: flex !important;
     align-items: center !important;
@@ -185,6 +265,15 @@ $(document).ready(function() {
 
 /* Responsive design */
 @media (max-width: 768px) {
+    .quick-reload-btn a {
+        padding: 6px 8px !important;
+        font-size: 12px !important;
+    }
+
+    .quick-reload-btn a i {
+        margin-right: 3px !important;
+    }
+
     .quick-logout-btn a {
         padding: 6px 8px !important;
         font-size: 12px !important;

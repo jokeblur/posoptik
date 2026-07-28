@@ -331,7 +331,7 @@ class DashboardController extends Controller
         // Data untuk passet bantu - transaksi yang menunggu pengerjaan
         $transaksiMenungguPengerjaan = null;
         if ($user->isPassetBantu()) {
-            $transaksiMenungguPengerjaan = \App\Models\Penjualan::whereIn('status_pengerjaan', ['Menunggu Pengerjaan', 'Sedang Dikerjakan'])
+            $transaksiMenungguPengerjaan = \App\Models\Penjualan::where('status_pengerjaan', 'Menunggu Pengerjaan')
                 ->count();
         }
 

@@ -299,6 +299,51 @@
             }).remove();
         });
 
+        // Prevent double submit on write forms and show loading state on submit buttons.
+        $('form').on('submit.submitLock', function(e) {
+            const $form = $(this);
+
+            if ($form.is('[data-no-submit-lock]') || $form.attr('data-ajax') === 'true') {
+                return true;
+            }
+
+            const formMethod = String($form.attr('method') || 'get').toLowerCase();
+            const spoofMethod = String($form.find('input[name="_method"]').first().val() || '').toLowerCase();
+            const effectiveMethod = spoofMethod || formMethod;
+            const writeMethods = ['post', 'put', 'patch', 'delete'];
+
+            if (writeMethods.indexOf(effectiveMethod) === -1) {
+                return true;
+            }
+
+            if ($form.data('isSubmitting') === true) {
+                e.preventDefault();
+                return false;
+            }
+
+            $form.data('isSubmitting', true);
+
+            const $submitButtons = $form.find('button[type="submit"], input[type="submit"]');
+            $submitButtons.each(function() {
+                const $btn = $(this);
+                if ($btn.prop('disabled')) {
+                    return;
+                }
+
+                if ($btn.is('button')) {
+                    $btn.data('original-html', $btn.html());
+                    $btn.html('<i class="fa fa-spinner fa-spin"></i> Menyimpan...');
+                } else {
+                    $btn.data('original-value', $btn.val());
+                    $btn.val('Menyimpan...');
+                }
+
+                $btn.prop('disabled', true).addClass('disabled');
+            });
+
+            return true;
+        });
+
         // Branch selector logic for Super Admin
         @if(auth()->user()->canAccessAllBranches())
             const branchSelector = $('#branch-selector');

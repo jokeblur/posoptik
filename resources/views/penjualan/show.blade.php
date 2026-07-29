@@ -285,44 +285,61 @@
                         <h4 class="text-right">Rincian Pembayaran</h4>
                         <table class="table">
                             @if($isBPJS)
+                                @php
+                                    $isNaikKelas = strtolower((string) ($penjualan->transaction_status ?? '')) === 'naik kelas';
+                                    $totalBiayaPenambahan = (float) ($penjualan->total_additional_cost ?? 0);
+                                    if ($totalBiayaPenambahan <= 0) {
+                                        $totalBiayaPenambahan = (float) $penjualan->details->sum('additional_cost');
+                                    }
+
+                                    $serviceTypeBpjs = strtoupper((string) ($penjualan->pasien->service_type ?? ''));
+                                    $biayaDitanggungBpjs = (float) ($penjualan->bpjs_default_price ?? 0);
+                                    if ($biayaDitanggungBpjs <= 0) {
+                                        if ($serviceTypeBpjs === 'BPJS I') {
+                                            $biayaDitanggungBpjs = 330000;
+                                        } elseif ($serviceTypeBpjs === 'BPJS II') {
+                                            $biayaDitanggungBpjs = 220000;
+                                        } elseif ($serviceTypeBpjs === 'BPJS III') {
+                                            $biayaDitanggungBpjs = 165000;
+                                        }
+                                    }
+
+                                    $dpTambahan = min((float) ($penjualan->bayar ?? 0), $totalBiayaPenambahan);
+                                    $sisaTambahan = max(0, $totalBiayaPenambahan - $dpTambahan);
+                                    $statusPembayaranTambahan = $sisaTambahan <= 0 ? 'Lunas' : 'Belum Lunas';
+                                @endphp
+
+                                @if($isNaikKelas && $totalBiayaPenambahan > 0)
                                 <tr>
-                                    <th style="width:50%">Total Harga Jual Produk:</th>
-                                    <td class="text-right">
-                                        @php
-                                            $totalSalePrice = 0;
-                                            foreach($penjualan->details as $detail) {
-                                                if($detail->itemable_type === 'App\\Models\\Frame') {
-                                                    $totalSalePrice += ($detail->itemable->harga_jual_frame ?? 0) * $detail->quantity;
-                                                } elseif($detail->itemable_type === 'App\\Models\\Lensa') {
-                                                    $totalSalePrice += ($detail->itemable->harga_jual_lensa ?? 0) * $detail->quantity;
-                                                } elseif($detail->itemable_type === 'App\\Models\\Aksesoris') {
-                                                    $totalSalePrice += ($detail->itemable->harga_jual ?? 0) * $detail->quantity;
-                                                }
-                                            }
-                                        @endphp
-                                        Rp {{ format_uang($totalSalePrice) }}
-                                    </td>
+                                    <th style="width:50%">Total Biaya Penambahan:</th>
+                                    <td class="text-right">Rp {{ format_uang($totalBiayaPenambahan) }}</td>
                                 </tr>
                                 <tr>
-                                    <th style="width:50%">Biaya BPJS:</th>
+                                    <th>Status Pembayaran:</th>
                                     <td class="text-right">
-                                        @if($penjualan->bpjs_default_price > 0)
-                                            Rp {{ format_uang($penjualan->bpjs_default_price) }}
-                                        @else
-                                            <span class="text-danger">Rp 0 (BPJS price not set)</span>
-                                        @endif
+                                        <span class="label label-{{ $statusPembayaranTambahan === 'Lunas' ? 'success' : 'warning' }}">{{ $statusPembayaranTambahan }}</span>
                                     </td>
                                 </tr>
-                                @if($penjualan->details->sum('additional_cost') > 0)
+                                @if($statusPembayaranTambahan !== 'Lunas')
                                 <tr>
-                                    <th>Total Biaya Tambahan:</th>
-                                    <td class="text-right"><span class="label label-warning">Rp {{ format_uang($penjualan->details->sum('additional_cost')) }}</span></td>
+                                    <th>DP:</th>
+                                    <td class="text-right">Rp {{ format_uang($dpTambahan) }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Sisa:</th>
+                                    <td class="text-right"><strong>Rp {{ format_uang($sisaTambahan) }}</strong></td>
                                 </tr>
                                 @endif
+                                @else
+                                <tr>
+                                    <th style="width:50%">Biaya Ditanggung {{ $serviceTypeBpjs ?: 'BPJS' }}:</th>
+                                    <td class="text-right">Rp {{ format_uang($biayaDitanggungBpjs) }}</td>
+                                </tr>
                                 <tr>
                                     <th>Status:</th>
                                     <td class="text-right"><span class="label label-{{ $penjualan->status == 'Lunas' ? 'success' : 'warning' }}">{{ $penjualan->status }}</span></td>
                                 </tr>
+                                @endif
                             @else
                                 <tr>
                                     <th style="width:50%">Subtotal:</th>

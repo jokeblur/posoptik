@@ -371,7 +371,7 @@ function searchTransaksi(barcode) {
         },
         success: function(response) {
             if (response.success) {
-                displayResults(response.data);
+                displayResults(response.transaction || response.data || null);
             } else {
                 showError('Transaksi tidak ditemukan');
             }
@@ -383,12 +383,21 @@ function searchTransaksi(barcode) {
 }
 
 function displayResults(data) {
+    if (!data) {
+        showError('Data transaksi tidak valid');
+        return;
+    }
+
+    const paymentStatus = data.status || 'Belum Lunas';
+    const paymentClass = paymentStatus === 'Lunas' ? 'success' : 'warning';
+
     const html = `
         <div class="alert alert-success">
             <h5><i class="fa fa-check-circle"></i> Transaksi Ditemukan!</h5>
             <p><strong>Kode:</strong> ${data.kode_penjualan}</p>
-            <p><strong>Pasien:</strong> ${data.pasien?.nama_pasien || '-'}</p>
-            <p><strong>Status:</strong> ${data.status_pengerjaan}</p>
+            <p><strong>Pasien:</strong> ${data.nama_pasien || data.pasien?.nama_pasien || '-'}</p>
+            <p><strong>Status Pembayaran:</strong> <span class="label label-${paymentClass}">${paymentStatus}</span></p>
+            <p><strong>Status Pengerjaan:</strong> ${data.status_pengerjaan || '-'}</p>
         </div>
         <button class="btn btn-primary btn-block" onclick="location.href='{{ url('/penjualan') }}/${data.id}'">
             <i class="fa fa-eye"></i> Lihat Detail

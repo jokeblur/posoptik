@@ -69,29 +69,41 @@ class BarcodeController extends Controller
             ? $transaksi->pasien->prescriptions->sortBy('tanggal')->last()
             : null;
 
+        $transactionPayload = [
+            'id' => $transaksi->id,
+            'kode_penjualan' => $transaksi->kode_penjualan,
+            'tanggal' => tanggal_indonesia($transaksi->created_at, false),
+            'nama_pasien' => $transaksi->pasien->nama_pasien ?? $transaksi->nama_pasien,
+            'service_type' => $transaksi->pasien->service_type ?? $transaksi->pasien_service_type ?? '-',
+            'no_bpjs' => $transaksi->pasien->no_bpjs ?? '-',
+            'status' => $transaksi->status ?? 'Belum Lunas',
+            'total' => (float) ($transaksi->total ?? 0),
+            'bayar' => (float) ($transaksi->bayar ?? 0),
+            'kekurangan' => (float) ($transaksi->kekurangan ?? 0),
+            'status_pengerjaan' => $transaksi->status_pengerjaan,
+            'barcode' => $transaksi->barcode,
+            'resep_terakhir' => $latestPrescription ? [
+                'tanggal' => tanggal_indonesia($latestPrescription->tanggal, false),
+                'od_sph' => $latestPrescription->od_sph,
+                'od_cyl' => $latestPrescription->od_cyl,
+                'od_axis' => $latestPrescription->od_axis,
+                'os_sph' => $latestPrescription->os_sph,
+                'os_cyl' => $latestPrescription->os_cyl,
+                'os_axis' => $latestPrescription->os_axis,
+                'add' => $latestPrescription->add,
+                'pd' => $latestPrescription->pd,
+            ] : null,
+        ];
+
         return response()->json([
             'success' => true,
-            'transaction' => [
-                'id' => $transaksi->id,
-                'kode_penjualan' => $transaksi->kode_penjualan,
-                'tanggal' => tanggal_indonesia($transaksi->created_at, false),
-                'nama_pasien' => $transaksi->pasien->nama_pasien ?? $transaksi->nama_pasien,
-                'service_type' => $transaksi->pasien->service_type ?? $transaksi->pasien_service_type ?? '-',
-                'no_bpjs' => $transaksi->pasien->no_bpjs ?? '-',
-                'status_pengerjaan' => $transaksi->status_pengerjaan,
-                'barcode' => $transaksi->barcode,
-                'resep_terakhir' => $latestPrescription ? [
-                    'tanggal' => tanggal_indonesia($latestPrescription->tanggal, false),
-                    'od_sph' => $latestPrescription->od_sph,
-                    'od_cyl' => $latestPrescription->od_cyl,
-                    'od_axis' => $latestPrescription->od_axis,
-                    'os_sph' => $latestPrescription->os_sph,
-                    'os_cyl' => $latestPrescription->os_cyl,
-                    'os_axis' => $latestPrescription->os_axis,
-                    'add' => $latestPrescription->add,
-                    'pd' => $latestPrescription->pd,
-                ] : null,
-            ],
+            'transaction' => $transactionPayload,
+            // Backward compatibility for legacy mobile views expecting response.data
+            'data' => array_merge($transactionPayload, [
+                'pasien' => [
+                    'nama_pasien' => $transactionPayload['nama_pasien'],
+                ],
+            ]),
             'message' => 'Transaksi ditemukan'
         ]);
     }
@@ -135,6 +147,14 @@ class BarcodeController extends Controller
                         'message' => 'Anda tidak memiliki akses untuk mengubah status ini'
                     ], 403);
                 }
+
+                if (($transaksi->status ?? 'Belum Lunas') !== 'Lunas') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Transaksi belum lunas. Status Sudah Diambil hanya untuk transaksi yang sudah Lunas.'
+                    ], 422);
+                }
+
                 $transaksi->waktu_sudah_diambil = now();
                 break;
         }

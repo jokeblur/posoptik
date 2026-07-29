@@ -35,6 +35,20 @@ class RealtimeController extends Controller
         }
     }
 
+    private function getBpjsDefaultClaimValue($transaksi): float
+    {
+        if (!$this->isBpjsTransaction($transaksi)) {
+            return 0;
+        }
+
+        $defaultPrice = (float) ($transaksi->bpjs_default_price ?? 0);
+        if ($defaultPrice > 0) {
+            return $defaultPrice;
+        }
+
+        return $this->getBpjsDefaultPrice($this->resolveServiceType($transaksi));
+    }
+
     private function getBpjsOmsetValue($transaksi): float
     {
         if (!$this->isBpjsTransaction($transaksi)) {
@@ -141,7 +155,7 @@ class RealtimeController extends Controller
             ->get();
             
         $omsetBpjs = $bpjsTransactions->sum(function($transaksi) {
-            return $this->getBpjsOmsetValue($transaksi);
+            return $this->getBpjsDefaultClaimValue($transaksi);
         });
         
         $omsetUmum = Penjualan::where('branch_id', $selectedBranchId)

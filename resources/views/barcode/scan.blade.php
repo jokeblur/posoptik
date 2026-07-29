@@ -1003,6 +1003,8 @@ function displayTransaksiModal(transaksi) {
     };
     
     const resep = transaksi.resep_terakhir || null;
+    const statusPembayaran = (transaksi.status || 'Belum Lunas');
+    const statusPembayaranClass = statusPembayaran === 'Lunas' ? 'label-success' : 'label-warning';
     const resepHtml = resep ? `
         <div class="row" style="margin-top: 15px;">
             <div class="col-md-12">
@@ -1078,8 +1080,8 @@ function displayTransaksiModal(transaksi) {
                     <tr>
                         <th>Status Pembayaran</th>
                         <td>
-                            <span class="label label-success">
-                                Lunas
+                            <span class="label ${statusPembayaranClass}">
+                                ${statusPembayaran}
                             </span>
                         </td>
                     </tr>

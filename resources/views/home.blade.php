@@ -704,25 +704,41 @@
                                     <th>No. Transaksi</th>
                                     <th>Nama Pasien</th>
                                     <th>Jenis Layanan</th>
-                                    <th>Total</th>
-                                    <th>Status</th>
+                                    <th>Biaya Default BPJS</th>
+                                    <th>Tambahan Biaya</th>
+                                    <th>Status Pembayaran</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @php $no=1; @endphp
                                 @foreach(($transaksiKasir ?? collect())->filter(function($t){ $st=$t->pasien->service_type ?? 'UMUM'; return in_array($st,['BPJS I','BPJS II','BPJS III']); }) as $trx)
+                                @php
+                                    $serviceTypeBpjs = strtoupper((string) ($trx->pasien_service_type ?? ($trx->pasien->service_type ?? '')));
+                                    $defaultBpjs = (float) ($trx->bpjs_default_price ?? 0);
+                                    if ($defaultBpjs <= 0) {
+                                        if ($serviceTypeBpjs === 'BPJS I') {
+                                            $defaultBpjs = \App\Services\BpjsPricingService::BPJS_I_PRICE;
+                                        } elseif ($serviceTypeBpjs === 'BPJS II') {
+                                            $defaultBpjs = \App\Services\BpjsPricingService::BPJS_II_PRICE;
+                                        } elseif ($serviceTypeBpjs === 'BPJS III') {
+                                            $defaultBpjs = \App\Services\BpjsPricingService::BPJS_III_PRICE;
+                                        }
+                                    }
+                                    $tambahanBpjs = max(0, (float) ($trx->total_additional_cost ?? 0));
+                                @endphp
                                 <tr>
                                     <td>{{ $no++ }}</td>
                                     <td>{{ $trx->created_at->format('d/m/Y H:i') }}</td>
                                     <td>{{ $trx->kode_penjualan }}</td>
                                     <td>{{ $trx->pasien->nama_pasien ?? '-' }}</td>
                                     <td><span class="label label-info">{{ $trx->pasien->service_type ?? 'BPJS' }}</span></td>
-                                    <td>Rp {{ number_format($trx->total, 0, ',', '.') }}</td>
+                                    <td>Rp {{ number_format($defaultBpjs, 0, ',', '.') }}</td>
+                                    <td>Rp {{ number_format($tambahanBpjs, 0, ',', '.') }}</td>
                                     <td>
-                                        @if($trx->status_pengerjaan == 'Sudah Diambil')
-                                            <span class="label label-success">{{ $trx->status_pengerjaan }}</span>
+                                        @if(strtolower((string) ($trx->status ?? '')) === 'lunas')
+                                            <span class="label label-success">Lunas</span>
                                         @else
-                                            <span class="label label-warning">{{ $trx->status_pengerjaan }}</span>
+                                            <span class="label label-warning">Belum Lunas</span>
                                         @endif
                                     </td>
                                 </tr>

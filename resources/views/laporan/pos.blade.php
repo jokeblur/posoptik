@@ -157,9 +157,9 @@
                             <div class="icon">
                                 <i class="fa fa-hospital-o"></i>
                             </div>
-                            <span class="small-box-footer">
-                                Hanya total plafon/default BPJS
-                            </span>
+                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#modal-harian-bpjs">
+                                Detail Omset BPJS Hari Ini <i class="fa fa-arrow-circle-right"></i>
+                            </a>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -448,6 +448,67 @@
     </div>
 </div>
 
+    <!-- Modal Detail Omset BPJS Harian -->
+    <div class="modal fade" id="modal-harian-bpjs" tabindex="-1" role="dialog" aria-labelledby="modalHarianBpjsLabel">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="modalHarianBpjsLabel">Detail Omset BPJS Hari Ini</h4>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered table-striped datatable" id="table-harian-bpjs">
+                        <thead>
+                            <tr>
+                                <th>Kode</th>
+                                <th>Tanggal</th>
+                                <th>Nama Pasien</th>
+                                @if($isSuperAdmin && !$selectedBranchId)
+                                <th>Cabang</th>
+                                @endif
+                                <th>Layanan BPJS</th>
+                                <th>Biaya Default BPJS</th>
+                                <th>Tambahan Biaya BPJS</th>
+                                <th>Status Pembayaran</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php
+                                $bpjsTypes = ['BPJS I', 'BPJS II', 'BPJS III'];
+                            @endphp
+                            @forelse($detailHarian as $trx)
+                                @php
+                                    $serviceTypeBpjs = strtoupper((string) ($trx->pasien_service_type ?? ($trx->pasien->service_type ?? '')));
+                                @endphp
+                                @if(in_array($serviceTypeBpjs, $bpjsTypes, true))
+                                <tr>
+                                    <td>{{ $trx->kode_penjualan }}</td>
+                                    <td>{{ $trx->created_at->format('d-m-Y') }}</td>
+                                    <td>{{ $trx->pasien->nama_pasien ?? '-' }}</td>
+                                    @if($isSuperAdmin && !$selectedBranchId)
+                                    <td><span class="label label-info">{{ $trx->branch->name ?? '-' }}</span></td>
+                                    @endif
+                                    <td><span class="label label-primary">{{ $serviceTypeBpjs }}</span></td>
+                                    <td>Rp {{ number_format((float) ($trx->bpjs_default_price ?? 0),0,',','.') }}</td>
+                                    <td>Rp {{ number_format(max(0, (float) ($trx->total_additional_cost ?? 0)),0,',','.') }}</td>
+                                    <td>
+                                        @if(strtolower((string) ($trx->status ?? '')) === 'lunas')
+                                            <span class="label label-success">Lunas</span>
+                                        @else
+                                            <span class="label label-warning">Belum Lunas</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endif
+                            @empty
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <!-- Modal Detail Aksesoris Harian -->
 <div class="modal fade" id="modal-aksesoris-harian" tabindex="-1" role="dialog" aria-labelledby="modalAksesorisHarianLabel">
     <div class="modal-dialog modal-lg" role="document">
@@ -598,16 +659,21 @@
                             <th>Cabang</th>
                             @endif
                             <th>Status Layanan</th>
-                            <th>Harga BPJS + Tambahan Manual</th>
+                            <th>Biaya Default BPJS</th>
+                            <th>Tambahan Biaya BPJS</th>
                             <th>Jumlah Item</th>
                             <th>Item Aksesoris</th>
                             <th>Nilai Aksesoris</th>
                             <th>Bayar</th>
-                            <th>Status</th>
+                            <th>Status Pembayaran</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($detailHarian as $trx)
+                        @php
+                            $serviceType = strtoupper((string) ($trx->pasien_service_type ?? ($trx->pasien->service_type ?? '')));
+                            $isBpjs = in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'], true);
+                        @endphp
                         <tr>
                             <td>{{ $trx->kode_penjualan }}</td>
                             <td>{{ $trx->created_at->format('d-m-Y') }}</td>
@@ -616,30 +682,40 @@
                             <td><span class="label label-info">{{ $trx->branch->name ?? '-' }}</span></td>
                             @endif
                             <td>
-                                @php
-                                    $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
-                                @endphp
-                                @if(in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III']))
+                                @if($isBpjs)
                                     <span class="label label-primary">BPJS</span>
                                 @else
                                     <span class="label label-default">UMUM</span>
                                 @endif
                             </td>
                             <td>
-                                @if($trx->pasien && in_array($trx->pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III']))
-                                    Rp {{ number_format($trx->bpjs_default_price ?? 0,0,',','.') }}
+                                @if($isBpjs)
+                                    Rp {{ number_format((float) ($trx->bpjs_default_price ?? 0),0,',','.') }}
                                 @else
-                                    Rp {{ number_format(0,0,',','.') }}
+                                    -
+                                @endif
+                            </td>
+                            <td>
+                                @if($isBpjs)
+                                    Rp {{ number_format(max(0, (float) ($trx->total_additional_cost ?? 0)),0,',','.') }}
+                                @else
+                                    -
                                 @endif
                             </td>
                             <td>{{ number_format($trx->total_item ?? 0,0,',','.') }}</td>
                             <td>{{ number_format($trx->item_aksesoris ?? 0,0,',','.') }}</td>
                             <td>Rp {{ number_format($trx->nilai_aksesoris ?? 0,0,',','.') }}</td>
                             <td>Rp {{ number_format($trx->bayar,0,',','.') }}</td>
-                            <td>{{ $trx->status }}</td>
+                            <td>
+                                @if(strtolower((string) ($trx->status ?? '')) === 'lunas')
+                                    <span class="label label-success">Lunas</span>
+                                @else
+                                    <span class="label label-warning">Belum Lunas</span>
+                                @endif
+                            </td>
                         </tr>
                         @empty
-                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '11' : '10' }}" class="text-center">Tidak ada data</td></tr>
+                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '12' : '11' }}" class="text-center">Tidak ada data</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -666,16 +742,21 @@
                             <th>Cabang</th>
                             @endif
                             <th>Status Layanan</th>
-                            <th>Harga BPJS + Tambahan Manual</th>
+                            <th>Biaya Default BPJS</th>
+                            <th>Tambahan Biaya BPJS</th>
                             <th>Jumlah Item</th>
                             <th>Item Aksesoris</th>
                             <th>Nilai Aksesoris</th>
                             <th>Bayar</th>
-                            <th>Status</th>
+                            <th>Status Pembayaran</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($detailBulanan as $trx)
+                        @php
+                            $serviceType = strtoupper((string) ($trx->pasien_service_type ?? ($trx->pasien->service_type ?? '')));
+                            $isBpjs = in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'], true);
+                        @endphp
                         <tr>
                             <td>{{ $trx->kode_penjualan }}</td>
                             <td>{{ $trx->created_at->format('d-m-Y') }}</td>
@@ -684,30 +765,40 @@
                             <td><span class="label label-info">{{ $trx->branch->name ?? '-' }}</span></td>
                             @endif
                             <td>
-                                @php
-                                    $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
-                                @endphp
-                                @if(in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III']))
+                                @if($isBpjs)
                                     <span class="label label-primary">BPJS</span>
                                 @else
                                     <span class="label label-default">UMUM</span>
                                 @endif
                             </td>
                             <td>
-                                @if($trx->pasien && in_array($trx->pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III']))
-                                    Rp {{ number_format($trx->bpjs_default_price ?? 0,0,',','.') }}
+                                @if($isBpjs)
+                                    Rp {{ number_format((float) ($trx->bpjs_default_price ?? 0),0,',','.') }}
                                 @else
-                                    Rp {{ number_format(0,0,',','.') }}
+                                    -
+                                @endif
+                            </td>
+                            <td>
+                                @if($isBpjs)
+                                    Rp {{ number_format(max(0, (float) ($trx->total_additional_cost ?? 0)),0,',','.') }}
+                                @else
+                                    -
                                 @endif
                             </td>
                             <td>{{ number_format($trx->total_item ?? 0,0,',','.') }}</td>
                             <td>{{ number_format($trx->item_aksesoris ?? 0,0,',','.') }}</td>
                             <td>Rp {{ number_format($trx->nilai_aksesoris ?? 0,0,',','.') }}</td>
                             <td>Rp {{ number_format($trx->bayar,0,',','.') }}</td>
-                            <td>{{ $trx->status }}</td>
+                            <td>
+                                @if(strtolower((string) ($trx->status ?? '')) === 'lunas')
+                                    <span class="label label-success">Lunas</span>
+                                @else
+                                    <span class="label label-warning">Belum Lunas</span>
+                                @endif
+                            </td>
                         </tr>
                         @empty
-                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '11' : '10' }}" class="text-center">Tidak ada data</td></tr>
+                        <tr><td colspan="{{ $isSuperAdmin && !$selectedBranchId ? '12' : '11' }}" class="text-center">Tidak ada data</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -738,11 +829,22 @@ $(function() {
     }
 
     // Detail transaksi omset harian (modal)
+    initDataTable('#table-harian-bpjs', {
+        order: [[1, 'desc']],
+        columnDefs: [
+            {
+                targets: hasBranchColumn ? [5, 6] : [4, 5],
+                className: 'text-right'
+            }
+        ]
+    });
+
+    // Detail transaksi omset harian (modal)
     initDataTable('#table-harian', {
         order: [[1, 'desc']],
         columnDefs: [
             {
-                targets: hasBranchColumn ? [6, 7, 8, 9] : [5, 6, 7, 8],
+                targets: hasBranchColumn ? [5, 6, 7, 8, 9, 10] : [4, 5, 6, 7, 8, 9],
                 className: 'text-right'
             }
         ]
@@ -753,7 +855,7 @@ $(function() {
         order: [[1, 'desc']],
         columnDefs: [
             {
-                targets: hasBranchColumn ? [6, 7, 8, 9] : [5, 6, 7, 8],
+                targets: hasBranchColumn ? [5, 6, 7, 8, 9, 10] : [4, 5, 6, 7, 8, 9],
                 className: 'text-right'
             }
         ]

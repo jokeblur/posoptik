@@ -31,6 +31,7 @@
     <link href="https://fonts.googleapis.com/css?family=Poppins" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}?v={{ @filemtime(public_path('css/custom.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/mobile-responsive-tables.css') }}?v={{ @filemtime(public_path('css/mobile-responsive-tables.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/pwa.css') }}?v={{ @filemtime(public_path('css/pwa.css')) }}">
     <style>
         .btn-icon-only {
             padding: 6px 8px !important;

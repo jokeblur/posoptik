@@ -348,13 +348,22 @@
                     
                     <div class="form-group" id="signature-bpjs-container" style="display: none;">
                         <label for="signature_bpjs">Tanda Tangan Pasien BPJS</label>
+                        <div id="signature-area">
                         <div class="row">
                             <div class="col-md-8">
-                                <canvas id="signature-canvas" width="400" height="200" style="border: 2px solid #ddd; border-radius: 8px; cursor: crosshair; background: #fff;"></canvas>
+                                <div id="signature-canvas-wrapper">
+                                    <canvas id="signature-canvas" width="400" height="200" style="border: 2px solid #ddd; border-radius: 8px; cursor: crosshair; background: #fff;"></canvas>
+                                </div>
                                 <input type="hidden" name="signature_bpjs" id="signature_bpjs">
                             </div>
                             <div class="col-md-4">
                                 <div class="btn-group-vertical" style="width: 100%;">
+                                    <button type="button" class="btn btn-primary btn-sm" id="btn-expand-signature" style="margin-bottom: 5px;">
+                                        <i class="fa fa-expand"></i> Maximize
+                                    </button>
+                                    <button type="button" class="btn btn-default btn-sm" id="btn-minimize-signature" style="margin-bottom: 5px; display: none;">
+                                        <i class="fa fa-compress"></i> Minimize
+                                    </button>
                                     <button type="button" class="btn btn-warning btn-sm" id="btn-clear-signature" style="margin-bottom: 5px;">
                                         <i class="fa fa-eraser"></i> Hapus
                                     </button>
@@ -371,6 +380,7 @@
                                     </small>
                                 </div>
                             </div>
+                        </div>
                         </div>
                         <p class="help-block">Gambar tanda tangan pasien di atas canvas atau upload file tanda tangan.</p>
                     </div>
@@ -432,14 +442,116 @@ $(function() {
     // Signature functionality
     let isDrawing = false;
     let signatureCanvas = document.getElementById('signature-canvas');
-    let signatureCtx = signatureCanvas.getContext('2d');
-    
-    // Initialize signature canvas
-    if (signatureCanvas) {
+    let signatureCtx = signatureCanvas ? signatureCanvas.getContext('2d') : null;
+    let signatureArea = document.getElementById('signature-area');
+    let signatureCanvasWrapper = document.getElementById('signature-canvas-wrapper');
+    let signatureDefaultWidth = signatureCanvas ? signatureCanvas.width : 400;
+    let signatureDefaultHeight = signatureCanvas ? signatureCanvas.height : 200;
+    let signatureExitLocked = false;
+    let signatureStrokeCompleted = false;
+
+    function lockSignatureExit() {
+        signatureExitLocked = true;
+        document.body.classList.add('signature-lock-active');
+        $('#btn-minimize-signature').prop('disabled', true).addClass('disabled');
+    }
+
+    function unlockSignatureExit() {
+        signatureExitLocked = false;
+        document.body.classList.remove('signature-lock-active');
+        $('#btn-minimize-signature').prop('disabled', false).removeClass('disabled');
+    }
+
+    function getMinimizedSignatureSize() {
+        if (!signatureCanvasWrapper) {
+            return {
+                width: signatureDefaultWidth,
+                height: signatureDefaultHeight,
+            };
+        }
+
+        const wrapperWidth = Math.max(320, (signatureCanvasWrapper.clientWidth || signatureDefaultWidth) - 4);
+        const proportionalHeight = Math.round(wrapperWidth * 0.45);
+
+        return {
+            width: wrapperWidth,
+            height: Math.max(180, Math.min(proportionalHeight, 360)),
+        };
+    }
+
+    function setupSignatureContext() {
+        if (!signatureCtx) {
+            return;
+        }
+
         signatureCtx.strokeStyle = '#000';
         signatureCtx.lineWidth = 2;
         signatureCtx.lineCap = 'round';
         signatureCtx.lineJoin = 'round';
+    }
+
+    function resizeSignatureCanvasWithData(targetWidth, targetHeight, preservedDataUrl) {
+        if (!signatureCanvas || !signatureCtx) {
+            return;
+        }
+
+        signatureCanvas.width = Math.max(320, Math.round(targetWidth));
+        signatureCanvas.height = Math.max(160, Math.round(targetHeight));
+        setupSignatureContext();
+
+        if (!preservedDataUrl) {
+            return;
+        }
+
+        const preservedImage = new Image();
+        preservedImage.onload = function() {
+            signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            signatureCtx.drawImage(preservedImage, 0, 0, signatureCanvas.width, signatureCanvas.height);
+        };
+        preservedImage.src = preservedDataUrl;
+    }
+
+    function setSignatureAreaExpanded(expanded) {
+        if (!signatureCanvas || !signatureArea || !signatureCanvasWrapper) {
+            return;
+        }
+
+        const preservedDataUrl = signatureCanvas.toDataURL('image/png');
+
+        if (expanded) {
+            signatureArea.classList.add('is-expanded');
+            document.body.classList.add('signature-expanded');
+            $('#btn-expand-signature').hide();
+            $('#btn-minimize-signature').show();
+            signatureStrokeCompleted = false;
+            lockSignatureExit();
+
+            setTimeout(function() {
+                const targetWidth = signatureCanvasWrapper.clientWidth - 4;
+                const targetHeight = Math.min(window.innerHeight * 0.78, 760);
+                resizeSignatureCanvasWithData(targetWidth, targetHeight, preservedDataUrl);
+            }, 20);
+
+            return;
+        }
+
+        signatureArea.classList.remove('is-expanded');
+        document.body.classList.remove('signature-expanded');
+        $('#btn-expand-signature').show();
+        $('#btn-minimize-signature').hide();
+        unlockSignatureExit();
+
+        setTimeout(function() {
+            const minimizedSize = getMinimizedSignatureSize();
+            resizeSignatureCanvasWithData(minimizedSize.width, minimizedSize.height, preservedDataUrl);
+        }, 20);
+    }
+    
+    // Initialize signature canvas
+    setupSignatureContext();
+    if (signatureCanvas) {
+        const minimizedSize = getMinimizedSignatureSize();
+        resizeSignatureCanvasWithData(minimizedSize.width, minimizedSize.height);
     }
 
     // Auto-fill pasien data jika ada selected_pasien dari form pasien
@@ -1834,11 +1946,68 @@ $(function() {
         signatureCanvas.addEventListener('touchmove', draw);
         signatureCanvas.addEventListener('touchend', stopDrawing);
     }
+
+    $(document).on('click', '#btn-expand-signature', function() {
+        setSignatureAreaExpanded(true);
+    });
+
+    $(document).on('click', '#btn-minimize-signature', function() {
+        if (signatureExitLocked) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Tanda Tangan Belum Selesai',
+                text: 'Silakan selesaikan minimal satu coretan tanda tangan di dalam kotak dulu, baru bisa keluar dari mode maximize.',
+            });
+            return;
+        }
+
+        setSignatureAreaExpanded(false);
+    });
+
+    $(window).on('resize', function() {
+        if (!signatureCanvas || !signatureArea || !signatureCanvasWrapper) {
+            return;
+        }
+
+        const preservedDataUrl = signatureCanvas.toDataURL('image/png');
+
+        let targetWidth;
+        let targetHeight;
+
+        if (signatureArea.classList.contains('is-expanded')) {
+            targetWidth = signatureCanvasWrapper.clientWidth - 4;
+            targetHeight = Math.min(window.innerHeight * 0.78, 760);
+        } else {
+            const minimizedSize = getMinimizedSignatureSize();
+            targetWidth = minimizedSize.width;
+            targetHeight = minimizedSize.height;
+        }
+
+        resizeSignatureCanvasWithData(targetWidth, targetHeight, preservedDataUrl);
+    });
     
     // Signature functions
     function startDrawing(e) {
+        if (!signatureCanvas || !signatureCtx) {
+            return;
+        }
+
+        e.preventDefault();
+
+        let rect = signatureCanvas.getBoundingClientRect();
+        let x, y;
+
+        if (e.type.includes('touch')) {
+            x = e.touches[0].clientX - rect.left;
+            y = e.touches[0].clientY - rect.top;
+        } else {
+            x = e.clientX - rect.left;
+            y = e.clientY - rect.top;
+        }
+
+        signatureCtx.beginPath();
+        signatureCtx.moveTo(x, y);
         isDrawing = true;
-        draw(e);
     }
     
     function draw(e) {
@@ -1860,11 +2029,19 @@ $(function() {
         signatureCtx.stroke();
         signatureCtx.beginPath();
         signatureCtx.moveTo(x, y);
+
+        if (signatureArea && signatureArea.classList.contains('is-expanded')) {
+            signatureStrokeCompleted = true;
+        }
     }
     
     function stopDrawing() {
         isDrawing = false;
         signatureCtx.beginPath();
+
+        if (signatureArea && signatureArea.classList.contains('is-expanded') && signatureStrokeCompleted) {
+            unlockSignatureExit();
+        }
     }
     
     // Clear signature button
@@ -2318,6 +2495,63 @@ $(function() {
 }
 
 /* Mobile Camera Optimization */
+
+body.signature-expanded {
+    overflow: hidden;
+}
+
+body.signature-lock-active #signature-area.is-expanded * {
+    pointer-events: none;
+    cursor: not-allowed !important;
+}
+
+body.signature-lock-active #signature-area.is-expanded #signature-canvas {
+    pointer-events: auto;
+    cursor: crosshair !important;
+}
+
+body.signature-lock-active #signature-area.is-expanded #signature-canvas-wrapper {
+    pointer-events: auto;
+}
+
+#signature-canvas-wrapper {
+    width: 100%;
+}
+
+#signature-canvas {
+    width: 100%;
+    max-width: 100%;
+}
+
+#signature-area.is-expanded {
+    position: fixed;
+    top: 4px;
+    left: 4px;
+    right: 4px;
+    bottom: 4px;
+    z-index: 9999;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 10px;
+    overflow-y: auto;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.2);
+}
+
+#signature-area.is-expanded .row {
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    #signature-area.is-expanded {
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 0;
+        padding: 8px;
+    }
+}
 @media (max-width: 768px) {
     #modal-webcam .modal-dialog {
         margin: 10px !important;

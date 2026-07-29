@@ -353,10 +353,11 @@ class PWAInstaller {
             const logoApp = this.withBasePath("image/optik-melati.png");
             const logoLogin = this.withBasePath("image/logologin.png");
             splash.innerHTML = `
-                <img src="${logoApp}" alt="Optik Melati" class="logo" 
-                     onerror="this.src='${logoLogin}'; this.onerror=function(){this.style.display='none'; document.getElementById('splash-fallback').style.display='block';}">
-                <div id="splash-fallback" class="logo-fallback" style="display: none;">
-                    <div class="fallback-icon">👓</div>
+                <div class="logo-stage">
+                    <img src="${logoApp}" alt="Optik Melati" class="logo" data-primary-logo="${logoApp}" data-fallback-logo="${logoLogin}">
+                    <div class="logo-fallback" aria-hidden="true">
+                        <div class="fallback-icon">👓</div>
+                    </div>
                 </div>
                 <div class="app-name">Optik Melati</div>
                 <div class="app-description">Aplikasi Manajemen Optik</div>
@@ -368,6 +369,7 @@ class PWAInstaller {
             `;
             
             document.body.appendChild(splash);
+            this.setupSplashLogoFallback(splash);
             
             // Hide splash screen after 3 seconds
             setTimeout(() => {
@@ -381,18 +383,72 @@ class PWAInstaller {
             
             // Mark splash as shown
             localStorage.setItem("pwa-splash-shown", "true");
+            localStorage.setItem("pwa-first-visit", "true");
+
+            if (this.isAppInstalled()) {
+                localStorage.setItem("pwa-splash-standalone-shown", "true");
+            }
         }
+    }
+
+    setupSplashLogoFallback(splash) {
+        const logoEl = splash.querySelector(".logo");
+        const fallbackEl = splash.querySelector(".logo-fallback");
+
+        if (!logoEl || !fallbackEl) {
+            return;
+        }
+
+        const showFallback = () => {
+            logoEl.classList.add("is-hidden");
+            fallbackEl.classList.add("visible");
+        };
+
+        const trySwapToFallbackLogo = () => {
+            const fallbackSrc = logoEl.dataset.fallbackLogo;
+
+            if (!fallbackSrc) {
+                showFallback();
+                return;
+            }
+
+            const testImage = new Image();
+            testImage.onload = () => {
+                logoEl.classList.add("is-fading");
+
+                setTimeout(() => {
+                    logoEl.src = fallbackSrc;
+                    logoEl.classList.remove("is-fading");
+                }, 120);
+            };
+
+            testImage.onerror = () => {
+                showFallback();
+            };
+
+            testImage.src = fallbackSrc;
+        };
+
+        logoEl.addEventListener("error", () => {
+            if (logoEl.dataset.fallbackTried === "true") {
+                showFallback();
+                return;
+            }
+
+            logoEl.dataset.fallbackTried = "true";
+            trySwapToFallbackLogo();
+        });
     }
 
     // Check if splash screen should be shown
     shouldShowSplash() {
-        // Show splash if:
-        // 1. First time visiting
-        // 2. App was just installed
-        // 3. User cleared localStorage
-        return !localStorage.getItem("pwa-splash-shown") || 
-               this.isAppInstalled() ||
-               this.isFirstVisit();
+        const isFirstVisit = !localStorage.getItem("pwa-first-visit");
+        const splashAlreadyShown = localStorage.getItem("pwa-splash-shown") === "true";
+        const shouldShowStandaloneSplash =
+            this.isAppInstalled() &&
+            localStorage.getItem("pwa-splash-standalone-shown") !== "true";
+
+        return isFirstVisit || !splashAlreadyShown || shouldShowStandaloneSplash;
     }
 
     // Check if app is installed

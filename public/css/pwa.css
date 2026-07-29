@@ -84,10 +84,40 @@
     border-radius: 20px;
 }
 
-.pwa-splash .logo-fallback {
-    width: 200px;
-    height: 200px;
+.pwa-splash .logo-stage {
+    width: clamp(120px, 22vw, 160px);
+    height: clamp(120px, 22vw, 160px);
     margin-bottom: 30px;
+    position: relative;
+}
+
+.pwa-splash .logo,
+.pwa-splash .logo-fallback {
+    transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+.pwa-splash .logo {
+    width: 100%;
+    height: 100%;
+    margin-bottom: 0;
+    position: relative;
+    z-index: 2;
+}
+
+.pwa-splash .logo.is-fading {
+    opacity: 0.25;
+    transform: scale(0.98);
+}
+
+.pwa-splash .logo.is-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.pwa-splash .logo-fallback {
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -95,6 +125,18 @@
     border-radius: 20px;
     animation: fadeInUp 1s ease;
     filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3));
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.pwa-splash .logo-fallback.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 .pwa-splash .fallback-icon {

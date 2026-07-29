@@ -12,6 +12,55 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    private function resolveServiceType($transaksi): string
+    {
+        return strtoupper((string) ($transaksi->pasien_service_type ?? ($transaksi->pasien->service_type ?? 'UMUM')));
+    }
+
+    private function isBpjsTransaction($transaksi): bool
+    {
+        return in_array($this->resolveServiceType($transaksi), ['BPJS I', 'BPJS II', 'BPJS III'], true);
+    }
+
+    private function getBpjsDefaultPrice(string $serviceType): float
+    {
+        switch ($serviceType) {
+            case 'BPJS I':
+                return (float) BpjsPricingService::BPJS_I_PRICE;
+            case 'BPJS II':
+                return (float) BpjsPricingService::BPJS_II_PRICE;
+            case 'BPJS III':
+                return (float) BpjsPricingService::BPJS_III_PRICE;
+            default:
+                return 0;
+        }
+    }
+
+    private function getBpjsOmsetValue($transaksi): float
+    {
+        if (!$this->isBpjsTransaction($transaksi)) {
+            return (float) ($transaksi->total ?? 0);
+        }
+
+        $serviceType = $this->resolveServiceType($transaksi);
+        $defaultPrice = (float) ($transaksi->bpjs_default_price ?? 0);
+        if ($defaultPrice <= 0) {
+            $defaultPrice = $this->getBpjsDefaultPrice($serviceType);
+        }
+
+        $manualAdditional = max(0, (float) ($transaksi->bpjs_manual_additional_cost ?? 0));
+        return $defaultPrice + $manualAdditional;
+    }
+
+    private function getBpjsAdditionalReceiptValue($transaksi): float
+    {
+        if (!$this->isBpjsTransaction($transaksi)) {
+            return 0;
+        }
+
+        return max(0, (float) ($transaksi->total_additional_cost ?? 0));
+    }
+
     public function index(Request $request)
     {
         $user = auth()->user();
@@ -81,22 +130,7 @@ class DashboardController extends Controller
             $rekapOmset = $adminTransactions->groupBy('user_id')->map(function($transactions) {
                 $firstTransaction = $transactions->first();
                 $totalOmset = $transactions->sum(function($transaksi) {
-                    $serviceType = $transaksi->pasien->service_type ?? 'UMUM';
-                    
-                    // Untuk transaksi BPJS, gunakan harga default
-                    if (in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'])) {
-                        switch ($serviceType) {
-                            case 'BPJS I':
-                                return BpjsPricingService::BPJS_I_PRICE;
-                            case 'BPJS II':
-                                return BpjsPricingService::BPJS_II_PRICE;
-                            case 'BPJS III':
-                                return BpjsPricingService::BPJS_III_PRICE;
-                        }
-                    }
-                    
-                    // Untuk transaksi non-BPJS, gunakan total asli
-                    return $transaksi->total;
+                    return $this->getBpjsOmsetValue($transaksi);
                 });
                 
                 return (object) [
@@ -134,49 +168,21 @@ class DashboardController extends Controller
                 
             // Hitung omset kasir dengan harga default BPJS
             $omsetKasir = $kasirTransactions->sum(function($transaksi) {
-                $serviceType = $transaksi->pasien->service_type ?? 'UMUM';
-                
-                // Untuk transaksi BPJS, gunakan harga default
-                if (in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'])) {
-                    switch ($serviceType) {
-                        case 'BPJS I':
-                            return BpjsPricingService::BPJS_I_PRICE;
-                        case 'BPJS II':
-                            return BpjsPricingService::BPJS_II_PRICE;
-                        case 'BPJS III':
-                            return BpjsPricingService::BPJS_III_PRICE;
-                    }
-                }
-                
-                // Untuk transaksi non-BPJS, gunakan total asli
-                return $transaksi->total;
+                return $this->getBpjsOmsetValue($transaksi);
             });
             
             // Hitung omset BPJS dengan harga default
             $bpjsTransactions = $kasirTransactions->filter(function($transaksi) {
-                $serviceType = $transaksi->pasien->service_type ?? 'UMUM';
-                return in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III']);
+                return $this->isBpjsTransaction($transaksi);
             });
             
             $omsetBpjs = $bpjsTransactions->sum(function($transaksi) {
-                $serviceType = $transaksi->pasien->service_type ?? 'UMUM';
-                
-                switch ($serviceType) {
-                    case 'BPJS I':
-                        return BpjsPricingService::BPJS_I_PRICE;
-                    case 'BPJS II':
-                        return BpjsPricingService::BPJS_II_PRICE;
-                    case 'BPJS III':
-                        return BpjsPricingService::BPJS_III_PRICE;
-                    default:
-                        return 0;
-                }
+                return $this->getBpjsOmsetValue($transaksi);
             });
             
             // Hitung omset umum (non-BPJS) dengan harga asli
             $umumTransactions = $kasirTransactions->filter(function($transaksi) {
-                $serviceType = $transaksi->pasien->service_type ?? 'UMUM';
-                return !in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III']);
+                return !$this->isBpjsTransaction($transaksi);
             });
             
             $omsetUmum = $umumTransactions->sum('total');
@@ -194,46 +200,27 @@ class DashboardController extends Controller
             });
 
             $transferTransactionsForReceipt = $transferTransactions->filter(function ($transaksi) {
-                $serviceType = strtoupper((string) ($transaksi->pasien->service_type ?? $transaksi->pasien_service_type ?? 'UMUM'));
-                $isBpjs = in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'], true);
-
-                if (!$isBpjs) {
-                    return true;
-                }
-
-                return strtolower((string) ($transaksi->transaction_status ?? 'normal')) === 'naik kelas';
+                return !$this->isBpjsTransaction($transaksi);
             });
 
-            $cashTransactionsForReceipt = $cashTransactions->filter(function ($transaksi) {
-                $serviceType = strtoupper((string) ($transaksi->pasien->service_type ?? $transaksi->pasien_service_type ?? 'UMUM'));
-                $isBpjs = in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'], true);
-
-                if (!$isBpjs) {
-                    return true;
+            $cashTransactionsForReceipt = $kasirTransactions->filter(function ($transaksi) {
+                if ($this->isBpjsTransaction($transaksi)) {
+                    return $this->getBpjsAdditionalReceiptValue($transaksi) > 0;
                 }
 
-                return strtolower((string) ($transaksi->transaction_status ?? 'normal')) === 'naik kelas';
+                $metode = strtolower((string) ($transaksi->metode_pembayaran ?? ''));
+                return $metode === '' || $metode === 'cash';
             });
 
             $uangCashDiterima = (float) $cashTransactionsForReceipt->sum(function ($transaksi) {
-                $serviceType = strtoupper((string) ($transaksi->pasien->service_type ?? $transaksi->pasien_service_type ?? 'UMUM'));
-                $isBpjs = in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'], true);
-
-                if ($isBpjs && strtolower((string) ($transaksi->transaction_status ?? 'normal')) === 'naik kelas') {
-                    return max(0, (float) ($transaksi->total_additional_cost ?? 0));
+                if ($this->isBpjsTransaction($transaksi)) {
+                    return $this->getBpjsAdditionalReceiptValue($transaksi);
                 }
 
                 return (float) ($transaksi->bayar ?? 0);
             });
 
             $uangTransferDiterima = (float) $transferTransactionsForReceipt->sum(function ($transaksi) {
-                $serviceType = strtoupper((string) ($transaksi->pasien->service_type ?? $transaksi->pasien_service_type ?? 'UMUM'));
-                $isBpjs = in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'], true);
-
-                if ($isBpjs && strtolower((string) ($transaksi->transaction_status ?? 'normal')) === 'naik kelas') {
-                    return max(0, (float) ($transaksi->total_additional_cost ?? 0));
-                }
-
                 return (float) ($transaksi->bayar ?? 0);
             });
             $jumlahTransaksiCash = $cashTransactionsForReceipt->count();

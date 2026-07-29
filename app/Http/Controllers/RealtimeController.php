@@ -11,6 +11,45 @@ use Carbon\Carbon;
 
 class RealtimeController extends Controller
 {
+    private function resolveServiceType($transaksi): string
+    {
+        return strtoupper((string) ($transaksi->pasien_service_type ?? ($transaksi->pasien->service_type ?? 'UMUM')));
+    }
+
+    private function isBpjsTransaction($transaksi): bool
+    {
+        return in_array($this->resolveServiceType($transaksi), ['BPJS I', 'BPJS II', 'BPJS III'], true);
+    }
+
+    private function getBpjsDefaultPrice(string $serviceType): float
+    {
+        switch ($serviceType) {
+            case 'BPJS I':
+                return (float) BpjsPricingService::BPJS_I_PRICE;
+            case 'BPJS II':
+                return (float) BpjsPricingService::BPJS_II_PRICE;
+            case 'BPJS III':
+                return (float) BpjsPricingService::BPJS_III_PRICE;
+            default:
+                return 0;
+        }
+    }
+
+    private function getBpjsOmsetValue($transaksi): float
+    {
+        if (!$this->isBpjsTransaction($transaksi)) {
+            return (float) ($transaksi->total ?? 0);
+        }
+
+        $serviceType = $this->resolveServiceType($transaksi);
+        $defaultPrice = (float) ($transaksi->bpjs_default_price ?? 0);
+        if ($defaultPrice <= 0) {
+            $defaultPrice = $this->getBpjsDefaultPrice($serviceType);
+        }
+
+        return $defaultPrice + max(0, (float) ($transaksi->bpjs_manual_additional_cost ?? 0));
+    }
+
     public function dashboard(Request $request)
     {
         $user = auth()->user();
@@ -102,19 +141,7 @@ class RealtimeController extends Controller
             ->get();
             
         $omsetBpjs = $bpjsTransactions->sum(function($transaksi) {
-            $serviceType = $transaksi->pasien->service_type ?? 'UMUM';
-            
-            // Gunakan harga default BPJS sesuai jenis layanan
-            switch ($serviceType) {
-                case 'BPJS I':
-                    return BpjsPricingService::BPJS_I_PRICE;
-                case 'BPJS II':
-                    return BpjsPricingService::BPJS_II_PRICE;
-                case 'BPJS III':
-                    return BpjsPricingService::BPJS_III_PRICE;
-                default:
-                    return 0;
-            }
+            return $this->getBpjsOmsetValue($transaksi);
         });
         
         $omsetUmum = Penjualan::where('branch_id', $selectedBranchId)
@@ -186,22 +213,7 @@ class RealtimeController extends Controller
             ->get();
             
         $totalOmsetHariIni = $allTransactions->sum(function($transaksi) {
-            $serviceType = $transaksi->pasien->service_type ?? 'UMUM';
-            
-            // Untuk transaksi BPJS, gunakan harga default
-            if (in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'])) {
-                switch ($serviceType) {
-                    case 'BPJS I':
-                        return BpjsPricingService::BPJS_I_PRICE;
-                    case 'BPJS II':
-                        return BpjsPricingService::BPJS_II_PRICE;
-                    case 'BPJS III':
-                        return BpjsPricingService::BPJS_III_PRICE;
-                }
-            }
-            
-            // Untuk transaksi non-BPJS, gunakan total asli
-            return $transaksi->total;
+            return $this->getBpjsOmsetValue($transaksi);
         });
             
         // Hitung rekap omset kasir dengan harga default BPJS
@@ -214,22 +226,7 @@ class RealtimeController extends Controller
         $rekapOmsetKasir = $rekapTransactions->groupBy('user_id')->map(function($transactions) {
             $firstTransaction = $transactions->first();
             $totalOmset = $transactions->sum(function($transaksi) {
-                $serviceType = $transaksi->pasien->service_type ?? 'UMUM';
-                
-                // Untuk transaksi BPJS, gunakan harga default
-                if (in_array($serviceType, ['BPJS I', 'BPJS II', 'BPJS III'])) {
-                    switch ($serviceType) {
-                        case 'BPJS I':
-                            return BpjsPricingService::BPJS_I_PRICE;
-                        case 'BPJS II':
-                            return BpjsPricingService::BPJS_II_PRICE;
-                        case 'BPJS III':
-                            return BpjsPricingService::BPJS_III_PRICE;
-                    }
-                }
-                
-                // Untuk transaksi non-BPJS, gunakan total asli
-                return $transaksi->total;
+                return $this->getBpjsOmsetValue($transaksi);
             });
             
             return (object) [

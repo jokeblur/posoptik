@@ -119,6 +119,12 @@
                                 <td>{{ strtoupper((string) ($penjualan->bank_transfer ?? '-')) }}</td>
                             </tr>
                             @endif
+                            @if((float) ($penjualan->bpjs_manual_additional_cost ?? 0) > 0)
+                            <tr>
+                                <th>Biaya Tambahan BPJS (Manual)</th>
+                                <td>Rp {{ number_format((float) $penjualan->bpjs_manual_additional_cost, 0, ',', '.') }}</td>
+                            </tr>
+                            @endif
                             <tr>
                                 <th>Cabang</th>
                                 <td>{{ $penjualan->branch->name ?? 'N/A' }}</td>

@@ -17,6 +17,7 @@ class Penjualan extends Model
         'dokter_id', 'dokter_manual', 'tanggal_siap', 'total', 'diskon', 'bayar', 
         'kekurangan', 'status', 'status_pengerjaan', 'photo_bpjs', 'signature_bpjs', 'signature_date',
         'pasien_service_type', 'bpjs_default_price', 'total_additional_cost', 'transaction_status', 'jenis_transaksi',
+        'bpjs_manual_additional_cost',
         'metode_pembayaran', 'bank_transfer', 'passet_by_user_id', 'waktu_selesai_dikerjakan', 'waktu_sudah_diambil'
     ];
 
@@ -24,6 +25,9 @@ class Penjualan extends Model
         'tanggal' => 'date',
         'tanggal_siap' => 'date',
         'signature_date' => 'datetime',
+        'bpjs_default_price' => 'float',
+        'total_additional_cost' => 'float',
+        'bpjs_manual_additional_cost' => 'float',
     ];
 
     public function user()

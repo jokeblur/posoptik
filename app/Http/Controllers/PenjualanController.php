@@ -339,8 +339,16 @@ class PenjualanController extends Controller
                         $bpjsPricingService = new \App\Services\BpjsPricingService();
                         $bpjsPrice = $bpjsPricingService->getDefaultPrice($penjualan->pasien->service_type);
                     }
-                    
-                    return '<span class="label label-info" title="BPJS: ' . $penjualan->pasien->service_type . '">Rp. '. format_uang($bpjsPrice) . '</span>';
+
+                    $manualAdditional = max(0, (float) ($penjualan->bpjs_manual_additional_cost ?? 0));
+                    $finalBpjsAmount = $bpjsPrice + $manualAdditional;
+
+                    if ($manualAdditional > 0) {
+                        return '<span class="label label-info" title="BPJS: ' . $penjualan->pasien->service_type . '">Rp. '. format_uang($finalBpjsAmount) . '</span>'
+                            . '<br><small class="text-warning">Tambahan: Rp. ' . format_uang($manualAdditional) . '</small>';
+                    }
+
+                    return '<span class="label label-info" title="BPJS: ' . $penjualan->pasien->service_type . '">Rp. '. format_uang($finalBpjsAmount) . '</span>';
                 }
                 // Untuk transaksi umum, tampilkan total normal
                 return '<span class="text-success">Rp. '. format_uang($penjualan->total) . '</span>';
@@ -664,6 +672,7 @@ class PenjualanController extends Controller
             $hasJenisTransaksiColumn = $this->hasTableColumn('penjualan', 'jenis_transaksi');
             $hasMetodePembayaranColumn = $this->hasTableColumn('penjualan', 'metode_pembayaran');
             $hasBankTransferColumn = $this->hasTableColumn('penjualan', 'bank_transfer');
+            $hasBpjsManualAdditionalColumn = $this->hasTableColumn('penjualan', 'bpjs_manual_additional_cost');
 
             $rules = [
             'kode_penjualan' => 'required|unique:penjualan,kode_penjualan',
@@ -672,6 +681,7 @@ class PenjualanController extends Controller
             'diskon' => 'required|numeric|min:0',
             'bayar' => 'required|numeric|min:0',
             'kekurangan' => 'required|numeric',
+            'bpjs_manual_additional_cost' => 'nullable|numeric|min:0',
             'photo_bpjs_webcam' => 'nullable|string',
         ];
 
@@ -705,6 +715,7 @@ class PenjualanController extends Controller
             $jenisTransaksi = $hasJenisTransaksiColumn ? ($request->jenis_transaksi ?: 'Stock') : null;
             $bpjsDefaultPrice = 0;
             $totalAdditionalCost = 0;
+            $bpjsManualAdditionalCost = 0;
             $pasienServiceType = null;
             $bpjsFrameSaleTotal = 0;
             $bpjsLensSaleTotal = 0;
@@ -733,6 +744,9 @@ class PenjualanController extends Controller
                 if ($pasien && $this->isBpjsServiceType($pasien->service_type)) {
                     $pasienServiceType = $pasien->service_type;
                     $bpjsDefaultPrice = $this->bpjsPricingService->getDefaultPrice($pasien->service_type);
+                    $bpjsManualAdditionalCost = $hasBpjsManualAdditionalColumn
+                        ? max(0, (float) $request->input('bpjs_manual_additional_cost', 0))
+                        : 0;
                     
                     // Conditional debug logging untuk BPJS pricing
                     if (config('app.debug')) {
@@ -772,6 +786,10 @@ class PenjualanController extends Controller
                 'status_pengerjaan' => $hanyaAksesoris ? 'Sudah Diambil' : 'Menunggu Pengerjaan',
                 'waktu_sudah_diambil' => $hanyaAksesoris ? now() : null,
             ];
+
+            if ($hasBpjsManualAdditionalColumn) {
+                $penjualanData['bpjs_manual_additional_cost'] = $bpjsManualAdditionalCost;
+            }
 
             if ($hasMetodePembayaranColumn) {
                 $penjualanData['metode_pembayaran'] = strtolower((string) $request->metode_pembayaran);
@@ -971,8 +989,11 @@ class PenjualanController extends Controller
             // Update status transaksi dan informasi BPJS jika ada perubahan
             $updateData = [
                 'transaction_status' => $transactionStatus,
-                'total_additional_cost' => $totalAdditionalCost
+                'total_additional_cost' => $totalAdditionalCost + $bpjsManualAdditionalCost
             ];
+            if ($hasBpjsManualAdditionalColumn) {
+                $updateData['bpjs_manual_additional_cost'] = $bpjsManualAdditionalCost;
+            }
             $penjualan->update($updateData);
 
             DB::commit();
@@ -1068,12 +1089,14 @@ class PenjualanController extends Controller
     {
         $hasMetodePembayaranColumn = $this->hasTableColumn('penjualan', 'metode_pembayaran');
         $hasBankTransferColumn = $this->hasTableColumn('penjualan', 'bank_transfer');
+        $hasBpjsManualAdditionalColumn = $this->hasTableColumn('penjualan', 'bpjs_manual_additional_cost');
 
         $request->validate([
             'pasien_id' => 'required',
             'items' => 'required|json',
             'diskon' => 'required|numeric|min:0',
             'bayar' => 'required|numeric|min:0',
+            'bpjs_manual_additional_cost' => 'nullable|numeric|min:0',
             'status_pengerjaan' => 'required|in:Menunggu Pengerjaan,Sedang Dikerjakan,Selesai Dikerjakan,Sudah Diambil',
             'photo_bpjs' => 'nullable|image|max:3072',
             'signature_bpjs' => 'nullable|string',
@@ -1114,6 +1137,9 @@ class PenjualanController extends Controller
             $bpjsDefaultPrice = $isBpjs ? $this->bpjsPricingService->getDefaultPrice($pasien->service_type) : 0;
             $transactionStatus = 'Normal';
             $totalAdditionalCost = 0;
+            $bpjsManualAdditionalCost = $isBpjs
+                ? max(0, (float) $request->input('bpjs_manual_additional_cost', (float) ($penjualan->bpjs_manual_additional_cost ?? 0)))
+                : 0;
             $calculatedTotal = 0;
             $containsCleanerItem = false;
 
@@ -1240,7 +1266,7 @@ class PenjualanController extends Controller
             }
 
             $diskon = (float) $request->diskon;
-            $finalTotal = max(0, $calculatedTotal - $diskon);
+            $finalTotal = max(0, ($calculatedTotal + $bpjsManualAdditionalCost) - $diskon);
             $bayar = (float) $request->bayar;
             $kekurangan = $finalTotal - $bayar;
             $statusPembayaran = $kekurangan <= 0 ? 'Lunas' : 'Belum Lunas';
@@ -1249,6 +1275,7 @@ class PenjualanController extends Controller
                 $transactionStatus = $totalAdditionalCost > 0 ? 'Naik Kelas' : 'Normal';
             } else {
                 $totalAdditionalCost = 0;
+                $bpjsManualAdditionalCost = 0;
                 $transactionStatus = 'Normal';
                 $bpjsDefaultPrice = 0;
             }
@@ -1266,7 +1293,10 @@ class PenjualanController extends Controller
             $penjualan->kekurangan = $kekurangan;
             $penjualan->pasien_service_type = $isBpjs ? $pasien->service_type : null;
             $penjualan->bpjs_default_price = $bpjsDefaultPrice;
-            $penjualan->total_additional_cost = $totalAdditionalCost;
+            $penjualan->total_additional_cost = $totalAdditionalCost + $bpjsManualAdditionalCost;
+            if ($hasBpjsManualAdditionalColumn) {
+                $penjualan->bpjs_manual_additional_cost = $bpjsManualAdditionalCost;
+            }
             $penjualan->transaction_status = $transactionStatus;
 
             if ($hasMetodePembayaranColumn) {

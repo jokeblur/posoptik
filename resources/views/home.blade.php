@@ -610,7 +610,7 @@
             <div class="small-box bg-primary">
                 <div class="inner">
                     <h3>Rp {{ number_format($uangCashDiterima ?? 0, 0, ',', '.') }}</h3>
-                    <p>Penerimaan Cash Umum + Tambahan BPJS Naik Kelas {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</p>
+                    <p>Penerimaan Cash Umum + Tambahan BPJS {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</p>
                 </div>
                 <div class="icon"><i class="fa fa-money"></i></div>
                 <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
@@ -622,7 +622,7 @@
             <div class="small-box bg-navy">
                 <div class="inner">
                     <h3>Rp {{ number_format($uangTransferDiterima ?? 0, 0, ',', '.') }}</h3>
-                    <p>Penerimaan Transfer Umum + Tambahan BPJS Naik Kelas {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</p>
+                    <p>Penerimaan Transfer Umum {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</p>
                 </div>
                 <div class="icon"><i class="fa fa-university"></i></div>
                 <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">

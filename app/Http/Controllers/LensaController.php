@@ -27,14 +27,21 @@ class LensaController extends Controller
 
         // Ambil data lensa dengan stok rendah
         $user = auth()->user();
-        $lowStockLensa = Lensa::with(['branch', 'sales'])
+        $lowStockLensaBaseQuery = Lensa::with(['branch', 'sales'])
             ->accessibleByUser($user)
             ->where('is_custom_order', false)
             ->where('stok', '<=', $batasStok)
-            ->orderBy('stok', 'asc')
+            ->orderBy('stok', 'asc');
+
+        $lowStockLensaBpjs = (clone $lowStockLensaBaseQuery)
+            ->bpjsCategory()
             ->get();
 
-        return view('lensa.index', compact('branches', 'sales', 'batasStok', 'lowStockLensa'));
+        $lowStockLensaUmum = (clone $lowStockLensaBaseQuery)
+            ->nonBpjsCategory()
+            ->get();
+
+        return view('lensa.index', compact('branches', 'sales', 'batasStok', 'lowStockLensaBpjs', 'lowStockLensaUmum'));
     }
 
     public function data(Request $request)

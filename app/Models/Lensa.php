@@ -84,6 +84,59 @@ class Lensa extends Model
     }
 
     /**
+     * Scope to filter BPJS lens category.
+     *
+     * BPJS lens identifiers:
+     * - KRYP CR MC HIJAU
+     * - CR MC HIJAU
+     */
+    public function scopeBpjsCategory($query)
+    {
+        $normalizedType = "REPLACE(REPLACE(UPPER(TRIM(COALESCE(type, ''))), ' ', ''), '-', '')";
+        $normalizedCoating = "REPLACE(REPLACE(UPPER(TRIM(COALESCE(coating, ''))), ' ', ''), '-', '')";
+        $normalizedMerk = "REPLACE(REPLACE(UPPER(TRIM(COALESCE(merk_lensa, ''))), ' ', ''), '-', '')";
+        $bpjsTokens = "('KRYPCRMCHIJAU', 'KRYPCRMCHIJAU', 'KCRMCHIJAU', 'CRMCHIJAU')";
+
+        return $query->where(function ($q) use ($normalizedType, $normalizedCoating, $normalizedMerk, $bpjsTokens) {
+            $q->whereRaw("{$normalizedType} IN {$bpjsTokens}")
+                ->orWhereRaw("{$normalizedCoating} IN {$bpjsTokens}")
+                ->orWhereRaw("{$normalizedMerk} IN {$bpjsTokens}")
+                ->orWhere(function ($q2) use ($normalizedMerk) {
+                    $q2->whereRaw("{$normalizedMerk} LIKE '%CRMCHIJAU%'")
+                        ->where(function ($q3) use ($normalizedMerk) {
+                            $q3->whereRaw("{$normalizedMerk} LIKE '%KRYP%'")
+                                ->orWhereRaw("{$normalizedMerk} LIKE '%KRYP%'");
+                        });
+                });
+        });
+    }
+
+    /**
+     * Scope to exclude BPJS lens category.
+     */
+    public function scopeNonBpjsCategory($query)
+    {
+        $normalizedType = "REPLACE(REPLACE(UPPER(TRIM(COALESCE(type, ''))), ' ', ''), '-', '')";
+        $normalizedCoating = "REPLACE(REPLACE(UPPER(TRIM(COALESCE(coating, ''))), ' ', ''), '-', '')";
+        $normalizedMerk = "REPLACE(REPLACE(UPPER(TRIM(COALESCE(merk_lensa, ''))), ' ', ''), '-', '')";
+        $bpjsTokens = "('KRYPCRMCHIJAU', 'KRYPCRMCHIJAU', 'KCRMCHIJAU', 'CRMCHIJAU')";
+
+        return $query->where(function ($q) use ($normalizedType, $normalizedCoating, $normalizedMerk, $bpjsTokens) {
+            $bpjsCondition = "(
+                {$normalizedType} IN {$bpjsTokens}
+                OR {$normalizedCoating} IN {$bpjsTokens}
+                OR {$normalizedMerk} IN {$bpjsTokens}
+                OR (
+                    {$normalizedMerk} LIKE '%CRMCHIJAU%'
+                    AND ({$normalizedMerk} LIKE '%KRYP%' OR {$normalizedMerk} LIKE '%KRYP%')
+                )
+            )";
+
+            $q->whereRaw("NOT {$bpjsCondition}");
+        });
+    }
+
+    /**
      * Get stock status label
      */
     public function getStockStatusAttribute()

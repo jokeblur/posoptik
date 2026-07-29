@@ -158,7 +158,7 @@
                                 <i class="fa fa-hospital-o"></i>
                             </div>
                             <span class="small-box-footer">
-                                BPJS I/II/III dihitung dari plafon kelas
+                                Hanya total plafon/default BPJS
                             </span>
                         </div>
                     </div>
@@ -173,6 +173,20 @@
                             </div>
                             <span class="small-box-footer">
                                 Omset non-BPJS dari total transaksi
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small-box bg-orange">
+                            <div class="inner">
+                                <h3>Rp {{ number_format($totalTambahanBpjsHarian ?? 0,0,',','.') }}</h3>
+                                <p>Biaya Tambahan BPJS Hari Ini</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-plus-circle"></i>
+                            </div>
+                            <span class="small-box-footer">
+                                Ikut dihitung ke omset harian
                             </span>
                         </div>
                     </div>
@@ -195,13 +209,13 @@
                         <div class="small-box bg-navy">
                             <div class="inner">
                                 <h3>Rp {{ number_format($omsetBulananBpjs ?? 0,0,',','.') }}</h3>
-                                <p>Omset Bulanan BPJS (Filter Bulan)</p>
+                                <p>Omset Bulanan BPJS (Harga Default)</p>
                             </div>
                             <div class="icon">
                                 <i class="fa fa-medkit"></i>
                             </div>
                             <span class="small-box-footer">
-                                Mengikuti bulan {{ $bulan }}/{{ $tahun }}
+                                Hanya total plafon/default BPJS
                             </span>
                         </div>
                     </div>
@@ -216,6 +230,20 @@
                             </div>
                             <span class="small-box-footer">
                                 Mengikuti bulan {{ $bulan }}/{{ $tahun }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small-box bg-yellow">
+                            <div class="inner">
+                                <h3>Rp {{ number_format($totalTambahanBpjsBulanan ?? 0,0,',','.') }}</h3>
+                                <p>Biaya Tambahan BPJS Bulanan</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-plus-square"></i>
+                            </div>
+                            <span class="small-box-footer">
+                                Ikut dihitung ke omset bulanan
                             </span>
                         </div>
                     </div>
@@ -353,7 +381,7 @@
                             @if($isSuperAdmin && !$selectedBranchId)
                             <th>Cabang</th>
                             @endif
-                            <th>Harga Default Layanan BPJS</th>
+                            <th>Harga BPJS + Tambahan Manual</th>
                             <th>Bayar (DP)</th>
                             <th>Kekurangan</th>
                         </tr>
@@ -518,7 +546,7 @@
                             @if($isSuperAdmin && !$selectedBranchId)
                             <th>Cabang</th>
                             @endif
-                            <th>Harga Default Layanan BPJS</th>
+                            <th>Harga BPJS + Tambahan Manual</th>
                             <th>Bayar (DP)</th>
                             <th>Kekurangan</th>
                         </tr>
@@ -570,7 +598,7 @@
                             <th>Cabang</th>
                             @endif
                             <th>Status Layanan</th>
-                            <th>Harga Default Layanan BPJS</th>
+                            <th>Harga BPJS + Tambahan Manual</th>
                             <th>Jumlah Item</th>
                             <th>Item Aksesoris</th>
                             <th>Nilai Aksesoris</th>
@@ -638,7 +666,7 @@
                             <th>Cabang</th>
                             @endif
                             <th>Status Layanan</th>
-                            <th>Harga Default Layanan BPJS</th>
+                            <th>Harga BPJS + Tambahan Manual</th>
                             <th>Jumlah Item</th>
                             <th>Item Aksesoris</th>
                             <th>Nilai Aksesoris</th>

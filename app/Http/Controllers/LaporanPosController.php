@@ -13,6 +13,41 @@ use Illuminate\Support\Facades\DB;
 
 class LaporanPosController extends Controller
 {
+    private function getBpjsDefaultValue($trx, array $bpjsTypes): float
+    {
+        $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+
+        if (!in_array($serviceType, $bpjsTypes, true)) {
+            return 0;
+        }
+
+        $defaultPrice = (float) ($trx->bpjs_default_price ?? 0);
+        if ($defaultPrice > 0) {
+            return $defaultPrice;
+        }
+
+        switch ($serviceType) {
+            case 'BPJS I':
+                return (float) BpjsPricingService::BPJS_I_PRICE;
+            case 'BPJS II':
+                return (float) BpjsPricingService::BPJS_II_PRICE;
+            case 'BPJS III':
+                return (float) BpjsPricingService::BPJS_III_PRICE;
+            default:
+                return 0;
+        }
+    }
+
+    private function getBpjsAdditionalCostValue($trx): float
+    {
+        return max(0, (float) ($trx->total_additional_cost ?? 0));
+    }
+
+    private function getBpjsOmsetValue($trx, array $bpjsTypes): float
+    {
+        return $this->getBpjsDefaultValue($trx, $bpjsTypes) + $this->getBpjsAdditionalCostValue($trx);
+    }
+
     public function index(Request $request)
     {
         $user = auth()->user();
@@ -38,26 +73,16 @@ class LaporanPosController extends Controller
 
         $bpjsTypes = ['BPJS I', 'BPJS II', 'BPJS III'];
         $omsetHarianBpjs = $transaksiHarian->sum(function ($trx) use ($bpjsTypes) {
-            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            return $this->getBpjsDefaultValue($trx, $bpjsTypes);
+        });
 
-            if (!in_array($serviceType, $bpjsTypes)) {
+        $totalTambahanBpjsHarian = $transaksiHarian->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            if (!in_array($serviceType, $bpjsTypes, true)) {
                 return 0;
             }
 
-            if ($trx->bpjs_default_price > 0) {
-                return (float) $trx->bpjs_default_price;
-            }
-
-            switch ($serviceType) {
-                case 'BPJS I':
-                    return BpjsPricingService::BPJS_I_PRICE;
-                case 'BPJS II':
-                    return BpjsPricingService::BPJS_II_PRICE;
-                case 'BPJS III':
-                    return BpjsPricingService::BPJS_III_PRICE;
-                default:
-                    return 0;
-            }
+            return $this->getBpjsAdditionalCostValue($trx);
         });
 
         $omsetHarianUmum = $transaksiHarian->sum(function ($trx) use ($bpjsTypes) {
@@ -65,7 +90,7 @@ class LaporanPosController extends Controller
             return in_array($serviceType, $bpjsTypes) ? 0 : (float) $trx->total;
         });
 
-        $omsetHarian = $omsetHarianBpjs + $omsetHarianUmum;
+        $omsetHarian = $omsetHarianBpjs + $omsetHarianUmum + $totalTambahanBpjsHarian;
 
         // Omset Bulanan (dipisah BPJS vs Umum, mengikuti filter bulan/tahun)
         $bulan = $request->input('bulan', $today->format('m'));
@@ -77,26 +102,16 @@ class LaporanPosController extends Controller
             ->get();
 
         $omsetBulananBpjs = $transaksiBulanan->sum(function ($trx) use ($bpjsTypes) {
-            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            return $this->getBpjsDefaultValue($trx, $bpjsTypes);
+        });
 
-            if (!in_array($serviceType, $bpjsTypes)) {
+        $totalTambahanBpjsBulanan = $transaksiBulanan->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            if (!in_array($serviceType, $bpjsTypes, true)) {
                 return 0;
             }
 
-            if ($trx->bpjs_default_price > 0) {
-                return (float) $trx->bpjs_default_price;
-            }
-
-            switch ($serviceType) {
-                case 'BPJS I':
-                    return BpjsPricingService::BPJS_I_PRICE;
-                case 'BPJS II':
-                    return BpjsPricingService::BPJS_II_PRICE;
-                case 'BPJS III':
-                    return BpjsPricingService::BPJS_III_PRICE;
-                default:
-                    return 0;
-            }
+            return $this->getBpjsAdditionalCostValue($trx);
         });
 
         $omsetBulananUmum = $transaksiBulanan->sum(function ($trx) use ($bpjsTypes) {
@@ -104,7 +119,7 @@ class LaporanPosController extends Controller
             return in_array($serviceType, $bpjsTypes) ? 0 : (float) $trx->total;
         });
 
-        $omsetBulanan = $omsetBulananBpjs + $omsetBulananUmum;
+        $omsetBulanan = $omsetBulananBpjs + $omsetBulananUmum + $totalTambahanBpjsBulanan;
 
         // Omset per layanan
         $layananList = ['BPJS I', 'BPJS II', 'BPJS III', 'Umum'];
@@ -120,14 +135,15 @@ class LaporanPosController extends Controller
                     ->whereYear('created_at', $tahun)
                     ->sum('total');
             } else {
-                // Untuk layanan BPJS, gunakan bpjs_default_price
+                // Untuk layanan BPJS, gunakan default BPJS + total tambahan biaya BPJS
                 $omsetLayanan[$layanan] = Penjualan::when($branchId, fn($q) => $q->where('branch_id', $branchId))
                     ->whereHas('pasien', function($q) use ($layanan) {
                         $q->where('service_type', $layanan);
                     })
                     ->whereMonth('created_at', $bulan)
                     ->whereYear('created_at', $tahun)
-                    ->sum('bpjs_default_price');
+                    ->selectRaw('COALESCE(SUM(COALESCE(bpjs_default_price, 0) + COALESCE(total_additional_cost, 0)), 0) as total')
+                    ->value('total');
             }
         }
 
@@ -280,6 +296,7 @@ class LaporanPosController extends Controller
             'selectedBranch', 'isSuperAdmin', 'summaryCabang',
             'omsetHarianBpjs', 'omsetHarianUmum',
             'omsetBulananBpjs', 'omsetBulananUmum',
+            'totalTambahanBpjsHarian', 'totalTambahanBpjsBulanan',
             'aksesorisHarian', 'aksesorisBulanan',
             'labaKotorAksesorisHarian', 'labaKotorAksesorisBulanan',
             'detailAksesorisHarian', 'detailAksesorisBulanan'
@@ -310,26 +327,16 @@ class LaporanPosController extends Controller
 
         $bpjsTypes = ['BPJS I', 'BPJS II', 'BPJS III'];
         $omsetHarianBpjs = $transaksiHarian->sum(function ($trx) use ($bpjsTypes) {
-            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            return $this->getBpjsDefaultValue($trx, $bpjsTypes);
+        });
 
-            if (!in_array($serviceType, $bpjsTypes)) {
+        $totalTambahanBpjsHarian = $transaksiHarian->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            if (!in_array($serviceType, $bpjsTypes, true)) {
                 return 0;
             }
 
-            if ($trx->bpjs_default_price > 0) {
-                return (float) $trx->bpjs_default_price;
-            }
-
-            switch ($serviceType) {
-                case 'BPJS I':
-                    return BpjsPricingService::BPJS_I_PRICE;
-                case 'BPJS II':
-                    return BpjsPricingService::BPJS_II_PRICE;
-                case 'BPJS III':
-                    return BpjsPricingService::BPJS_III_PRICE;
-                default:
-                    return 0;
-            }
+            return $this->getBpjsAdditionalCostValue($trx);
         });
 
         $omsetHarianUmum = $transaksiHarian->sum(function ($trx) use ($bpjsTypes) {
@@ -344,26 +351,16 @@ class LaporanPosController extends Controller
             ->get();
 
         $omsetBulananBpjs = $transaksiBulanan->sum(function ($trx) use ($bpjsTypes) {
-            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            return $this->getBpjsDefaultValue($trx, $bpjsTypes);
+        });
 
-            if (!in_array($serviceType, $bpjsTypes)) {
+        $totalTambahanBpjsBulanan = $transaksiBulanan->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            if (!in_array($serviceType, $bpjsTypes, true)) {
                 return 0;
             }
 
-            if ($trx->bpjs_default_price > 0) {
-                return (float) $trx->bpjs_default_price;
-            }
-
-            switch ($serviceType) {
-                case 'BPJS I':
-                    return BpjsPricingService::BPJS_I_PRICE;
-                case 'BPJS II':
-                    return BpjsPricingService::BPJS_II_PRICE;
-                case 'BPJS III':
-                    return BpjsPricingService::BPJS_III_PRICE;
-                default:
-                    return 0;
-            }
+            return $this->getBpjsAdditionalCostValue($trx);
         });
 
         $omsetBulananUmum = $transaksiBulanan->sum(function ($trx) use ($bpjsTypes) {
@@ -372,11 +369,13 @@ class LaporanPosController extends Controller
         });
 
         $data = [
-            'omset_harian' => $omsetHarianBpjs + $omsetHarianUmum,
+            'omset_harian' => $omsetHarianBpjs + $omsetHarianUmum + $totalTambahanBpjsHarian,
             'omset_harian_bpjs' => $omsetHarianBpjs,
+            'total_tambahan_bpjs_harian' => $totalTambahanBpjsHarian,
             'omset_harian_umum' => $omsetHarianUmum,
-            'omset_bulanan' => $omsetBulananBpjs + $omsetBulananUmum,
+            'omset_bulanan' => $omsetBulananBpjs + $omsetBulananUmum + $totalTambahanBpjsBulanan,
             'omset_bulanan_bpjs' => $omsetBulananBpjs,
+            'total_tambahan_bpjs_bulanan' => $totalTambahanBpjsBulanan,
             'omset_bulanan_umum' => $omsetBulananUmum,
             'piutang' => Penjualan::where('branch_id', $branchId)
                 ->where('status', 'Belum Lunas')
@@ -435,31 +434,21 @@ class LaporanPosController extends Controller
             ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
             ->when($selectedBranchId, fn($q) => $q->where('branch_id', $selectedBranchId))
-            ->get(['id', 'pasien_id', 'total', 'bpjs_default_price', 'pasien_service_type']);
+            ->get(['id', 'pasien_id', 'total', 'bpjs_default_price', 'bpjs_manual_additional_cost', 'pasien_service_type']);
 
         $jumlahTransaksi = (int) $pendapatanTransactions->count();
 
         $pendapatanBpjs = (float) $pendapatanTransactions->sum(function ($trx) use ($bpjsTypes) {
-            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            return $this->getBpjsDefaultValue($trx, $bpjsTypes);
+        });
 
-            if (!in_array($serviceType, $bpjsTypes)) {
+        $pendapatanTambahanBpjs = (float) $pendapatanTransactions->sum(function ($trx) use ($bpjsTypes) {
+            $serviceType = $trx->pasien_service_type ?? ($trx->pasien->service_type ?? null);
+            if (!in_array($serviceType, $bpjsTypes, true)) {
                 return 0;
             }
 
-            if ((float) $trx->bpjs_default_price > 0) {
-                return (float) $trx->bpjs_default_price;
-            }
-
-            switch ($serviceType) {
-                case 'BPJS I':
-                    return BpjsPricingService::BPJS_I_PRICE;
-                case 'BPJS II':
-                    return BpjsPricingService::BPJS_II_PRICE;
-                case 'BPJS III':
-                    return BpjsPricingService::BPJS_III_PRICE;
-                default:
-                    return 0;
-            }
+            return $this->getBpjsAdditionalCostValue($trx);
         });
 
         $pendapatanUmum = (float) $pendapatanTransactions->sum(function ($trx) use ($bpjsTypes) {
@@ -467,7 +456,7 @@ class LaporanPosController extends Controller
             return in_array($serviceType, $bpjsTypes) ? 0 : (float) $trx->total;
         });
 
-        $pendapatan = $pendapatanUmum + $pendapatanBpjs;
+        $pendapatan = $pendapatanUmum + $pendapatanBpjs + $pendapatanTambahanBpjs;
 
         // ============================================================
         // 2. HPP — harga beli item yang terjual
@@ -584,7 +573,7 @@ class LaporanPosController extends Controller
         return view('laporan.profit-loss', compact(
             'branches', 'selectedBranchId', 'bulan', 'tahun',
             // P&L data
-            'pendapatan', 'pendapatanUmum', 'pendapatanBpjs', 'jumlahTransaksi',
+            'pendapatan', 'pendapatanUmum', 'pendapatanBpjs', 'pendapatanTambahanBpjs', 'jumlahTransaksi',
             'hppFrame', 'hppLensa', 'hppAksesoris', 'totalHpp',
             'labaKotor',
             'bebanGaji', 'bebanKeuangan', 'pemasukanLain', 'totalBeban',

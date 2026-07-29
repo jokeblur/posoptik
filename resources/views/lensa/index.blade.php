@@ -36,55 +36,124 @@
             <div class="box-header with-border">
                 <h3 class="box-title">
                     <i class="fa fa-exclamation-triangle"></i> 
-                    Stok Menipis (Stok < {{ $batasStok }})
+                    Stok Menipis (Stok <= {{ $batasStok }})
                 </h3>
             </div>
             <div class="box-body">
-                @if($lowStockLensa->count() > 0)
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-striped" id="table-low-stock-lensa">
-                            <thead>
-                                <tr>
-                                    <th>Kode</th>
-                                    <th>Merk</th>
-                                    @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
-                                    <th>Cabang</th>
-                                    @endif
-                                    <th>Type</th>
-                                    <th>Index</th>
-                                    <th>ADD</th>
-                                    <th>CYL</th>
-                                    <th>Stok</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($lowStockLensa as $item)
-                                <tr class="low-stock-row">
-                                    <td>{{ $item->kode_lensa }}</td>
-                                    <td>{{ $item->merk_lensa }}</td>
-                                    @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
-                                    <td><span class="label label-warning">{{ $item->branch->name ?? '-' }}</span></td>
-                                    @endif
-                                    <td>{{ $item->type ?? '-' }}</td>
-                                    <td>{{ $item->index ?? '-' }}</td>
-                                    <td>{{ $item->add ?? '-' }}</td>
-                                    <td>{{ $item->cly ?? '-' }}</td>
-                                    <td><span class="badge bg-red">{{ $item->stok }}</span></td>
-                                    <td>
-                                        <button onclick="editform('{{ route('lensa.update', $item->id) }}')" class="btn btn-xs btn-info btn-flat">
-                                            <i class="fa fa-pencil"></i> Edit
-                                        </button>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                @if($lowStockLensaBpjs->count() > 0 || $lowStockLensaUmum->count() > 0)
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4 class="text-danger">
+                                <i class="fa fa-shield"></i> Lensa BPJS Menipis
+                                <small>({{ $lowStockLensaBpjs->count() }} item)</small>
+                            </h4>
+                            @if($lowStockLensaBpjs->count() > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped" id="table-low-stock-lensa-bpjs">
+                                        <thead>
+                                            <tr>
+                                                <th>Kode</th>
+                                                <th>Merk</th>
+                                                @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                                                <th>Cabang</th>
+                                                @endif
+                                                <th>Type</th>
+                                                <th>Index</th>
+                                                <th>ADD</th>
+                                                <th>CYL</th>
+                                                <th>Stok</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($lowStockLensaBpjs as $item)
+                                            <tr class="low-stock-row">
+                                                <td>{{ $item->kode_lensa }}</td>
+                                                <td>{{ $item->merk_lensa }}</td>
+                                                @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                                                <td><span class="label label-warning">{{ $item->branch->name ?? '-' }}</span></td>
+                                                @endif
+                                                <td>{{ $item->type ?? '-' }}</td>
+                                                <td>{{ $item->index ?? '-' }}</td>
+                                                <td>{{ $item->add ?? '-' }}</td>
+                                                <td>{{ $item->cly ?? '-' }}</td>
+                                                <td><span class="badge bg-red">{{ $item->stok }}</span></td>
+                                                <td>
+                                                    <button onclick="editform('{{ route('lensa.update', $item->id) }}')" class="btn btn-xs btn-info btn-flat">
+                                                        <i class="fa fa-pencil"></i> Edit
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <div class="text-center" style="padding: 12px; border: 1px dashed #ddd; margin-bottom: 16px;">
+                                    <h5><i class="fa fa-check-circle text-success"></i> Stok BPJS Aman</h5>
+                                    <p>Tidak ada lensa BPJS dengan stok <= {{ $batasStok }}</p>
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="col-md-6">
+                            <h4 class="text-warning">
+                                <i class="fa fa-list"></i> Lensa Umum Menipis
+                                <small>({{ $lowStockLensaUmum->count() }} item)</small>
+                            </h4>
+                            @if($lowStockLensaUmum->count() > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped" id="table-low-stock-lensa-umum">
+                                        <thead>
+                                            <tr>
+                                                <th>Kode</th>
+                                                <th>Merk</th>
+                                                @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                                                <th>Cabang</th>
+                                                @endif
+                                                <th>Type</th>
+                                                <th>Index</th>
+                                                <th>ADD</th>
+                                                <th>CYL</th>
+                                                <th>Stok</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($lowStockLensaUmum as $item)
+                                            <tr class="low-stock-row">
+                                                <td>{{ $item->kode_lensa }}</td>
+                                                <td>{{ $item->merk_lensa }}</td>
+                                                @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                                                <td><span class="label label-warning">{{ $item->branch->name ?? '-' }}</span></td>
+                                                @endif
+                                                <td>{{ $item->type ?? '-' }}</td>
+                                                <td>{{ $item->index ?? '-' }}</td>
+                                                <td>{{ $item->add ?? '-' }}</td>
+                                                <td>{{ $item->cly ?? '-' }}</td>
+                                                <td><span class="badge bg-red">{{ $item->stok }}</span></td>
+                                                <td>
+                                                    <button onclick="editform('{{ route('lensa.update', $item->id) }}')" class="btn btn-xs btn-info btn-flat">
+                                                        <i class="fa fa-pencil"></i> Edit
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <div class="text-center" style="padding: 12px; border: 1px dashed #ddd; margin-bottom: 16px;">
+                                    <h5><i class="fa fa-check-circle text-success"></i> Stok Lensa Umum Aman</h5>
+                                    <p>Tidak ada lensa umum dengan stok <= {{ $batasStok }}</p>
+                                </div>
+                            @endif
+                        </div>
                     </div>
                 @else
                     <div class="text-center">
                         <h4><i class="fa fa-check-circle text-success"></i> Stok Aman</h4>
-                        <p>Tidak ada lensa dengan stok di bawah {{ $batasStok }}</p>
+                        <p>Tidak ada lensa dengan stok <= {{ $batasStok }}</p>
                     </div>
                 @endif
             </div>
@@ -243,23 +312,39 @@
             {data: 'aksi', searchable: false, orderable: false}
         );
 
-        var $lowStockLensaTable = $('#table-low-stock-lensa');
-
-        $lowStockLensaTable.DataTable({
-            responsive: true,
-            pageLength: 5,
-            lengthMenu: [[5, 10, 25, -1], [5, 10, 25, 'Semua']],
-            autoWidth: false,
-            processing: false,
-            deferRender: true,
-            ordering: true,
-            searching: true,
-            info: true,
-            language: {
-                emptyTable: 'Tidak ada data stok menipis',
-                zeroRecords: 'Tidak ada hasil yang cocok'
+        function initLowStockDataTable(selector) {
+            if (!$(selector).length) {
+                return;
             }
-        });
+
+            $(selector).DataTable({
+                responsive: true,
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'Semua']],
+                autoWidth: false,
+                processing: false,
+                deferRender: true,
+                ordering: true,
+                searching: true,
+                info: true,
+                language: {
+                    emptyTable: 'Tidak ada data stok menipis',
+                    zeroRecords: 'Tidak ada hasil yang cocok',
+                    search: 'Cari:',
+                    lengthMenu: 'Tampilkan _MENU_ data',
+                    info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
+                    paginate: {
+                        first: 'Awal',
+                        last: 'Akhir',
+                        next: 'Berikutnya',
+                        previous: 'Sebelumnya'
+                    }
+                }
+            });
+        }
+
+        initLowStockDataTable('#table-low-stock-lensa-bpjs');
+        initLowStockDataTable('#table-low-stock-lensa-umum');
 
         table = $('#table-lensa').DataTable({
             responsive: true,

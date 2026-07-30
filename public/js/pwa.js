@@ -28,85 +28,91 @@ class PWAInstaller {
     }
 
     // Show a portrait overlay on tablet/mobile so users are guided to landscape mode
-    setupOrientationOverlay() {
-        const isPhoneScreen = window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
-        if (isPhoneScreen) {
-            const existingOverlay = document.getElementById("landscape-overlay");
-            if (existingOverlay) {
-                existingOverlay.remove();
-            }
-            return;
-        }
+   setupOrientationOverlay() {
+    const isTouch = navigator.maxTouchPoints > 0;
 
-        const isSmallScreen = window.matchMedia && window.matchMedia("(max-width: 1024px)").matches;
+    const isPhone =
+        isTouch && window.matchMedia("(max-width: 767px)").matches;
 
-        if (!isSmallScreen) {
-            return;
-        }
+    const isTablet =
+        isTouch &&
+        window.matchMedia("(min-width: 768px) and (max-width: 1366px)").matches;
 
-        if (!document.getElementById("landscape-overlay")) {
-            const overlay = document.createElement("div");
-            overlay.id = "landscape-overlay";
-            overlay.className = "landscape-overlay";
-            overlay.innerHTML = `
-                <div class="landscape-overlay-card">
-                    <div class="landscape-overlay-icon">⟳</div>
-                    <h3>Putar Device ke Landscape</h3>
-                    <p>Untuk tampilan yang lebih nyaman, silakan putar perangkat ke posisi horizontal.</p>
-                </div>
-            `;
-            document.body.appendChild(overlay);
-        }
-
-        const updateOverlay = () => {
-            const overlay = document.getElementById("landscape-overlay");
-            if (!overlay) {
-                return;
-            }
-
-            const isPortrait = window.matchMedia && window.matchMedia("(orientation: portrait)").matches;
-            overlay.classList.toggle("active", isPortrait);
-        };
-
-        updateOverlay();
-        window.addEventListener("resize", updateOverlay);
-        window.addEventListener("orientationchange", updateOverlay);
+    // HP tidak memakai overlay
+    if (isPhone) {
+        const existing = document.getElementById("landscape-overlay");
+        if (existing) existing.remove();
+        return;
     }
+
+    // Selain tablet juga tidak perlu
+    if (!isTablet) return;
+
+    if (!document.getElementById("landscape-overlay")) {
+        const overlay = document.createElement("div");
+        overlay.id = "landscape-overlay";
+        overlay.className = "landscape-overlay";
+        overlay.innerHTML = `
+            <div class="landscape-overlay-card">
+                <div class="landscape-overlay-icon">⟳</div>
+                <h3>Putar Tablet ke Landscape</h3>
+                <p>Mode landscape diperlukan agar aplikasi tampil dengan nyaman.</p>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    const updateOverlay = () => {
+        const overlay = document.getElementById("landscape-overlay");
+        if (!overlay) return;
+
+        const isPortrait =
+            window.matchMedia("(orientation: portrait)").matches;
+
+        overlay.classList.toggle("active", isPortrait);
+    };
+
+    updateOverlay();
+
+    window.addEventListener("resize", updateOverlay);
+    window.addEventListener("orientationchange", updateOverlay);
+}
 
     // Best-effort landscape lock for mobile/tablet browsers that allow it
-    setupLandscapeMode() {
-        const isPhoneScreen = window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
-        if (isPhoneScreen) {
-            return;
-        }
+   setupLandscapeMode() {
+    const isTouch = navigator.maxTouchPoints > 0;
 
-        const isSmallScreen = window.matchMedia && window.matchMedia("(max-width: 1024px)").matches;
+    const isTablet =
+        isTouch &&
+        window.matchMedia("(min-width: 768px) and (max-width: 1366px)").matches;
 
-        if (!isSmallScreen) {
-            return;
-        }
+    if (!isTablet) return;
 
-        const lockLandscape = async () => {
-            try {
-                if (screen.orientation && typeof screen.orientation.lock === "function") {
-                    await screen.orientation.lock("landscape");
-                    console.log("Landscape orientation locked");
-                }
-            } catch (error) {
-                console.log("Landscape lock not supported or denied:", error);
+    const lockLandscape = async () => {
+        try {
+            if (
+                screen.orientation &&
+                typeof screen.orientation.lock === "function"
+            ) {
+                await screen.orientation.lock("landscape");
+                console.log("Landscape locked");
             }
-        };
+        } catch (e) {
+            console.log("Landscape lock tidak didukung browser");
+        }
+    };
 
-        // Try immediately, then retry once after first interaction for browsers that require a gesture.
+    lockLandscape();
+
+    const retry = () => {
         lockLandscape();
-        const retryOnce = () => {
-            lockLandscape();
-            document.removeEventListener("click", retryOnce);
-            document.removeEventListener("touchstart", retryOnce);
-        };
-        document.addEventListener("click", retryOnce, { once: true });
-        document.addEventListener("touchstart", retryOnce, { once: true });
-    }
+        document.removeEventListener("click", retry);
+        document.removeEventListener("touchstart", retry);
+    };
+
+    document.addEventListener("click", retry, { once: true });
+    document.addEventListener("touchstart", retry, { once: true });
+}
 
     // Register Service Worker
     async registerServiceWorker() {

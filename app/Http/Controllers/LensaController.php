@@ -23,7 +23,7 @@ class LensaController extends Controller
         $sales = \App\Models\Sales::where('keterangan', 'like', '%lensa%')->pluck('nama_sales', 'id_sales');
 
         // Batas stok untuk kategori "Stok Menipis"
-        $batasStok = 2;
+        $batasStok = 4;
 
         // Ambil data lensa dengan stok rendah
         $user = auth()->user();

@@ -72,6 +72,7 @@
                           @if(auth()->user()->isKasir() || auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
                           <li style="margin: 0;"><a href="{{ route('pasien.index') }}" style="padding: 8px 15px;"><i class="fa fa-user-plus"></i> <span>Data Pasien</span></a></li>
                           <li style="margin: 0;"><a href="{{ route('penjualan.index') }}" style="padding: 8px 15px;"><i class="fa fa-upload"></i> <span>Data Penjualan</span></a></li>
+                          <li style="margin: 0;"><a href="{{ route('penjualan.bpjs-photo-update.index') }}" style="padding: 8px 15px;"><i class="fa fa-camera"></i> <span>Update Foto BPJS</span></a></li>
                           <li style="margin: 0;"><a href="{{ route('barcode.scan') }}" style="padding: 8px 15px;"><i class="fa fa-qrcode"></i> <span>Scan QR Code</span></a></li>
                           @endif
                           @endif
@@ -80,6 +81,7 @@
                           <li class="header" style="padding: 8px 15px; margin: 8px 0 0 0; background-color: #a4193d; color: #fff; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">LAPORAN</li>
                           <li style="margin: 0;"><a href="{{ route('laporan.pos') }}" style="padding: 8px 15px;"><i class="fa fa-file-text"></i> <span>Laporan POS</span></a></li>
                           <li style="margin: 0;"><a href="{{ route('laporan.bpjs') }}" style="padding: 8px 15px;"><i class="fa fa-file-text"></i> <span>Laporan BPJS</span></a></li>
+                          <li style="margin: 0;"><a href="{{ route('laporan.penjualan-delete') }}" style="padding: 8px 15px;"><i class="fa fa-trash"></i> <span>Audit Hapus Penjualan</span></a></li>
                           @if(auth()->user()->isSuperAdmin())
                           <li style="margin: 0;"><a href="{{ route('laporan.profit-loss') }}" style="padding: 8px 15px;"><i class="fa fa-line-chart"></i> <span>Laporan Laba Rugi</span></a></li>
                           @endif

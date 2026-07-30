@@ -29,6 +29,15 @@ class PWAInstaller {
 
     // Show a portrait overlay on tablet/mobile so users are guided to landscape mode
     setupOrientationOverlay() {
+        const isPhoneScreen = window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+        if (isPhoneScreen) {
+            const existingOverlay = document.getElementById("landscape-overlay");
+            if (existingOverlay) {
+                existingOverlay.remove();
+            }
+            return;
+        }
+
         const isSmallScreen = window.matchMedia && window.matchMedia("(max-width: 1024px)").matches;
 
         if (!isSmallScreen) {
@@ -66,6 +75,11 @@ class PWAInstaller {
 
     // Best-effort landscape lock for mobile/tablet browsers that allow it
     setupLandscapeMode() {
+        const isPhoneScreen = window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+        if (isPhoneScreen) {
+            return;
+        }
+
         const isSmallScreen = window.matchMedia && window.matchMedia("(max-width: 1024px)").matches;
 
         if (!isSmallScreen) {

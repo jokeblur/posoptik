@@ -138,6 +138,12 @@ Route::middleware([
     Route::get('/pasien/{pasien}/cetak-resep-kartu', [PasienController::class, 'cetakResepKartu'])->name('pasien.cetak-resep-kartu');
     Route::post('/penjualan/{penjualan}/lunas', [PenjualanController::class, 'lunas'])->name('penjualan.lunas');
     Route::post('/penjualan/{id}/diambil', [PenjualanController::class, 'diambil'])->name('penjualan.diambil');
+    Route::get('/penjualan/bpjs-photo-update', [PenjualanController::class, 'bpjsPhotoUpdateIndex'])
+        ->name('penjualan.bpjs-photo-update.index')
+        ->middleware('role:kasir,admin,super admin');
+    Route::post('/penjualan/{id}/bpjs-photo-update', [PenjualanController::class, 'bpjsPhotoUpdateStore'])
+        ->name('penjualan.bpjs-photo-update.store')
+        ->middleware('role:kasir,admin,super admin');
     Route::post('/penjualan/{penjualan}/wa-image', [PenjualanController::class, 'uploadWhatsappReceiptImage'])->name('penjualan.wa-image');
     Route::get('penjualan/omset-harian', [\App\Http\Controllers\PenjualanController::class, 'omsetHarian'])->name('penjualan.omset_harian');
     Route::post('/penjualan/calculate-bpjs-price', [PenjualanController::class, 'calculateBpjsPrice'])->name('penjualan.calculate_bpjs_price');
@@ -162,6 +168,8 @@ Route::middleware([
     // Laporan Tanda Tangan BPJS routes
     Route::get('/laporan-signature-bpjs', [App\Http\Controllers\PenjualanController::class, 'signatureReport'])->name('laporan.signature.bpjs')->middleware('role:admin,super admin');
     Route::get('/laporan-signature-bpjs/data', [App\Http\Controllers\PenjualanController::class, 'signatureReportData'])->name('laporan.signature.bpjs.data')->middleware('role:admin,super admin');
+    Route::get('/laporan-hapus-penjualan', [App\Http\Controllers\PenjualanController::class, 'deleteAuditReport'])->name('laporan.penjualan-delete')->middleware('role:admin,super admin');
+    Route::get('/laporan-hapus-penjualan/data', [App\Http\Controllers\PenjualanController::class, 'deleteAuditReportData'])->name('laporan.penjualan-delete.data')->middleware('role:admin,super admin');
     
     // API untuk dashboard charts
     Route::get('/api/dashboard/chart-data', [App\Http\Controllers\DashboardController::class, 'getChartData'])->name('dashboard.chart-data')->middleware('role:admin,super admin');
@@ -217,6 +225,7 @@ Route::group(['middleware' => 'auth'], function() {
     Route::get('/branch/user-branches', [BranchController::class, 'getUserBranches'])->name('branch.user-branches');
 
     Route::get('/frame/data', [FrameController::class, 'data'])->name('frame.data');
+    Route::post('/frame/{id}/restock', [FrameController::class, 'restock'])->name('frame.restock');
     Route::post('/frame/bulk-delete', [FrameController::class, 'bulkDelete'])->name('frame.bulk-delete');
     Route::resource('/frame', FrameController::class);
 
@@ -225,6 +234,7 @@ Route::group(['middleware' => 'auth'], function() {
 
     Route::get('/lensa/data', [LensaController::class, 'data'])->name('lensa.data');
     Route::get('/lensa/data/{branch}', [LensaController::class, 'dataByBranch'])->name('lensa.data.branch');
+    Route::post('/lensa/{id}/restock', [LensaController::class, 'restock'])->name('lensa.restock');
     Route::post('/lensa/bulk-delete', [LensaController::class, 'bulkDelete'])->name('lensa.bulk-delete');
     Route::post('/lensa/import', [LensaController::class, 'import'])->name('lensa.import');
     Route::get('/lensa/export', [LensaController::class, 'export'])->name('lensa.export');

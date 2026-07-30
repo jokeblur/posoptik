@@ -79,8 +79,8 @@
                                                 <td>{{ $item->cly ?? '-' }}</td>
                                                 <td><span class="badge bg-red">{{ $item->stok }}</span></td>
                                                 <td>
-                                                    <button onclick="editform('{{ route('lensa.update', $item->id) }}')" class="btn btn-xs btn-info btn-flat">
-                                                        <i class="fa fa-pencil"></i> Edit
+                                                    <button onclick='restockLensa(@json(route("lensa.restock", $item->id)), @json($item->merk_lensa))' class="btn btn-xs btn-success btn-flat">
+                                                        <i class="fa fa-plus"></i> Restok
                                                     </button>
                                                 </td>
                                             </tr>
@@ -133,8 +133,8 @@
                                                 <td>{{ $item->cly ?? '-' }}</td>
                                                 <td><span class="badge bg-red">{{ $item->stok }}</span></td>
                                                 <td>
-                                                    <button onclick="editform('{{ route('lensa.update', $item->id) }}')" class="btn btn-xs btn-info btn-flat">
-                                                        <i class="fa fa-pencil"></i> Edit
+                                                    <button onclick='restockLensa(@json(route("lensa.restock", $item->id)), @json($item->merk_lensa))' class="btn btn-xs btn-success btn-flat">
+                                                        <i class="fa fa-plus"></i> Restok
                                                     </button>
                                                 </td>
                                             </tr>
@@ -477,6 +477,60 @@
                 return;
             });
     }
+
+    function restockLensa(url, namaLensa) {
+        Swal.fire({
+            title: 'Restok Lensa BPJS',
+            text: `Masukkan jumlah restok untuk ${namaLensa}`,
+            input: 'number',
+            inputAttributes: {
+                min: 1,
+                step: 1
+            },
+            inputValue: 1,
+            showCancelButton: true,
+            confirmButtonText: 'Simpan',
+            cancelButtonText: 'Batal',
+            showLoaderOnConfirm: true,
+            preConfirm: (qty) => {
+                const jumlah = parseInt(qty, 10);
+
+                if (!jumlah || jumlah < 1) {
+                    Swal.showValidationMessage('Jumlah restok minimal 1');
+                    return false;
+                }
+
+                return $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: {
+                        _token: $('[name=csrf-token]').attr('content'),
+                        qty: jumlah
+                    }
+                }).then((response) => {
+                    return response;
+                }).catch((error) => {
+                    Swal.showValidationMessage(
+                        error.responseJSON?.message || 'Gagal melakukan restok'
+                    );
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: result.value?.message || 'Stok lensa berhasil ditambahkan',
+                    timer: 1200,
+                    showConfirmButton: false
+                }).then(() => {
+                    window.location.reload();
+                });
+            }
+        });
+    }
+
     function deleteData(url) {
         if (confirm('Yakin ingin menghapus data terpilih?')) {
             $.post(url, {

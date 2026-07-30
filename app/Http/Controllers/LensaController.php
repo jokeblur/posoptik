@@ -242,6 +242,27 @@ class LensaController extends Controller
         return response()->json(['message' => 'Lensa berhasil diperbarui']);
     }
 
+    public function restock(Request $request, $id)
+    {
+        $user = auth()->user();
+
+        $request->validate([
+            'qty' => 'required|integer|min:1',
+        ]);
+
+        $lensa = Lensa::query()
+            ->accessibleByUser($user)
+            ->findOrFail($id);
+
+        $lensa->increment('stok', (int) $request->qty);
+        $lensa->refresh();
+
+        return response()->json([
+            'message' => 'Restok berhasil. Stok saat ini: ' . $lensa->stok,
+            'stok' => (int) $lensa->stok,
+        ]);
+    }
+
     public function destroy($id)
     {
         $lensa = Lensa::find($id);

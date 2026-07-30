@@ -20,7 +20,7 @@ class FrameController extends Controller
             }
             // Jika bukan admin atau super admin, bisa diganti dengan redirect atau abort
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
-        })->only(['store', 'update', 'destroy']);
+        })->only(['store', 'update', 'destroy', 'restock']);
     }
     
     /**
@@ -179,6 +179,27 @@ class FrameController extends Controller
         $frame->update($data);
 
         return response()->json('Data berhasil disimpan', 200);
+    }
+
+    public function restock(Request $request, $id)
+    {
+        $user = auth()->user();
+
+        $request->validate([
+            'qty' => 'required|integer|min:1',
+        ]);
+
+        $frame = Frame::query()
+            ->accessibleByUser($user)
+            ->findOrFail($id);
+
+        $frame->increment('stok', (int) $request->qty);
+        $frame->refresh();
+
+        return response()->json([
+            'message' => 'Restok berhasil. Stok saat ini: ' . $frame->stok,
+            'stok' => (int) $frame->stok,
+        ]);
     }
 
     public function destroy($id)

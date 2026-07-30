@@ -466,8 +466,7 @@ class PenjualanController extends Controller
                 }
                 
                 // Hanya super admin dan admin yang bisa menghapus transaksi
-                if (($user->isSuperAdmin() || $user->isAdmin()) && 
-                    ($user->role === 'super admin' || $penjualan->branch_id === $user->branch_id)) {
+                if ($user->isSuperAdmin() || $user->isAdmin()) {
                     $deleteButton = '<button onclick="hapusTransaksi(`'. route('penjualan.destroy', $penjualan->id) .'`)" class="btn btn-xs btn-danger btn-flat" title="Hapus"><i class="fa fa-trash"></i></button>';
                 }
 
@@ -1045,6 +1044,103 @@ class PenjualanController extends Controller
         }
 
         abort(404, 'File foto bukti BPJS tidak ditemukan di storage.');
+    }
+
+    public function bpjsPhotoUpdateIndex(Request $request)
+    {
+        $user = auth()->user();
+
+        $query = Penjualan::query()
+            ->with(['pasien', 'branch', 'user'])
+            ->where(function ($q) {
+                $q->whereIn('pasien_service_type', self::BPJS_SERVICE_TYPES)
+                    ->orWhereHas('pasien', function ($pasienQuery) {
+                        $pasienQuery->whereIn('service_type', self::BPJS_SERVICE_TYPES);
+                    });
+            })
+            ->orderByDesc('id');
+
+        if (!$user->isSuperAdmin() && !$user->isAdmin()) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        if ($request->filled('q')) {
+            $keyword = trim((string) $request->q);
+            $query->where(function ($subQuery) use ($keyword) {
+                $subQuery->where('kode_penjualan', 'like', "%{$keyword}%")
+                    ->orWhere('nama_pasien_manual', 'like', "%{$keyword}%")
+                    ->orWhereHas('pasien', function ($pasienQuery) use ($keyword) {
+                        $pasienQuery->where('nama_pasien', 'like', "%{$keyword}%");
+                    });
+            });
+        }
+
+        $penjualans = $query->paginate(20)->appends($request->query());
+
+        return view('penjualan.update_bpjs_photo', compact('penjualans'));
+    }
+
+    public function bpjsPhotoUpdateStore(Request $request, $id)
+    {
+        $user = auth()->user();
+        $penjualan = Penjualan::with('pasien')->findOrFail($id);
+
+        if (!$user->isSuperAdmin() && !$user->isAdmin() && (int) $penjualan->branch_id !== (int) $user->branch_id) {
+            return back()->with('error', 'Anda tidak memiliki akses ke transaksi ini.');
+        }
+
+        $isBpjsTransaction = in_array((string) ($penjualan->pasien_service_type ?? ''), self::BPJS_SERVICE_TYPES, true)
+            || in_array((string) ($penjualan->pasien->service_type ?? ''), self::BPJS_SERVICE_TYPES, true);
+
+        if (!$isBpjsTransaction) {
+            return back()->with('error', 'Transaksi ini bukan transaksi BPJS.');
+        }
+
+        $request->validate([
+            'photo_bpjs' => 'nullable|image|max:3072',
+            'photo_bpjs_webcam' => 'nullable|string',
+        ]);
+
+        if (!$request->hasFile('photo_bpjs') && !$request->filled('photo_bpjs_webcam')) {
+            return back()->with('error', 'Silakan ambil/upload foto BPJS terlebih dahulu.');
+        }
+
+        try {
+            $path = null;
+
+            if ($request->hasFile('photo_bpjs')) {
+                $path = $request->file('photo_bpjs')->store('photos_bpjs', 'public');
+            } elseif ($request->filled('photo_bpjs_webcam')) {
+                $path = $this->storeBase64ImageToPublicDisk((string) $request->photo_bpjs_webcam, 'photos_bpjs');
+            }
+
+            if (empty($path)) {
+                return back()->with('error', 'Gagal menyimpan foto BPJS.');
+            }
+
+            $penjualan->update([
+                'photo_bpjs' => $path,
+            ]);
+
+            Log::info('BPJS photo updated by cashier menu', [
+                'penjualan_id' => $penjualan->id,
+                'kode_penjualan' => $penjualan->kode_penjualan,
+                'updated_by_user_id' => $user->id,
+                'updated_by_user_name' => $user->name,
+                'updated_by_user_role' => $user->role,
+                'branch_id' => $penjualan->branch_id,
+            ]);
+
+            return back()->with('success', 'Foto BPJS berhasil diperbarui.');
+        } catch (\Exception $e) {
+            Log::error('Failed to update BPJS photo from cashier menu', [
+                'penjualan_id' => $penjualan->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('error', 'Gagal memperbarui foto BPJS: ' . $e->getMessage());
+        }
     }
 
     public function edit($id)
@@ -1744,25 +1840,67 @@ class PenjualanController extends Controller
         
         // Hanya super admin dan admin yang bisa menghapus transaksi
         if (!$user->isSuperAdmin() && !$user->isAdmin()) {
+            Log::warning('Unauthorized delete attempt on penjualan', [
+                'penjualan_id' => $id,
+                'user_id' => $user->id ?? null,
+                'user_role' => $user->role ?? null,
+            ]);
             return response()->json(['message' => 'Anda tidak memiliki izin untuk menghapus transaksi.'], 403);
         }
 
-        $penjualan = Penjualan::findOrFail($id);
-
-        // Cek apakah user memiliki akses ke cabang transaksi ini
-        if ($user->role !== 'super admin' && $penjualan->branch_id !== $user->branch_id) {
-            return response()->json(['message' => 'Anda tidak memiliki izin untuk menghapus transaksi dari cabang lain.'], 403);
-        }
+        $penjualan = Penjualan::with('details.itemable')->findOrFail($id);
 
         try {
+            DB::beginTransaction();
+            $restoredItems = [];
+
+            // Kembalikan stok item sebelum detail transaksi dihapus.
+            foreach ($penjualan->details as $detail) {
+                if (!$detail->itemable) {
+                    continue;
+                }
+
+                $isCustomLensa = $detail->itemable_type === Lensa::class
+                    && $this->hasTableColumn('lensa', 'is_custom_order')
+                    && (bool) ($detail->itemable->is_custom_order ?? false);
+
+                if (!$isCustomLensa) {
+                    $detail->itemable->increment('stok', (int) $detail->quantity);
+                    $restoredItems[] = [
+                        'detail_id' => $detail->id,
+                        'itemable_type' => class_basename($detail->itemable_type),
+                        'itemable_id' => $detail->itemable_id,
+                        'qty_restored' => (int) $detail->quantity,
+                    ];
+                }
+            }
+
             // Hapus detail transaksi terlebih dahulu
             $penjualan->details()->delete();
             
             // Hapus transaksi
             $penjualan->delete();
 
+            DB::commit();
+
+            Log::info('Penjualan deleted and stock restored', [
+                'penjualan_id' => $penjualan->id,
+                'kode_penjualan' => $penjualan->kode_penjualan,
+                'deleted_by_user_id' => $user->id,
+                'deleted_by_user_name' => $user->name,
+                'deleted_by_user_role' => $user->role,
+                'branch_id' => $penjualan->branch_id,
+                'restored_items' => $restoredItems,
+            ]);
+
             return response()->json(['message' => 'Transaksi berhasil dihapus.']);
         } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to delete penjualan', [
+                'penjualan_id' => $penjualan->id ?? $id,
+                'user_id' => $user->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
             return response()->json(['message' => 'Gagal menghapus transaksi. Silakan coba lagi.'], 500);
         }
     }
@@ -2202,6 +2340,102 @@ class PenjualanController extends Controller
                 'message' => 'Gagal debug frame data: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function deleteAuditReport()
+    {
+        return view('penjualan.audit_delete');
+    }
+
+    public function deleteAuditReportData(Request $request)
+    {
+        $entries = $this->readPenjualanDeleteAuditLogEntries(1500);
+
+        if ($request->filled('start_date')) {
+            $startDate = (string) $request->start_date;
+            $entries = $entries->filter(function ($entry) use ($startDate) {
+                return substr((string) $entry['deleted_at'], 0, 10) >= $startDate;
+            })->values();
+        }
+
+        if ($request->filled('end_date')) {
+            $endDate = (string) $request->end_date;
+            $entries = $entries->filter(function ($entry) use ($endDate) {
+                return substr((string) $entry['deleted_at'], 0, 10) <= $endDate;
+            })->values();
+        }
+
+        return datatables()->of($entries)
+            ->addIndexColumn()
+            ->addColumn('deleted_by', function ($row) {
+                return ($row['deleted_by_user_name'] ?? '-') . ' (ID: ' . ($row['deleted_by_user_id'] ?? '-') . ')';
+            })
+            ->addColumn('restored_summary', function ($row) {
+                return (int) ($row['restored_items_count'] ?? 0) . ' item';
+            })
+            ->addColumn('aksi', function ($row) {
+                $payload = htmlspecialchars(json_encode($row['restored_items'] ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
+                return '<button type="button" class="btn btn-xs btn-info" onclick="showRestoredItems(\'' . $payload . '\')"><i class="fa fa-list"></i> Detail</button>';
+            })
+            ->rawColumns(['aksi'])
+            ->make(true);
+    }
+
+    private function readPenjualanDeleteAuditLogEntries(int $maxEntries = 1000)
+    {
+        $logPath = storage_path('logs/laravel.log');
+
+        if (!file_exists($logPath)) {
+            return collect();
+        }
+
+        $lines = @file($logPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if (!is_array($lines) || empty($lines)) {
+            return collect();
+        }
+
+        $entries = [];
+
+        for ($i = count($lines) - 1; $i >= 0; $i--) {
+            if (count($entries) >= $maxEntries) {
+                break;
+            }
+
+            $line = $lines[$i];
+            if (!str_contains($line, 'Penjualan deleted and stock restored')) {
+                continue;
+            }
+
+            $matches = [];
+            $matched = preg_match('/^\[(?<timestamp>[^\]]+)\]\s+\w+\.\w+:\s+Penjualan deleted and stock restored\s+(?<context>\{.*\})$/', $line, $matches);
+            if (!$matched) {
+                continue;
+            }
+
+            $context = json_decode($matches['context'] ?? '{}', true);
+            if (!is_array($context)) {
+                continue;
+            }
+
+            $restoredItems = $context['restored_items'] ?? [];
+            if (!is_array($restoredItems)) {
+                $restoredItems = [];
+            }
+
+            $entries[] = [
+                'deleted_at' => $matches['timestamp'] ?? '-',
+                'penjualan_id' => $context['penjualan_id'] ?? '-',
+                'kode_penjualan' => $context['kode_penjualan'] ?? '-',
+                'deleted_by_user_id' => $context['deleted_by_user_id'] ?? '-',
+                'deleted_by_user_name' => $context['deleted_by_user_name'] ?? '-',
+                'deleted_by_user_role' => $context['deleted_by_user_role'] ?? '-',
+                'branch_id' => $context['branch_id'] ?? '-',
+                'restored_items_count' => count($restoredItems),
+                'restored_items' => $restoredItems,
+            ];
+        }
+
+        return collect($entries);
     }
     
     /**

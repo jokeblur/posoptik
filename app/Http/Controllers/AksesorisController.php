@@ -128,4 +128,10 @@ class AksesorisController extends Controller
         $aksesoris = Aksesoris::findOrFail($id);
         return response()->json($aksesoris);
     }
+
+    public function edit($id)
+    {
+        $aksesoris = Aksesoris::findOrFail($id);
+        return response()->json($aksesoris);
+    }
 } 

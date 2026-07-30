@@ -99,7 +99,7 @@
         // Edit aksesoris
         $(document).on('click', '.btn-edit-aksesoris', function () {
             var id = $(this).data('id');
-            var urlShow = '{{ url('aksesoris') }}/' + id;
+            var urlShow = '{{ url('aksesoris') }}/' + id + '/edit';
             var urlUpdate = '{{ url('aksesoris') }}/' + id;
             $('#modal-form').modal('show');
             $('#modal-form .modal-title').text('Edit Aksesoris');
@@ -112,6 +112,8 @@
                 $('#modal-form [name=harga_jual]').val(data.harga_jual);
                 $('#modal-form [name=stok]').val(data.stok);
                 $('#modal-form [name=branch_id]').val(data.branch_id);
+            }).fail(function () {
+                alert('Tidak dapat memuat data aksesoris untuk diedit');
             });
         });
 

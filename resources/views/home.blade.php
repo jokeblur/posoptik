@@ -1711,6 +1711,36 @@ $(document).ready(function() {
     
     // Initialize the table
     initAdminTransactionTable();
+
+    function initKasirBpjsMonthlyTable() {
+        var selector = '#tableKasirPasienBpjs';
+        var $table = $(selector);
+
+        if (!$table.length) {
+            return;
+        }
+
+        if ($.fn.DataTable.isDataTable(selector)) {
+            var existing = $table.DataTable();
+            existing.columns.adjust();
+            if (existing.responsive && typeof existing.responsive.recalc === 'function') {
+                existing.responsive.recalc();
+            }
+            return;
+        }
+
+        $table.DataTable({
+            responsive: true,
+            pageLength: 10,
+            order: [[6, 'desc']],
+            language: {
+                url: '{{ asset('js/datatables-id.json') }}'
+            },
+            columnDefs: [
+                { targets: '_all', defaultContent: '-' }
+            ]
+        });
+    }
     
 
     
@@ -1751,6 +1781,12 @@ $(document).ready(function() {
         console.log('Admin transaction modal shown, reinitializing table...');
         setTimeout(function() {
             initAdminTransactionTable();
+        }, 100);
+    });
+
+    $(document).on('shown.bs.modal', '#modalKasirPasienBpjs', function() {
+        setTimeout(function() {
+            initKasirBpjsMonthlyTable();
         }, 100);
     });
     

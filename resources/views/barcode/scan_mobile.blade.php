@@ -780,8 +780,8 @@ function updateStatus(transaksiId) {
         title: 'Update Status',
         input: 'select',
         inputOptions: {
-            'Menunggu Pengerjaan': 'Menunggu Pengerjaan',
-            'Sedang Dikerjakan': 'Sedang Dikerjakan',
+            'Lensa Di Pesan': 'Lensa Di Pesan',
+            'Sedang Mengerjakan': 'Sedang Mengerjakan',
             'Selesai': 'Selesai',
             'Diambil': 'Diambil'
         },

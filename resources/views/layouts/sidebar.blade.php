@@ -72,7 +72,23 @@
                           @if(auth()->user()->isKasir() || auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
                           <li style="margin: 0;"><a href="{{ route('pasien.index') }}" style="padding: 8px 15px;"><i class="fa fa-user-plus"></i> <span>Data Pasien</span></a></li>
                           <li style="margin: 0;"><a href="{{ route('penjualan.index') }}" style="padding: 8px 15px;"><i class="fa fa-upload"></i> <span>Data Penjualan</span></a></li>
+                          @php
+                              $sidebarBranchName = strtolower((string) optional(auth()->user()->branch)->name);
+                              $hideBpjsPhotoForKasirCabang2 = auth()->user()->isKasir() && (
+                                  strpos($sidebarBranchName, 'optik melati cabang 2') !== false ||
+                                  strpos($sidebarBranchName, 'optik melati 2') !== false
+                              );
+                              $showBpjsScanMenuKasirCabang1 = auth()->user()->isKasir() && (
+                                  strpos($sidebarBranchName, 'optik melati cabang 1') !== false ||
+                                  strpos($sidebarBranchName, 'optik melati 1') !== false
+                              );
+                          @endphp
+                          @if(!$hideBpjsPhotoForKasirCabang2)
                           <li style="margin: 0;"><a href="{{ route('penjualan.bpjs-photo-update.index') }}" style="padding: 8px 15px;"><i class="fa fa-camera"></i> <span>Update Foto BPJS</span></a></li>
+                          @endif
+                          @if($showBpjsScanMenuKasirCabang1)
+                          <li style="margin: 0;"><a href="{{ route('penjualan.bpjs-photo-scan.index', ['scan_mode' => 1]) }}" style="padding: 8px 15px;"><i class="fa fa-id-card"></i> <span>Scan Foto BPJS (Sudah Di Ambil)</span></a></li>
+                          @endif
                           <li style="margin: 0;"><a href="{{ route('barcode.scan') }}" style="padding: 8px 15px;"><i class="fa fa-qrcode"></i> <span>Scan QR Code</span></a></li>
                           @endif
                           @endif

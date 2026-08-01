@@ -138,6 +138,7 @@ class LensaController extends Controller
             ->addColumn('aksi', function ($lensa) {
                 return '<div class="btn-group">
                     <button onclick="editform(\'' . route('lensa.update', $lensa->id) . '\')" class="btn btn-xs btn-info btn-flat"><i class="fa fa-pencil"></i></button>
+                    <button onclick="restockLensa(\'' . route('lensa.restock', $lensa->id) . '\', \'' . e($lensa->merk_lensa) . '\')" class="btn btn-xs btn-success btn-flat"><i class="fa fa-plus"></i></button>
                     <button onclick="deleteData(\'' . route('lensa.destroy', $lensa->id) . '\')" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
                 </div>';
             })

@@ -16,12 +16,12 @@
         <div class="small-box bg-yellow">
             <div class="inner">
                 <h3 id="menunggu-count">0</h3>
-                <p>Menunggu Pengerjaan</p>
+                <p>Lensa Di Pesan</p>
             </div>
             <div class="icon">
                 <i class="fa fa-clock-o"></i>
             </div>
-            <a href="#" class="small-box-footer" onclick="filterByStatus('Menunggu Pengerjaan')">
+            <a href="#" class="small-box-footer" onclick="filterByStatus('Lensa Di Pesan')">
                 Lihat Detail <i class="fa fa-arrow-circle-right"></i>
             </a>
         </div>
@@ -32,12 +32,12 @@
         <div class="small-box bg-green">
             <div class="inner">
                 <h3 id="selesai-count">0</h3>
-                <p>Selesai Dikerjakan</p>
+                <p>Sudah Di Kerjakan</p>
             </div>
             <div class="icon">
                 <i class="fa fa-check-circle"></i>
             </div>
-            <a href="#" class="small-box-footer" onclick="filterByStatus('Selesai Dikerjakan')">
+            <a href="#" class="small-box-footer" onclick="filterByStatus('Sudah Di Kerjakan')">
                 Lihat Detail <i class="fa fa-arrow-circle-right"></i>
             </a>
         </div>
@@ -47,12 +47,12 @@
         <div class="small-box bg-purple">
             <div class="inner">
                 <h3 id="diambil-count">0</h3>
-                <p>Sudah Diambil</p>
+                <p>Sudah Di Ambil</p>
             </div>
             <div class="icon">
                 <i class="fa fa-handshake-o"></i>
             </div>
-            <a href="#" class="small-box-footer" onclick="filterByStatus('Sudah Diambil')">
+            <a href="#" class="small-box-footer" onclick="filterByStatus('Sudah Di Ambil')">
                 Lihat Detail <i class="fa fa-arrow-circle-right"></i>
             </a>
         </div>
@@ -218,7 +218,7 @@
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33',
-            confirmButtonText: 'Ya, sudah diambil!',
+            confirmButtonText: 'Ya, sudah di ambil!',
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
@@ -282,10 +282,17 @@
                     <label for="status_select">Pilih Status Baru:</label>
                     <select id="status_select" class="form-control">
                         <option value="">-- Pilih Status --</option>
-                        <option value="Menunggu Pengerjaan">Menunggu Pengerjaan</option>
-                        <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
-                        <option value="Selesai Dikerjakan">Selesai Dikerjakan</option>
+                        <option value="Sedang Mengerjakan">Sedang Mengerjakan</option>
+                        <option value="Lensa Di Pesan">Lensa Di Pesan</option>
+                        <option value="Lensa Datang">Lensa Datang</option>
+                        <option value="Sudah Di Kerjakan">Sudah Di Kerjakan</option>
+                        <option value="Kirim WA">Kirim WA</option>
+                        <option value="Sudah Di Ambil">Sudah Di Ambil</option>
                     </select>
+                </div>
+                <div class="form-group text-left" id="nohp_group" style="display:none; margin-top:10px;">
+                    <label for="nohp_input">No HP Pasien (isi jika belum ada):</label>
+                    <input type="text" id="nohp_input" class="form-control" placeholder="Contoh: 081234567890">
                 </div>
             `,
             icon: 'info',
@@ -296,11 +303,22 @@
             cancelButtonText: 'Batal',
             didOpen: () => {
                 // Focus ke select
-                document.getElementById('status_select').focus();
+                const statusSelect = document.getElementById('status_select');
+                const nohpGroup = document.getElementById('nohp_group');
+
+                statusSelect.focus();
+                statusSelect.addEventListener('change', function () {
+                    if (this.value === 'Kirim WA') {
+                        nohpGroup.style.display = 'block';
+                    } else {
+                        nohpGroup.style.display = 'none';
+                    }
+                });
             }
         }).then((result) => {
             if (result.isConfirmed) {
                 const status = document.getElementById('status_select').value;
+                const nohp = (document.getElementById('nohp_input')?.value || '').trim();
                 
                 if (!status) {
                     Swal.fire('Peringatan!', 'Pilih status terlebih dahulu', 'warning');
@@ -313,7 +331,8 @@
                     type: 'POST',
                     data: {
                         '_token': '{{ csrf_token() }}',
-                        'status_pengerjaan': status
+                        'status_pengerjaan': status,
+                        'nohp': nohp
                     },
                     success: function(response) {
                         const wa = response.whatsapp || null;

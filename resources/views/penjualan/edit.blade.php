@@ -229,10 +229,12 @@
                     <div class="form-group col-md-4">
                         <label for="status_pengerjaan">Status Pengerjaan</label>
                         <select name="status_pengerjaan" id="status_pengerjaan" class="form-control">
-                            <option value="Menunggu Pengerjaan" {{ $penjualan->status_pengerjaan == 'Menunggu Pengerjaan' ? 'selected' : '' }}>Menunggu Pengerjaan</option>
-                            <option value="Sedang Dikerjakan" {{ $penjualan->status_pengerjaan == 'Sedang Dikerjakan' ? 'selected' : '' }}>Sedang Dikerjakan</option>
-                            <option value="Selesai Dikerjakan" {{ $penjualan->status_pengerjaan == 'Selesai Dikerjakan' ? 'selected' : '' }}>Selesai Dikerjakan</option>
-                            <option value="Sudah Diambil" {{ $penjualan->status_pengerjaan == 'Sudah Diambil' ? 'selected' : '' }}>Sudah Diambil</option>
+                            <option value="Sedang Mengerjakan" {{ $penjualan->status_pengerjaan == 'Sedang Mengerjakan' ? 'selected' : '' }}>Sedang Mengerjakan</option>
+                            <option value="Lensa Di Pesan" {{ $penjualan->status_pengerjaan == 'Lensa Di Pesan' ? 'selected' : '' }}>Lensa Di Pesan</option>
+                            <option value="Lensa Datang" {{ $penjualan->status_pengerjaan == 'Lensa Datang' ? 'selected' : '' }}>Lensa Datang</option>
+                            <option value="Sudah Di Kerjakan" {{ $penjualan->status_pengerjaan == 'Sudah Di Kerjakan' ? 'selected' : '' }}>Sudah Di Kerjakan</option>
+                            <option value="Kirim WA" {{ $penjualan->status_pengerjaan == 'Kirim WA' ? 'selected' : '' }}>Kirim WA</option>
+                            <option value="Sudah Di Ambil" {{ $penjualan->status_pengerjaan == 'Sudah Di Ambil' ? 'selected' : '' }}>Sudah Di Ambil</option>
                         </select>
                     </div>
                     <div class="form-group col-md-4">

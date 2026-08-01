@@ -381,28 +381,54 @@
                 }
             }
         });
-        $('#modal-form').validator().on('submit', function (e) {
-            if (!e.preventDefault()) {
-                $.post($('#modal-form form').attr('action'), $('#modal-form form').serialize())
-                    .done((response) => {
-                        $('#modal-form').modal('hide');
-                        table.ajax.reload();
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil!',
-                            text: 'Data berhasil disimpan.',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                    })
-                    .fail((errors) => {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Gagal!',
-                            text: 'Tidak dapat menyimpan data.',
-                        });
-                    });
+        const $modalForm = $('#modal-form');
+        const $crudForm = $modalForm.find('form');
+
+        function resetFormValidationState() {
+            $crudForm.find(':submit').prop('disabled', false);
+            $crudForm.find('.has-error, .has-success').removeClass('has-error has-success');
+            $crudForm.find('.help-block.with-errors').empty();
+        }
+
+        // Gunakan validasi native agar submit edit berulang tetap stabil.
+        $crudForm.off('submit.formCrud').on('submit.formCrud', function (e) {
+            e.preventDefault();
+
+            const formEl = this;
+            if (!formEl.checkValidity()) {
+                formEl.reportValidity();
+                return;
             }
+
+            const $submitBtn = $(this).find(':submit').first();
+            $submitBtn.prop('disabled', true);
+
+            $.post($crudForm.attr('action'), $crudForm.serialize())
+                .done((response) => {
+                    $modalForm.modal('hide');
+                    table.ajax.reload();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: 'Data berhasil disimpan.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                })
+                .fail((errors) => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: 'Tidak dapat menyimpan data.',
+                    });
+                })
+                .always(() => {
+                    $submitBtn.prop('disabled', false);
+                });
+        });
+
+        $modalForm.on('hidden.bs.modal', function () {
+            resetFormValidationState();
         });
         // Event handler untuk select all
         $(document).on('change', '#select_all', function(){

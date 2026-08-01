@@ -9,6 +9,7 @@ use App\Models\Frame;
 use App\Services\BpjsPricingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
@@ -80,11 +81,16 @@ class DashboardController extends Controller
         $user = auth()->user();
         $today = now()->toDateString();
         $selectedOmsetDate = $request->get('omset_date', $today);
+        $selectedBpjsMonth = $request->get('bpjs_month');
 
         try {
             $selectedOmsetDate = Carbon::parse($selectedOmsetDate)->toDateString();
         } catch (\Exception $e) {
             $selectedOmsetDate = $today;
+        }
+
+        if (empty($selectedBpjsMonth)) {
+            $selectedBpjsMonth = Carbon::parse($selectedOmsetDate)->format('Y-m');
         }
 
         $isOmsetToday = $selectedOmsetDate === $today;
@@ -131,6 +137,18 @@ class DashboardController extends Controller
         $jumlahFrame = null;
         $jumlahAksesoris = null;
         $jumlahTransaksiAktif = null;
+        $isKasirOptikMelati1 = false;
+        $isKasirOptikMelati2 = false;
+        $jumlahPasienBpjsKasir = 0;
+        $detailPasienBpjsKasir = collect();
+        $periodeBpjsBulananLabel = 'Bulan Ini';
+
+        if ($user->isKasir()) {
+            $branchName = Str::lower((string) optional($user->branch)->name);
+            $isKasirOptikMelati1 = Str::contains($branchName, ['optik melati cabang 1', 'optik melati 1']);
+            $isKasirOptikMelati2 = Str::contains($branchName, ['optik melati cabang 2', 'optik melati 2']);
+        }
+
         if ($user->isSuperAdmin() || $user->isAdmin()) {
             // Ambil semua transaksi dengan relasi pasien untuk admin
             $adminTransactions = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
@@ -270,6 +288,52 @@ class DashboardController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->limit(500)
                 ->get();
+
+            try {
+                $bpjsMonthDate = Carbon::createFromFormat('Y-m', $selectedBpjsMonth)->startOfMonth();
+            } catch (\Exception $e) {
+                $bpjsMonthDate = Carbon::parse($selectedOmsetDate)->startOfMonth();
+                $selectedBpjsMonth = $bpjsMonthDate->format('Y-m');
+            }
+
+            $bpjsBulananStart = $bpjsMonthDate->copy()->startOfMonth();
+            $bpjsBulananEnd = $bpjsMonthDate->copy()->endOfMonth();
+            $periodeBpjsBulananLabel = 'Bulan ' . $bpjsMonthDate->format('m/Y');
+
+            $transaksiBpjsBulananKasir = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
+                ->where('created_at', '>=', $bpjsBulananStart)
+                ->where('created_at', '<=', $bpjsBulananEnd)
+                ->with(['pasien', 'user'])
+                ->orderBy('created_at', 'desc')
+                ->limit(5000)
+                ->get();
+
+            $detailPasienBpjsKasir = $transaksiBpjsBulananKasir
+                ->filter(function ($transaksi) {
+                    return $this->isBpjsTransaction($transaksi);
+                })
+                ->filter(function ($transaksi) {
+                    return !empty($transaksi->pasien);
+                })
+                ->groupBy('pasien_id')
+                ->map(function ($items) {
+                    $first = $items->first();
+                    $lastTransaction = $items->sortByDesc('created_at')->first();
+
+                    return (object) [
+                        'id_pasien' => $first->pasien->id_pasien,
+                        'nama_pasien' => $first->pasien->nama_pasien,
+                        'service_type' => $first->pasien->service_type,
+                        'no_bpjs' => $first->pasien->no_bpjs,
+                        'status_pengerjaan_terakhir' => $lastTransaction->status_pengerjaan,
+                        'jenis_transaksi_terakhir' => $lastTransaction->jenis_transaksi,
+                        'transaksi_terakhir' => $lastTransaction->created_at,
+                    ];
+                })
+                ->sortByDesc('transaksi_terakhir')
+                ->values();
+
+            $jumlahPasienBpjsKasir = $detailPasienBpjsKasir->count();
             
             // Conditional debug: Log data transaksi untuk troubleshooting
             if (config('app.debug')) {
@@ -295,7 +359,7 @@ class DashboardController extends Controller
             $jumlahAksesoris = \App\Models\Aksesoris::where('branch_id', $selectedBranchId)->count();
             $jumlahTransaksiAktif = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
-                ->where('status_pengerjaan', '!=', 'Sudah Diambil')
+                ->where('status_pengerjaan', '!=', 'Sudah Di Ambil')
                 ->where('created_at', '>=', $omsetStartKasir)
                 ->where('created_at', '<=', $omsetEndKasir)
                 ->count();
@@ -332,7 +396,7 @@ class DashboardController extends Controller
         // Data untuk passet bantu - transaksi yang menunggu pengerjaan
         $transaksiMenungguPengerjaan = null;
         if ($user->isPassetBantu()) {
-            $transaksiMenungguPengerjaan = \App\Models\Penjualan::where('status_pengerjaan', 'Menunggu Pengerjaan')
+            $transaksiMenungguPengerjaan = \App\Models\Penjualan::where('status_pengerjaan', 'Lensa Di Pesan')
                 ->count();
         }
 
@@ -340,7 +404,7 @@ class DashboardController extends Controller
         $transaksiSelesaiBulanIni = null;
         if ($user->isPassetBantu()) {
             $transaksiSelesaiBulanIni = \App\Models\Penjualan::where('passet_by_user_id', $user->id)
-                ->where('status_pengerjaan', 'Selesai Dikerjakan')
+                ->where('status_pengerjaan', 'Sudah Di Kerjakan')
                 ->whereMonth('waktu_selesai_dikerjakan', now()->month)
                 ->whereYear('waktu_selesai_dikerjakan', now()->year)
                 ->count();
@@ -421,7 +485,8 @@ class DashboardController extends Controller
             'topFrameBrands',
             'lowStockLensa', 'lowStockFrame', 'lowStockAksesoris', 'batasStok',
             'transaksiMenungguPengerjaan', 'transaksiSelesaiBulanIni',
-            'selectedOmsetDate', 'isOmsetToday', 'omsetPeriodeLabel'
+            'selectedOmsetDate', 'isOmsetToday', 'omsetPeriodeLabel',
+            'isKasirOptikMelati1', 'isKasirOptikMelati2', 'jumlahPasienBpjsKasir', 'detailPasienBpjsKasir', 'periodeBpjsBulananLabel', 'selectedBpjsMonth'
         ));
     }
 

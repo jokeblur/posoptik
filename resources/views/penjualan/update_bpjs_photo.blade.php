@@ -3,11 +3,14 @@
 @section('title', 'Update Foto BPJS')
 
 @section('content')
+@php
+    $isScanMode = isset($isScanMode) ? (bool) $isScanMode : false;
+@endphp
 <div class="row">
     <div class="col-md-12">
         <div class="box box-primary">
             <div class="box-header with-border">
-                <h3 class="box-title">Update Foto BPJS (Kasir)</h3>
+                <h3 class="box-title">{{ $isScanMode ? 'Scan Foto BPJS - Status Sudah Di Ambil' : 'Update Foto BPJS (Kasir)' }}</h3>
             </div>
             <div class="box-body">
                 @if(session('success'))
@@ -18,10 +21,19 @@
                     <div class="alert alert-danger">{{ session('error') }}</div>
                 @endif
 
-                <form method="GET" action="{{ route('penjualan.bpjs-photo-update.index') }}" class="row" style="margin-bottom: 15px;">
+                @if($isScanMode)
+                    <div class="alert alert-info" style="margin-bottom: 12px;">
+                        Menu ini hanya menampilkan pasien BPJS dengan status pengerjaan <strong>Sudah Di Ambil</strong>. Anda bisa cari dengan Kode Transaksi, Nama Pasien, ID Pasien, atau No BPJS.
+                    </div>
+                @endif
+
+                <form method="GET" action="{{ $isScanMode ? route('penjualan.bpjs-photo-scan.index') : route('penjualan.bpjs-photo-update.index') }}" class="row" style="margin-bottom: 15px;">
+                    @if($isScanMode)
+                        <input type="hidden" name="scan_mode" value="1">
+                    @endif
                     <div class="col-md-6 col-xs-12">
                         <div class="input-group">
-                            <input type="text" name="q" value="{{ request('q') }}" class="form-control" placeholder="Cari kode penjualan / nama pasien">
+                            <input type="text" name="q" value="{{ request('q') }}" class="form-control" placeholder="Cari kode transaksi / nama pasien / ID pasien / No BPJS">
                             <span class="input-group-btn">
                                 <button class="btn btn-primary" type="submit"><i class="fa fa-search"></i> Cari</button>
                             </span>
@@ -37,6 +49,9 @@
                                 <th>Pasien</th>
                                 <th>Layanan</th>
                                 <th>Cabang</th>
+                                @if($isScanMode)
+                                <th>Status Pengerjaan</th>
+                                @endif
                                 <th>Status Foto</th>
                                 <th>Aksi Update Foto</th>
                             </tr>
@@ -48,6 +63,9 @@
                                     <td>{{ $penjualan->pasien->nama_pasien ?? $penjualan->nama_pasien_manual ?? '-' }}</td>
                                     <td>{{ $penjualan->pasien_service_type ?? $penjualan->pasien->service_type ?? '-' }}</td>
                                     <td>{{ $penjualan->branch->name ?? '-' }}</td>
+                                    @if($isScanMode)
+                                    <td>{{ $penjualan->status_pengerjaan ?? '-' }}</td>
+                                    @endif
                                     <td>
                                         @if(!empty($penjualan->photo_bpjs))
                                             <span class="label label-success">Sudah Ada</span>
@@ -60,14 +78,14 @@
                                     <td>
                                         <button type="button"
                                                 class="btn btn-sm btn-primary btn-block"
-                                                onclick="openCameraModal({{ $penjualan->id }}, '{{ $penjualan->kode_penjualan }}')">
-                                            <i class="fa fa-camera"></i> Ambil Foto
+                                                onclick="openCameraModal({{ $penjualan->id }}, '{{ $penjualan->kode_penjualan }}', '{{ $penjualan->pasien->id_pasien ?? '-' }}')">
+                                            <i class="fa fa-camera"></i> {{ $isScanMode ? 'Scan/Upload Foto' : 'Ambil Foto' }}
                                         </button>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center">Data transaksi BPJS tidak ditemukan.</td>
+                                    <td colspan="{{ $isScanMode ? 7 : 6 }}" class="text-center">Data transaksi BPJS tidak ditemukan.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -82,9 +100,10 @@
     </div>
 </div>
 
-<form id="camera-upload-form" method="POST" action="" style="display:none;">
+<form id="camera-upload-form" method="POST" action="" enctype="multipart/form-data" style="display:none;">
     @csrf
     <input type="hidden" name="photo_bpjs_webcam" id="photo_bpjs_webcam">
+    <input type="file" name="photo_bpjs" id="photo_bpjs_file" accept="image/*">
 </form>
 
 <div class="modal fade" id="modal-camera-bpjs" tabindex="-1" role="dialog" aria-labelledby="modal-camera-bpjs-label">
@@ -92,10 +111,16 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="modal-camera-bpjs-label">Ambil Foto BPJS</h4>
+                <h4 class="modal-title" id="modal-camera-bpjs-label">Scan / Ambil Foto BPJS</h4>
             </div>
             <div class="modal-body">
                 <p id="camera-transaction-info" class="text-muted" style="margin-bottom:10px;"></p>
+
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label for="modal_photo_bpjs_file">Upload Foto Hasil Scanner/Printer (opsional)</label>
+                    <input type="file" id="modal_photo_bpjs_file" class="form-control" accept="image/*">
+                    <small class="text-muted">Jika upload file, Anda bisa langsung Simpan tanpa jepret kamera.</small>
+                </div>
 
                 <div id="camera-live-wrapper">
                     <video id="camera-video" autoplay playsinline style="width:100%; max-height: 60vh; background:#000; border-radius: 6px;"></video>
@@ -129,12 +154,16 @@
     let cameraStream = null;
     let currentPenjualanId = null;
     let capturedImageData = '';
+    let hasUploadedScanFile = false;
 
-    function openCameraModal(penjualanId, kodePenjualan) {
+    function openCameraModal(penjualanId, kodePenjualan, pasienId) {
         currentPenjualanId = penjualanId;
         capturedImageData = '';
+        hasUploadedScanFile = false;
+        $('#modal_photo_bpjs_file').val('');
+        document.getElementById('photo_bpjs_file').value = '';
 
-        $('#camera-transaction-info').text('Kode Transaksi: ' + (kodePenjualan || '-'));
+        $('#camera-transaction-info').text('Kode Transaksi: ' + (kodePenjualan || '-') + ' | ID Pasien: ' + (pasienId || '-'));
         $('#btn-capture').show();
         $('#btn-retake').hide();
         $('#btn-save-photo').hide();
@@ -213,16 +242,34 @@
     }
 
     function saveCapturedPhoto() {
-        if (!currentPenjualanId || !capturedImageData) {
-            alert('Foto belum diambil.');
+        if (!currentPenjualanId) {
+            alert('Data transaksi tidak valid.');
+            return;
+        }
+
+        const modalFileInput = document.getElementById('modal_photo_bpjs_file');
+        const hiddenFileInput = document.getElementById('photo_bpjs_file');
+        const selectedFile = modalFileInput.files && modalFileInput.files[0] ? modalFileInput.files[0] : null;
+
+        if (!capturedImageData && !selectedFile) {
+            alert('Ambil foto dari kamera atau upload file hasil scanner terlebih dahulu.');
             return;
         }
 
         const uploadForm = document.getElementById('camera-upload-form');
         const photoInput = document.getElementById('photo_bpjs_webcam');
 
+        if (selectedFile) {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(selectedFile);
+            hiddenFileInput.files = dataTransfer.files;
+            photoInput.value = '';
+        } else {
+            hiddenFileInput.value = '';
+            photoInput.value = capturedImageData;
+        }
+
         uploadForm.action = '{{ url('penjualan') }}/' + currentPenjualanId + '/bpjs-photo-update';
-        photoInput.value = capturedImageData;
         uploadForm.submit();
     }
 
@@ -230,6 +277,17 @@
         stopCamera();
         capturedImageData = '';
         currentPenjualanId = null;
+        hasUploadedScanFile = false;
+        $('#modal_photo_bpjs_file').val('');
+        document.getElementById('photo_bpjs_file').value = '';
+        document.getElementById('photo_bpjs_webcam').value = '';
+    });
+
+    $('#modal_photo_bpjs_file').on('change', function () {
+        hasUploadedScanFile = this.files && this.files.length > 0;
+        if (hasUploadedScanFile) {
+            $('#btn-save-photo').show();
+        }
     });
 </script>
 @endpush

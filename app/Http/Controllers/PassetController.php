@@ -17,15 +17,15 @@ class PassetController extends Controller
     {
         // Semua user yang bisa akses halaman ini (passet, admin, super admin) bisa melihat semua pekerjaan
         $query = Transaksi::with('pasien', 'branch')
-            ->whereIn('status_pengerjaan', ['Menunggu Pengerjaan', 'Selesai Dikerjakan']);
+            ->whereIn('status_pengerjaan', ['Lensa Di Pesan', 'Sudah Di Kerjakan']);
 
-        // Optional filter by status (e.g., ?status=Menunggu Pengerjaan)
+        // Optional filter by status (e.g., ?status=Lensa Di Pesan)
         if (request()->filled('status')) {
             $query->where('status_pengerjaan', request('status'));
         }
 
         // Prioritaskan yang menunggu, lalu terbaru
-        $query->orderByRaw("CASE WHEN status_pengerjaan = 'Menunggu Pengerjaan' THEN 0 ELSE 1 END")
+        $query->orderByRaw("CASE WHEN status_pengerjaan = 'Lensa Di Pesan' THEN 0 ELSE 1 END")
               ->orderBy('created_at', 'desc');
 
         return datatables()
@@ -50,11 +50,11 @@ class PassetController extends Controller
                 return $transaksi->jenis_transaksi ?: '-';
             })
             ->editColumn('status_pengerjaan', function ($transaksi) {
-                $statusClass = $transaksi->status_pengerjaan == 'Selesai Dikerjakan' ? 'label-success' : 'label-warning';
+                $statusClass = $transaksi->status_pengerjaan == 'Sudah Di Kerjakan' ? 'label-success' : 'label-warning';
                 return '<span class="label '. $statusClass .'">'. $transaksi->status_pengerjaan .'</span>';
             })
             ->addColumn('aksi', function ($transaksi) {
-                if ($transaksi->status_pengerjaan == 'Menunggu Pengerjaan') {
+                if ($transaksi->status_pengerjaan == 'Lensa Di Pesan') {
                     return '
                     <div class="btn-group">
                         <button onclick="markAsSelesai(`'. route('passet.selesai', $transaksi->id) .'`)" class="btn btn-xs btn-primary btn-flat"><i class="fa fa-check"></i></button>
@@ -73,7 +73,7 @@ class PassetController extends Controller
     public function markAsSelesai($id, Request $request)
     {
         $transaksi = Transaksi::findOrFail($id);
-        $transaksi->status_pengerjaan = 'Selesai Dikerjakan';
+        $transaksi->status_pengerjaan = 'Sudah Di Kerjakan';
         // Jika admin/super admin dan ada user_id di request, pakai user_id tersebut
         $user = auth()->user();
         $isAdmin = isset($user->role) && (trim($user->role) === \App\Models\User::ROLE_ADMIN || trim($user->role) === \App\Models\User::ROLE_SUPER_ADMIN);

@@ -141,6 +141,9 @@ Route::middleware([
     Route::get('/penjualan/bpjs-photo-update', [PenjualanController::class, 'bpjsPhotoUpdateIndex'])
         ->name('penjualan.bpjs-photo-update.index')
         ->middleware('role:kasir,admin,super admin');
+    Route::get('/penjualan/bpjs-photo-scan', [PenjualanController::class, 'bpjsPhotoUpdateIndex'])
+        ->name('penjualan.bpjs-photo-scan.index')
+        ->middleware('role:kasir,admin,super admin');
     Route::post('/penjualan/{id}/bpjs-photo-update', [PenjualanController::class, 'bpjsPhotoUpdateStore'])
         ->name('penjualan.bpjs-photo-update.store')
         ->middleware('role:kasir,admin,super admin');

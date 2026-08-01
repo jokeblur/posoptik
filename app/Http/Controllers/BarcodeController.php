@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Penjualan;
 use App\Models\Penjualan as Transaksi; // Alias untuk kompatibilitas
+use App\Helpers\WhatsAppHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -11,6 +12,29 @@ use Carbon\Carbon;
 
 class BarcodeController extends Controller
 {
+    private const WORK_STATUS_SEDANG_MENGERJAKAN = 'Sedang Mengerjakan';
+    private const WORK_STATUS_LENSA_DI_PESAN = 'Lensa Di Pesan';
+    private const WORK_STATUS_LENSA_DATANG = 'Lensa Datang';
+    private const WORK_STATUS_SUDAH_DI_KERJAKAN = 'Sudah Di Kerjakan';
+    private const WORK_STATUS_KIRIM_WA = 'Kirim WA';
+    private const WORK_STATUS_SUDAH_DI_AMBIL = 'Sudah Di Ambil';
+
+    private function buildReadyPickupMessage(Penjualan $penjualan): string
+    {
+        $namaPasien = $penjualan->nama_pasien ?: 'Pelanggan';
+        $kode = $penjualan->kode_penjualan ?: '-';
+        $cabang = $penjualan->branch->name ?? 'Optik Melati';
+
+        return "Halo Bapak/Ibu {$namaPasien},\n\n"
+            . "Kami informasikan bahwa kacamata Anda dengan nomor nota *{$kode}* telah selesai dikerjakan dan sudah dapat diambil di *{$cabang}*.\n\n"
+            . "*Jam Operasional*\n"
+            . "Senin - Sabtu: 08.00 - 16.30 WIB\n"
+            . "Istirahat: 12.30 - 13.30 WIB\n"
+            . "Minggu: Tutup\n\n"
+            . "Mohon melakukan pengambilan pada jam operasional. Kami tidak melayani pengambilan di luar jam kerja.\n\n"
+            . "Terima kasih atas kepercayaan Anda kepada Optik Melati. Kami tunggu kedatangannya.";
+    }
+
     public function index()
     {
         return view('barcode.index');
@@ -112,15 +136,18 @@ class BarcodeController extends Controller
     {
         $request->validate([
             'transaksi_id' => 'required|exists:penjualan,id',
-            'status_pengerjaan' => 'required|in:Menunggu Pengerjaan,Sedang Dikerjakan,Selesai Dikerjakan,Sudah Diambil'
+            'status_pengerjaan' => 'required|in:Sedang Mengerjakan,Lensa Di Pesan,Lensa Datang,Sudah Di Kerjakan,Kirim WA,Sudah Di Ambil',
+            'nohp' => 'nullable|string|max:30',
         ]);
 
-        $transaksi = Penjualan::findOrFail($request->transaksi_id);
+        $transaksi = Penjualan::with(['pasien', 'branch'])->findOrFail($request->transaksi_id);
         $user = auth()->user();
 
         // Update status berdasarkan role
         switch ($request->status_pengerjaan) {
-            case 'Sedang Dikerjakan':
+            case self::WORK_STATUS_SEDANG_MENGERJAKAN:
+            case self::WORK_STATUS_LENSA_DI_PESAN:
+            case self::WORK_STATUS_LENSA_DATANG:
                 if (!in_array($user->role, ['passet bantu', 'admin', 'super admin'])) {
                     return response()->json([
                         'success' => false,
@@ -130,7 +157,7 @@ class BarcodeController extends Controller
                 $transaksi->passet_by_user_id = $user->id;
                 break;
                 
-            case 'Selesai Dikerjakan':
+            case self::WORK_STATUS_SUDAH_DI_KERJAKAN:
                 if (!in_array($user->role, ['passet bantu', 'admin', 'super admin'])) {
                     return response()->json([
                         'success' => false,
@@ -139,8 +166,17 @@ class BarcodeController extends Controller
                 }
                 $transaksi->waktu_selesai_dikerjakan = now();
                 break;
+
+            case self::WORK_STATUS_KIRIM_WA:
+                if (!in_array($user->role, ['kasir', 'admin', 'super admin', 'passet bantu'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Anda tidak memiliki akses untuk mengubah status ini'
+                    ], 403);
+                }
+                break;
                 
-            case 'Sudah Diambil':
+            case self::WORK_STATUS_SUDAH_DI_AMBIL:
                 if (!in_array($user->role, ['kasir', 'admin', 'super admin'])) {
                     return response()->json([
                         'success' => false,
@@ -151,7 +187,7 @@ class BarcodeController extends Controller
                 if (($transaksi->status ?? 'Belum Lunas') !== 'Lunas') {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Transaksi belum lunas. Status Sudah Diambil hanya untuk transaksi yang sudah Lunas.'
+                        'message' => 'Transaksi belum lunas. Status Sudah Di Ambil hanya untuk transaksi yang sudah Lunas.'
                     ], 422);
                 }
 
@@ -160,12 +196,56 @@ class BarcodeController extends Controller
         }
 
         $transaksi->status_pengerjaan = $request->status_pengerjaan;
+
+        if ($request->status_pengerjaan === self::WORK_STATUS_KIRIM_WA) {
+            if (!$transaksi->pasien) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data pasien tidak ditemukan pada transaksi ini. Tidak bisa kirim WA.',
+                ], 422);
+            }
+
+            $inputNoHp = trim((string) $request->input('nohp', ''));
+            if ($inputNoHp !== '') {
+                $normalizedNoHp = WhatsAppHelper::normalizePhoneNumber($inputNoHp);
+                $transaksi->pasien->nohp = $normalizedNoHp ?: $inputNoHp;
+                $transaksi->pasien->save();
+            }
+
+            if (trim((string) ($transaksi->pasien->nohp ?? '')) === '') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nomor HP pasien belum ada. Isi nomor HP untuk status Kirim WA.',
+                ], 422);
+            }
+        }
+
         $transaksi->save();
+
+        $whatsapp = null;
+        if ($request->status_pengerjaan === self::WORK_STATUS_KIRIM_WA) {
+            $phone = WhatsAppHelper::normalizePhoneNumber($transaksi->pasien?->nohp ?? null);
+            if ($phone) {
+                $message = $this->buildReadyPickupMessage($transaksi);
+                $gateway = WhatsAppHelper::sendViaGateway($phone, $message);
+                $whatsapp = [
+                    'success' => (bool) ($gateway['success'] ?? false),
+                    'message' => $gateway['message'] ?? 'Notifikasi WhatsApp diproses.',
+                    'link' => WhatsAppHelper::buildShareLink($phone, $message),
+                ];
+            } else {
+                $whatsapp = [
+                    'success' => false,
+                    'message' => 'Nomor WhatsApp pasien tidak tersedia.',
+                ];
+            }
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Status berhasil diupdate',
-            'data' => $transaksi->fresh(['user', 'branch', 'pasien', 'dokter'])
+            'data' => $transaksi->fresh(['user', 'branch', 'pasien', 'dokter']),
+            'whatsapp' => $whatsapp,
         ]);
     }
 

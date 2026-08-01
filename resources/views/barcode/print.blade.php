@@ -113,10 +113,10 @@
             <td>
                 @php
                     $statusClass = [
-                        'Menunggu Pengerjaan' => 'status-waiting',
-                        'Sedang Dikerjakan' => 'status-processing',
-                        'Selesai Dikerjakan' => 'status-completed',
-                        'Sudah Diambil' => 'status-taken'
+                        'Lensa Di Pesan' => 'status-waiting',
+                        'Sedang Mengerjakan' => 'status-processing',
+                        'Sudah Di Kerjakan' => 'status-completed',
+                        'Sudah Di Ambil' => 'status-taken'
                     ];
                 @endphp
                 <span class="status {{ $statusClass[$transaksi->status_pengerjaan] ?? 'status-waiting' }}">
@@ -136,3 +136,4 @@
     </div>
 </body>
 </html> 
+

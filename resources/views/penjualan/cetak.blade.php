@@ -202,7 +202,7 @@
             @endif
             <div class="info-row">
                 <span class="info-label">Status:</span>
-                <span class="info-value">{{ $penjualan->status_pengerjaan ?? 'Menunggu Pengerjaan' }}</span>
+                <span class="info-value">{{ $penjualan->status_pengerjaan ?? 'Lensa Di Pesan' }}</span>
             </div>
         </div>
         @endif
@@ -406,3 +406,4 @@
     </script>
 </body>
 </html> 
+

@@ -26,6 +26,20 @@ class PenjualanController extends Controller
 {
     protected $bpjsPricingService;
     private const BPJS_SERVICE_TYPES = ['BPJS I', 'BPJS II', 'BPJS III'];
+    private const WORK_STATUS_SEDANG_MENGERJAKAN = 'Sedang Mengerjakan';
+    private const WORK_STATUS_LENSA_DI_PESAN = 'Lensa Di Pesan';
+    private const WORK_STATUS_LENSA_DATANG = 'Lensa Datang';
+    private const WORK_STATUS_SUDAH_DI_KERJAKAN = 'Sudah Di Kerjakan';
+    private const WORK_STATUS_KIRIM_WA = 'Kirim WA';
+    private const WORK_STATUS_SUDAH_DI_AMBIL = 'Sudah Di Ambil';
+    private const WORK_STATUS_ALLOWED = [
+        self::WORK_STATUS_SEDANG_MENGERJAKAN,
+        self::WORK_STATUS_LENSA_DI_PESAN,
+        self::WORK_STATUS_LENSA_DATANG,
+        self::WORK_STATUS_SUDAH_DI_KERJAKAN,
+        self::WORK_STATUS_KIRIM_WA,
+        self::WORK_STATUS_SUDAH_DI_AMBIL,
+    ];
     private array $tableColumnsCache = [];
 
     public function __construct(BpjsPricingService $bpjsPricingService)
@@ -269,10 +283,10 @@ class PenjualanController extends Controller
         $this->applyJenisTransaksiFilter($query, request()->jenis_transaksi, $hasJenisTransaksiColumn);
 
         $statistics = $query->selectRaw('
-            SUM(CASE WHEN status_pengerjaan = "Menunggu Pengerjaan" THEN 1 ELSE 0 END) as menunggu,
-            SUM(CASE WHEN status_pengerjaan = "Sedang Dikerjakan" THEN 1 ELSE 0 END) as sedang,
-            SUM(CASE WHEN status_pengerjaan = "Selesai Dikerjakan" THEN 1 ELSE 0 END) as selesai,
-            SUM(CASE WHEN status_pengerjaan = "Sudah Diambil" THEN 1 ELSE 0 END) as diambil
+            SUM(CASE WHEN status_pengerjaan = "Lensa Di Pesan" THEN 1 ELSE 0 END) as menunggu,
+            SUM(CASE WHEN status_pengerjaan = "Sedang Mengerjakan" THEN 1 ELSE 0 END) as sedang,
+            SUM(CASE WHEN status_pengerjaan = "Sudah Di Kerjakan" THEN 1 ELSE 0 END) as selesai,
+            SUM(CASE WHEN status_pengerjaan = "Sudah Di Ambil" THEN 1 ELSE 0 END) as diambil
         ')->first();
 
         return response()->json([
@@ -432,14 +446,20 @@ class PenjualanController extends Controller
                 $statusText = $penjualan->status_pengerjaan;
                 $timeText = '';
 
-                if ($penjualan->status_pengerjaan == 'Selesai Dikerjakan') {
+                if ($penjualan->status_pengerjaan == self::WORK_STATUS_SUDAH_DI_KERJAKAN) {
                     $statusClass = 'label-success';
                     if ($penjualan->waktu_selesai_dikerjakan) {
                         $timeText = '<br><small>'. tanggal_indonesia($penjualan->waktu_selesai_dikerjakan, true) .'</small>';
                     }
-                } elseif ($penjualan->status_pengerjaan == 'Menunggu Pengerjaan') {
+                } elseif ($penjualan->status_pengerjaan == self::WORK_STATUS_LENSA_DI_PESAN) {
                     $statusClass = 'label-warning';
-                } elseif ($penjualan->status_pengerjaan == 'Sudah Diambil') {
+                } elseif ($penjualan->status_pengerjaan == self::WORK_STATUS_SEDANG_MENGERJAKAN) {
+                    $statusClass = 'label-info';
+                } elseif ($penjualan->status_pengerjaan == self::WORK_STATUS_LENSA_DATANG) {
+                    $statusClass = 'label-primary';
+                } elseif ($penjualan->status_pengerjaan == self::WORK_STATUS_KIRIM_WA) {
+                    $statusClass = 'label-default';
+                } elseif ($penjualan->status_pengerjaan == self::WORK_STATUS_SUDAH_DI_AMBIL) {
                     $statusClass = 'label-primary';
                     if ($penjualan->waktu_sudah_diambil) {
                         $timeText = '<br><small>'. tanggal_indonesia($penjualan->waktu_sudah_diambil, true) .'</small>';
@@ -457,11 +477,11 @@ class PenjualanController extends Controller
                 $deleteButton = '';
                 
                 // Tombol update status pengerjaan
-                if ($penjualan->status_pengerjaan != 'Sudah Diambil') {
+                if ($penjualan->status_pengerjaan != self::WORK_STATUS_SUDAH_DI_AMBIL) {
                     $statusButton = '<button onclick="updateStatusPengerjaan('.$penjualan->id.')" class="btn btn-xs btn-primary btn-flat" title="Update Status"><i class="fa fa-cogs"></i></button>';
                 }
                 
-                if ($penjualan->status_pengerjaan == 'Selesai Dikerjakan') {
+                if (in_array($penjualan->status_pengerjaan, [self::WORK_STATUS_SUDAH_DI_KERJAKAN, self::WORK_STATUS_KIRIM_WA], true)) {
                     $ambilButton = '<button onclick="tandaiDiambil(`'. route('penjualan.diambil', $penjualan->id) .'`)" class="btn btn-xs btn-success btn-flat" title="Tandai Diambil"><i class="fa fa-check-square"></i></button>';
                 }
                 
@@ -782,7 +802,7 @@ class PenjualanController extends Controller
                 'bpjs_default_price' => $bpjsDefaultPrice,
                 'total_additional_cost' => $totalAdditionalCost,
                 'pasien_service_type' => $pasienServiceType,
-                'status_pengerjaan' => $hanyaAksesoris ? 'Sudah Diambil' : 'Menunggu Pengerjaan',
+                'status_pengerjaan' => $hanyaAksesoris ? self::WORK_STATUS_SUDAH_DI_AMBIL : self::WORK_STATUS_LENSA_DI_PESAN,
                 'waktu_sudah_diambil' => $hanyaAksesoris ? now() : null,
             ];
 
@@ -1050,6 +1070,15 @@ class PenjualanController extends Controller
     {
         $user = auth()->user();
 
+        $isScanMode = (bool) $request->boolean('scan_mode');
+        $branchName = Str::lower((string) optional($user->branch)->name ?? '');
+        $isKasirOptikMelati1 = $user->isKasir()
+            && (Str::contains($branchName, 'optik melati cabang 1') || Str::contains($branchName, 'optik melati 1'));
+
+        if ($isScanMode && $user->isKasir() && !$isKasirOptikMelati1) {
+            abort(403, 'Menu scan foto BPJS hanya untuk kasir Optik Melati 1.');
+        }
+
         $query = Penjualan::query()
             ->with(['pasien', 'branch', 'user'])
             ->where(function ($q) {
@@ -1060,6 +1089,10 @@ class PenjualanController extends Controller
             })
             ->orderByDesc('id');
 
+        if ($isScanMode) {
+            $query->where('status_pengerjaan', self::WORK_STATUS_SUDAH_DI_AMBIL);
+        }
+
         if (!$user->isSuperAdmin() && !$user->isAdmin()) {
             $query->where('branch_id', $user->branch_id);
         }
@@ -1069,15 +1102,18 @@ class PenjualanController extends Controller
             $query->where(function ($subQuery) use ($keyword) {
                 $subQuery->where('kode_penjualan', 'like', "%{$keyword}%")
                     ->orWhere('nama_pasien_manual', 'like', "%{$keyword}%")
+                    ->orWhere('pasien_id', 'like', "%{$keyword}%")
                     ->orWhereHas('pasien', function ($pasienQuery) use ($keyword) {
-                        $pasienQuery->where('nama_pasien', 'like', "%{$keyword}%");
+                        $pasienQuery->where('nama_pasien', 'like', "%{$keyword}%")
+                            ->orWhere('id_pasien', 'like', "%{$keyword}%")
+                            ->orWhere('no_bpjs', 'like', "%{$keyword}%");
                     });
             });
         }
 
         $penjualans = $query->paginate(20)->appends($request->query());
 
-        return view('penjualan.update_bpjs_photo', compact('penjualans'));
+        return view('penjualan.update_bpjs_photo', compact('penjualans', 'isScanMode', 'isKasirOptikMelati1'));
     }
 
     public function bpjsPhotoUpdateStore(Request $request, $id)
@@ -1193,7 +1229,7 @@ class PenjualanController extends Controller
             'diskon' => 'required|numeric|min:0',
             'bayar' => 'required|numeric|min:0',
             'bpjs_manual_additional_cost' => 'nullable|numeric|min:0',
-            'status_pengerjaan' => 'required|in:Menunggu Pengerjaan,Sedang Dikerjakan,Selesai Dikerjakan,Sudah Diambil',
+            'status_pengerjaan' => 'required|in:' . implode(',', self::WORK_STATUS_ALLOWED),
             'photo_bpjs' => 'nullable|image|max:3072',
             'signature_bpjs' => 'nullable|string',
         ]);
@@ -1827,11 +1863,11 @@ class PenjualanController extends Controller
             return response()->json(['message' => 'Transaksi belum lunas! Mohon selesaikan pembayaran terlebih dahulu.'], 422);
         }
 
-        $penjualan->status_pengerjaan = 'Sudah Diambil';
+        $penjualan->status_pengerjaan = self::WORK_STATUS_SUDAH_DI_AMBIL;
         $penjualan->waktu_sudah_diambil = now(); // Catat waktu diambil
         $penjualan->save();
 
-        return response()->json(['message' => 'Status berhasil diubah menjadi Sudah Diambil.']);
+        return response()->json(['message' => 'Status berhasil diubah menjadi Sudah Di Ambil.']);
     }
 
     public function destroy($id)
@@ -2157,26 +2193,63 @@ class PenjualanController extends Controller
     {
         try {
             $request->validate([
-                'status_pengerjaan' => 'required|in:Menunggu Pengerjaan,Sedang Dikerjakan,Selesai Dikerjakan,Sudah Diambil'
+                'status_pengerjaan' => 'required|in:' . implode(',', self::WORK_STATUS_ALLOWED),
+                'nohp' => 'nullable|string|max:30',
             ]);
 
             $penjualan = Penjualan::with(['pasien', 'branch'])->findOrFail($id);
             $oldStatus = $penjualan->status_pengerjaan;
+
+            if ($request->status_pengerjaan === self::WORK_STATUS_KIRIM_WA) {
+                if (!$penjualan->pasien) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Data pasien tidak ditemukan pada transaksi ini. Tidak bisa kirim WA.',
+                    ], 422);
+                }
+
+                $inputNoHp = trim((string) $request->input('nohp', ''));
+                if ($inputNoHp !== '') {
+                    $normalizedNoHp = WhatsAppHelper::normalizePhoneNumber($inputNoHp);
+                    $penjualan->pasien->nohp = $normalizedNoHp ?: $inputNoHp;
+                    $penjualan->pasien->save();
+                    $penjualan->setRelation('pasien', $penjualan->pasien->fresh());
+                }
+
+                $existingNoHp = trim((string) ($penjualan->pasien->nohp ?? ''));
+                if ($existingNoHp === '') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Nomor HP pasien belum ada. Isi nomor HP untuk status Kirim WA.',
+                    ], 422);
+                }
+            }
             
             $updateData = [
                 'status_pengerjaan' => $request->status_pengerjaan,
                 'passet_by_user_id' => auth()->id()
             ];
 
-            // Set waktu selesai dikerjakan jika status berubah ke "Selesai Dikerjakan"
-            if ($request->status_pengerjaan == 'Selesai Dikerjakan' && $penjualan->status_pengerjaan != 'Selesai Dikerjakan') {
+            // Set waktu selesai dikerjakan jika status berubah ke "Sudah Di Kerjakan"
+            if ($request->status_pengerjaan == self::WORK_STATUS_SUDAH_DI_KERJAKAN && $penjualan->status_pengerjaan != self::WORK_STATUS_SUDAH_DI_KERJAKAN) {
                 $updateData['waktu_selesai_dikerjakan'] = now();
+            }
+
+            if ($request->status_pengerjaan == self::WORK_STATUS_SUDAH_DI_AMBIL && ($penjualan->status ?? 'Belum Lunas') !== 'Lunas') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaksi belum lunas. Status Sudah Di Ambil hanya untuk transaksi yang sudah Lunas.'
+                ], 422);
+            }
+
+            if ($request->status_pengerjaan == self::WORK_STATUS_SUDAH_DI_AMBIL && $penjualan->status_pengerjaan != self::WORK_STATUS_SUDAH_DI_AMBIL) {
+                $updateData['waktu_sudah_diambil'] = now();
             }
 
             $penjualan->update($updateData);
 
             $whatsappNotification = null;
-            if ($request->status_pengerjaan === 'Selesai Dikerjakan' && $oldStatus !== 'Selesai Dikerjakan') {
+            if ($request->status_pengerjaan === self::WORK_STATUS_KIRIM_WA && $oldStatus !== self::WORK_STATUS_KIRIM_WA) {
                 $penjualan->refresh();
                 $penjualan->loadMissing(['pasien', 'branch']);
                 $whatsappNotification = $this->notifyWhatsappReadyPickup($penjualan);

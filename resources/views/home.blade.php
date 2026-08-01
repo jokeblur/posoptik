@@ -460,7 +460,7 @@
             <div class="small-box bg-warning" style="cursor:pointer" onclick="showPassetModalMenunggu()">
                 <div class="inner">
                     <h3>{{ $transaksiMenungguPengerjaan ?? 0 }}</h3>
-                    <p>Pekerjaan Menunggu Pengerjaan</p>
+                    <p>Pekerjaan Lensa Di Pesan</p>
                 </div>
                 <div class="icon"><i class="fa fa-clock-o"></i></div>
                 <div class="small-box-footer">
@@ -507,11 +507,11 @@
                     <div class="alert alert-info">
                         <h4><i class="fa fa-lightbulb-o"></i> Tips Pengerjaan:</h4>
                         <ul style="margin-bottom: 0;">
-                            <li>Klik pada box "Pekerjaan Menunggu Pengerjaan" untuk melihat daftar pekerjaan</li>
+                            <li>Klik pada box "Pekerjaan Lensa Di Pesan" untuk melihat daftar pekerjaan</li>
                             <li>Box "Pekerjaan Selesai Bulan Ini" menampilkan pekerjaan yang telah Anda selesaikan bulan ini di semua cabang</li>
                             <li>Gunakan "Scan QR Code" untuk update status pengerjaan dengan cepat</li>
                             <li>Update status pengerjaan sesuai dengan progress yang telah dilakukan</li>
-                            <li>Pastikan semua pekerjaan telah selesai dikerjakan sebelum customer mengambil</li>
+                            <li>Pastikan semua pekerjaan sudah di kerjakan dan Kirim WA sebelum customer mengambil</li>
                         </ul>
                     </div>
                 </div>
@@ -552,6 +552,12 @@
                     <label for="omset_date" style="display:block;">Lihat Omset Tanggal</label>
                     <input type="date" class="form-control" id="omset_date" name="omset_date" value="{{ $selectedOmsetDate ?? now()->toDateString() }}">
                 </div>
+                @if(!empty($isKasirOptikMelati1) && $isKasirOptikMelati1)
+                <div class="form-group">
+                    <label for="bpjs_month" style="display:block;">Lihat BPJS Bulanan</label>
+                    <input type="month" class="form-control" id="bpjs_month" name="bpjs_month" value="{{ $selectedBpjsMonth ?? now()->format('Y-m') }}">
+                </div>
+                @endif
                 <button type="submit" class="btn btn-primary">
                     <i class="fa fa-filter"></i> Tampilkan
                 </button>
@@ -560,6 +566,9 @@
                 </a>
                 @if(isset($isOmsetToday) && !$isOmsetToday)
                 <span class="label label-info" style="padding: 8px 10px;">Mode histori: realtime dimatikan</span>
+                @endif
+                @if(!empty($isKasirOptikMelati1) && $isKasirOptikMelati1)
+                <span class="label label-primary" style="padding: 8px 10px;">Filter BPJS aktif: {{ $periodeBpjsBulananLabel ?? 'Bulan Ini' }}</span>
                 @endif
             </form>
         </div>
@@ -604,6 +613,23 @@
             </div>
         </div>
     </div>
+
+    @if(!empty($isKasirOptikMelati1) && $isKasirOptikMelati1)
+    <div class="row" style="margin-bottom: 24px;">
+        <div class="col-md-12">
+            <div class="small-box bg-teal" style="cursor:pointer" onclick="$('#modalKasirPasienBpjs').modal('show')">
+                <div class="inner">
+                    <h3>{{ $jumlahPasienBpjsKasir ?? 0 }}</h3>
+                    <p>Jumlah Pasien BPJS Bulanan ({{ $periodeBpjsBulananLabel ?? 'Bulan Ini' }})</p>
+                </div>
+                <div class="icon"><i class="fa fa-id-card"></i></div>
+                <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
+                    Klik untuk lihat detail pasien BPJS
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <div class="row" style="margin-bottom: 24px;">
         <div class="col-md-6">
@@ -668,7 +694,7 @@
                                     </td>
                                     <td>Rp {{ number_format($trx->total, 0, ',', '.') }}</td>
                                     <td>
-                                        @if($trx->status_pengerjaan == 'Sudah Diambil')
+                                        @if($trx->status_pengerjaan == 'Sudah Di Ambil')
                                             <span class="label label-success">{{ $trx->status_pengerjaan }}</span>
                                         @else
                                             <span class="label label-warning">{{ $trx->status_pengerjaan }}</span>
@@ -786,7 +812,7 @@
                                     <td><span class="label label-default">{{ $trx->pasien->service_type ?? 'UMUM' }}</span></td>
                                     <td>Rp {{ number_format($trx->total, 0, ',', '.') }}</td>
                                     <td>
-                                        @if($trx->status_pengerjaan == 'Sudah Diambil')
+                                        @if($trx->status_pengerjaan == 'Sudah Di Ambil')
                                             <span class="label label-success">{{ $trx->status_pengerjaan }}</span>
                                         @else
                                             <span class="label label-warning">{{ $trx->status_pengerjaan }}</span>
@@ -804,6 +830,78 @@
             </div>
         </div>
     </div>
+
+    @if(!empty($isKasirOptikMelati1) && $isKasirOptikMelati1)
+    <div class="modal fade" id="modalKasirPasienBpjs" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-teal">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title"><i class="fa fa-id-card"></i> Detail Pasien BPJS Bulanan ({{ $periodeBpjsBulananLabel ?? 'Bulan Ini' }})</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped" id="tableKasirPasienBpjs">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Pasien</th>
+                                    <th>Layanan</th>
+                                    <th>No BPJS</th>
+                                    <th>Status Pengerjaan</th>
+                                    <th>Jenis Transaksi</th>
+                                    <th>Transaksi Terakhir</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($detailPasienBpjsKasir ?? collect()) as $index => $pasienBpjs)
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>{{ $pasienBpjs->nama_pasien ?? '-' }}</td>
+                                    <td><span class="label label-info">{{ $pasienBpjs->service_type ?? 'BPJS' }}</span></td>
+                                    <td>{{ $pasienBpjs->no_bpjs ?: '-' }}</td>
+                                    <td>
+                                        @php
+                                            $statusPengerjaan = $pasienBpjs->status_pengerjaan_terakhir ?? '-';
+                                            $statusClass = [
+                                                'Sedang Mengerjakan' => 'label-info',
+                                                'Lensa Di Pesan' => 'label-warning',
+                                                'Lensa Datang' => 'label-primary',
+                                                'Sudah Di Kerjakan' => 'label-success',
+                                                'Kirim WA' => 'label-default',
+                                                'Sudah Di Ambil' => 'label-success',
+                                            ];
+                                        @endphp
+                                        <span class="label {{ $statusClass[$statusPengerjaan] ?? 'label-default' }}">{{ $statusPengerjaan }}</span>
+                                    </td>
+                                    <td>
+                                        @php
+                                            $jenisTransaksi = $pasienBpjs->jenis_transaksi_terakhir ?? '-';
+                                            $jenisClass = [
+                                                'Stock' => 'label-info',
+                                                'Gosok' => 'label-warning',
+                                            ];
+                                        @endphp
+                                        <span class="label {{ $jenisClass[$jenisTransaksi] ?? 'label-default' }}">{{ $jenisTransaksi }}</span>
+                                    </td>
+                                    <td>{{ !empty($pasienBpjs->transaksi_terakhir) ? \Carbon\Carbon::parse($pasienBpjs->transaksi_terakhir)->format('d/m/Y H:i') : '-' }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">Belum ada pasien BPJS pada periode bulanan ini.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
     
     {{-- Tabel Transaksi Hari Ini untuk Kasir --}}
     @if(isset($transaksiKasir) && $transaksiKasir->count() > 0)
@@ -843,7 +941,7 @@
                                     </td>
                                     <td>Rp {{ number_format($transaksi->total, 0, ',', '.') }}</td>
                                     <td>
-                                        @if($transaksi->status_pengerjaan == 'Sudah Diambil')
+                                        @if($transaksi->status_pengerjaan == 'Sudah Di Ambil')
                                             <span class="label label-success">{{ $transaksi->status_pengerjaan }}</span>
                                         @else
                                             <span class="label label-warning">{{ $transaksi->status_pengerjaan }}</span>
@@ -1283,7 +1381,7 @@ function updateTransaksiTable(transaksiList) {
             <td>${transaksi.nama_pasien || '-'}</td>
             <td><span class="label label-info">${transaksi.service_type || 'UMUM'}</span></td>
             <td>Rp ${new Intl.NumberFormat('id-ID').format(transaksi.total || 0)}</td>
-            <td><span class="label ${transaksi.status === 'Sudah Diambil' ? 'label-success' : 'label-warning'}">${transaksi.status || 'Sedang Dikerjakan'}</span></td>
+            <td><span class="label ${transaksi.status === 'Sudah Di Ambil' ? 'label-success' : 'label-warning'}">${transaksi.status || 'Sedang Mengerjakan'}</span></td>
         `);
         tableBody.append(row);
     });
@@ -1684,7 +1782,7 @@ function showPassetModalMenunggu() {
                 '<div class="modal-content">'+
                     '<div class="modal-header bg-warning">'+
                         '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
-                        '<h4 class="modal-title"><i class="fa fa-clock-o"></i> Pekerjaan Menunggu Pengerjaan</h4>'+
+                        '<h4 class="modal-title"><i class="fa fa-clock-o"></i> Pekerjaan Lensa Di Pesan</h4>'+
                     '</div>'+
                     '<div class="modal-body">'+
                         '<div class="table-responsive">'+
@@ -1726,7 +1824,7 @@ function showPassetModalMenunggu() {
         responsive: false,
         ajax: {
             url: '{{ route('passet.data') }}',
-            data: { status: 'Menunggu Pengerjaan' },
+            data: { status: 'Lensa Di Pesan' },
             error: function(xhr) {
                 var msg = 'Gagal memuat data.';
                 try { if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message; } catch(e) {}
@@ -1918,7 +2016,7 @@ $(function() {
         var bpjsStatusChartAdmin = new Chart(bpjsStatusCtxAdmin.getContext('2d'), {
             type: 'bar',
             data: {
-                labels: ['Sudah Diambil', 'Sedang Dikerjakan', 'Menunggu Pembayaran'],
+                labels: ['Sudah Di Ambil', 'Sedang Mengerjakan', 'Menunggu Pembayaran'],
                 datasets: [{
                     label: 'Jumlah Transaksi',
                     data: [45, 20, 15],
@@ -2131,7 +2229,7 @@ $(function() {
         detailTransaksiAktif.forEach((item, index) => {
             const createdAt = item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID', {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'}) : '-';
             const serviceType = item.pasien?.service_type || 'UMUM';
-            const statusClass = item.status_pengerjaan === 'Sudah Diambil' ? 'label-success' : 'label-warning';
+            const statusClass = item.status_pengerjaan === 'Sudah Di Ambil' ? 'label-success' : 'label-warning';
             
             const row = `<tr>
                 <td>${index + 1}</td>

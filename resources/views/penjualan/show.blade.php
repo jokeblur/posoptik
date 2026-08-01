@@ -265,7 +265,7 @@
                                 @endif
                             </td>
                             <td>
-                                @if($detail->itemable_type === 'App\\Models\\Lensa' && in_array($penjualan->status_pengerjaan, ['Sedang Dikerjakan', 'Selesai Dikerjakan']))
+                                @if($detail->itemable_type === 'App\\Models\\Lensa' && in_array($penjualan->status_pengerjaan, ['Sedang Mengerjakan', 'Sudah Di Kerjakan']))
                                     <button class="btn btn-xs btn-danger" onclick="openReplaceLensaModal({{ $detail->id }}, '{{ $detail->itemable->merk_lensa }}')" title="Lensa Rusak">
                                         <i class="fa fa-exchange"></i> Ganti
                                     </button>
@@ -1094,3 +1094,4 @@ $(document).on('submit', '#form-replace-lensa', function(e) {
 </div>
 
 @endsection 
+

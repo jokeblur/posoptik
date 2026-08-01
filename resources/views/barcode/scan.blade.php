@@ -84,10 +84,10 @@
                                                 <label for="statusSelect">Status Baru:</label>
                                                 <select id="statusSelect" class="form-control">
                                                     <option value="">Pilih Status</option>
-                                                    <option value="Menunggu Pengerjaan">Menunggu Pengerjaan</option>
-                                                    <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
-                                                    <option value="Selesai Dikerjakan">Selesai Dikerjakan</option>
-                                                    <option value="Sudah Diambil">Sudah Diambil</option>
+                                                    <option value="Lensa Di Pesan">Lensa Di Pesan</option>
+                                                    <option value="Sedang Mengerjakan">Sedang Mengerjakan</option>
+                                                    <option value="Sudah Di Kerjakan">Sudah Di Kerjakan</option>
+                                                    <option value="Sudah Di Ambil">Sudah Di Ambil</option>
                                                 </select>
                                             </div>
                                             <button id="updateStatusBtn" class="btn btn-warning">Update Status</button>
@@ -156,10 +156,10 @@
                                                         <td>
                                                             @php
                                                                 $statusClass = [
-                                                                    'Menunggu Pengerjaan' => 'label-warning',
-                                                                    'Sedang Dikerjakan' => 'label-info',
-                                                                    'Selesai Dikerjakan' => 'label-success',
-                                                                    'Sudah Diambil' => 'label-primary'
+                                                                    'Lensa Di Pesan' => 'label-warning',
+                                                                    'Sedang Mengerjakan' => 'label-info',
+                                                                    'Sudah Di Kerjakan' => 'label-success',
+                                                                    'Sudah Di Ambil' => 'label-primary'
                                                                 ];
                                                             @endphp
                                                             <span class="label {{ $statusClass[$transaksi->status_pengerjaan] ?? 'label-default' }}">
@@ -192,10 +192,10 @@
                                             <label for="directStatusSelect">Status Baru:</label>
                                             <select id="directStatusSelect" class="form-control">
                                                 <option value="">Pilih Status</option>
-                                                <option value="Menunggu Pengerjaan">Menunggu Pengerjaan</option>
-                                                <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
-                                                <option value="Selesai Dikerjakan">Selesai Dikerjakan</option>
-                                                <option value="Sudah Diambil">Sudah Diambil</option>
+                                                <option value="Lensa Di Pesan">Lensa Di Pesan</option>
+                                                <option value="Sedang Mengerjakan">Sedang Mengerjakan</option>
+                                                <option value="Sudah Di Kerjakan">Sudah Di Kerjakan</option>
+                                                <option value="Sudah Di Ambil">Sudah Di Ambil</option>
                                             </select>
                                         </div>
                                         <button id="directUpdateStatusBtn" class="btn btn-warning" data-transaksi-id="{{ $transaksi->id }}">Update Status</button>
@@ -249,10 +249,10 @@
                                 <label for="modalStatusSelect">Status Baru:</label>
                                 <select id="modalStatusSelect" class="form-control">
                                     <option value="">-- Pilih Status --</option>
-                                    <option value="Menunggu Pengerjaan">Menunggu Pengerjaan</option>
-                                    <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
-                                    <option value="Selesai Dikerjakan">Selesai Dikerjakan</option>
-                                    <option value="Sudah Diambil">Sudah Diambil</option>
+                                    <option value="Lensa Di Pesan">Lensa Di Pesan</option>
+                                    <option value="Sedang Mengerjakan">Sedang Mengerjakan</option>
+                                    <option value="Sudah Di Kerjakan">Sudah Di Kerjakan</option>
+                                    <option value="Sudah Di Ambil">Sudah Di Ambil</option>
                                 </select>
                             </div>
                         </div>
@@ -762,10 +762,10 @@ function displayTransaksi(transaksi) {
     currentTransaksi = transaksi;
     
     const statusClass = {
-        'Menunggu Pengerjaan': 'label-warning',
-        'Sedang Dikerjakan': 'label-info',
-        'Selesai Dikerjakan': 'label-success',
-        'Sudah Diambil': 'label-primary'
+        'Lensa Di Pesan': 'label-warning',
+        'Sedang Mengerjakan': 'label-info',
+        'Sudah Di Kerjakan': 'label-success',
+        'Sudah Di Ambil': 'label-primary'
     };
     
     const html = `
@@ -862,17 +862,26 @@ function updateStatus() {
         cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
+            askNoHpIfKirimWa(newStatus, function(nohpInput) {
             $.ajax({
                 url: '{{ route("barcode.update-status") }}',
                 method: 'POST',
                 data: {
                     transaksi_id: currentTransaksi.id,
                     status_pengerjaan: newStatus,
+                    nohp: nohpInput,
                     _token: '{{ csrf_token() }}'
                 },
                 success: function(response) {
                     if (response.success) {
-                        Swal.fire('Berhasil!', response.message, 'success');
+                        let successMessage = response.message || 'Status berhasil diupdate';
+                        if (response.whatsapp && response.whatsapp.message) {
+                            successMessage += '\n\n' + response.whatsapp.message;
+                        }
+                        if (response.whatsapp && response.whatsapp.link) {
+                            window.open(response.whatsapp.link, '_blank');
+                        }
+                        Swal.fire('Berhasil!', successMessage, 'success');
                         // Refresh transaksi data
                         searchTransaksi(currentTransaksi.barcode);
                     } else {
@@ -886,6 +895,7 @@ function updateStatus() {
                     }
                     Swal.fire('Error', message, 'error');
                 }
+            });
             });
         }
     });
@@ -903,17 +913,26 @@ function updateStatusDirect(transaksiId, newStatus) {
         cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
+            askNoHpIfKirimWa(newStatus, function(nohpInput) {
             $.ajax({
                 url: '{{ route("barcode.update-status") }}',
                 method: 'POST',
                 data: {
                     transaksi_id: transaksiId,
                     status_pengerjaan: newStatus,
+                    nohp: nohpInput,
                     _token: '{{ csrf_token() }}'
                 },
                 success: function(response) {
                     if (response.success) {
-                        Swal.fire('Berhasil!', response.message, 'success').then(() => {
+                        let successMessage = response.message || 'Status berhasil diupdate';
+                        if (response.whatsapp && response.whatsapp.message) {
+                            successMessage += '\n\n' + response.whatsapp.message;
+                        }
+                        if (response.whatsapp && response.whatsapp.link) {
+                            window.open(response.whatsapp.link, '_blank');
+                        }
+                        Swal.fire('Berhasil!', successMessage, 'success').then(() => {
                             location.reload();
                         });
                     } else {
@@ -927,6 +946,7 @@ function updateStatusDirect(transaksiId, newStatus) {
                     }
                     Swal.fire('Error', message, 'error');
                 }
+            });
             });
         }
     });
@@ -996,10 +1016,10 @@ function displayTransaksiModal(transaksi) {
     console.log('Displaying transaksi in modal:', transaksi);
     
     const statusClass = {
-        'Menunggu Pengerjaan': 'label-warning',
-        'Sedang Dikerjakan': 'label-info',
-        'Selesai Dikerjakan': 'label-success',
-        'Sudah Diambil': 'label-primary'
+        'Lensa Di Pesan': 'label-warning',
+        'Sedang Mengerjakan': 'label-info',
+        'Sudah Di Kerjakan': 'label-success',
+        'Sudah Di Ambil': 'label-primary'
     };
     
     const resep = transaksi.resep_terakhir || null;
@@ -1163,17 +1183,26 @@ function updateModalStatus() {
         cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
+            askNoHpIfKirimWa(newStatus, function(nohpInput) {
             $.ajax({
                 url: '{{ route("barcode.update-status") }}',
                 method: 'POST',
                 data: {
                     transaksi_id: modalCurrentTransaksi.id,
                     status_pengerjaan: newStatus,
+                    nohp: nohpInput,
                     _token: '{{ csrf_token() }}'
                 },
                 success: function(response) {
                     if (response.success) {
-                        Swal.fire('Berhasil!', response.message || 'Status berhasil diupdate', 'success');
+                        let successMessage = response.message || 'Status berhasil diupdate';
+                        if (response.whatsapp && response.whatsapp.message) {
+                            successMessage += '\n\n' + response.whatsapp.message;
+                        }
+                        if (response.whatsapp && response.whatsapp.link) {
+                            window.open(response.whatsapp.link, '_blank');
+                        }
+                        Swal.fire('Berhasil!', successMessage, 'success');
                         // Update current transaction status
                         modalCurrentTransaksi.status_pengerjaan = newStatus;
                         // Refresh modal content
@@ -1190,7 +1219,31 @@ function updateModalStatus() {
                     Swal.fire('Error', message, 'error');
                 }
             });
+            });
         }
+    });
+}
+
+function askNoHpIfKirimWa(status, onDone) {
+    if (status !== 'Kirim WA') {
+        onDone('');
+        return;
+    }
+
+    Swal.fire({
+        title: 'Input No HP Pasien',
+        input: 'text',
+        inputPlaceholder: 'Contoh: 081234567890',
+        text: 'Isi jika nomor HP pasien belum ada. Jika sudah ada, boleh langsung Simpan.',
+        showCancelButton: true,
+        confirmButtonText: 'Simpan',
+        cancelButtonText: 'Batal',
+    }).then((result) => {
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        onDone((result.value || '').trim());
     });
 }
 
@@ -1214,3 +1267,4 @@ function continueScanning() {
 }
 </script>
 @endpush 
+

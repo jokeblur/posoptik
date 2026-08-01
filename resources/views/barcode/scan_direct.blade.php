@@ -164,10 +164,10 @@
                                         <td>
                                             @php
                                                 $statusClass = [
-                                                    'Menunggu Pengerjaan' => 'label-warning',
-                                                    'Sedang Dikerjakan' => 'label-info',
-                                                    'Selesai Dikerjakan' => 'label-success',
-                                                    'Sudah Diambil' => 'label-primary'
+                                                    'Lensa Di Pesan' => 'label-warning',
+                                                    'Sedang Mengerjakan' => 'label-info',
+                                                    'Sudah Di Kerjakan' => 'label-success',
+                                                    'Sudah Di Ambil' => 'label-primary'
                                                 ];
                                             @endphp
                                             <span class="label {{ $statusClass[$transaksi->status_pengerjaan] ?? 'label-default' }}">
@@ -203,10 +203,10 @@
                                             <label for="statusSelect">Status Baru:</label>
                                             <select id="statusSelect" class="form-control">
                                                 <option value="">Pilih Status</option>
-                                                <option value="Menunggu Pengerjaan">Menunggu Pengerjaan</option>
-                                                <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
-                                                <option value="Selesai Dikerjakan">Selesai Dikerjakan</option>
-                                                <option value="Sudah Diambil">Sudah Diambil</option>
+                                                <option value="Lensa Di Pesan">Lensa Di Pesan</option>
+                                                <option value="Sedang Mengerjakan">Sedang Mengerjakan</option>
+                                                <option value="Sudah Di Kerjakan">Sudah Di Kerjakan</option>
+                                                <option value="Sudah Di Ambil">Sudah Di Ambil</option>
                                             </select>
                                         </div>
                                         <button id="updateStatusBtn" class="btn btn-warning" data-transaksi-id="{{ $transaksi->id }}">
@@ -293,3 +293,4 @@
     </script>
 </body>
 </html> 
+

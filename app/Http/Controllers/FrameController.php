@@ -88,6 +88,7 @@ class FrameController extends Controller
             ->addColumn('aksi', function ($frame) {
                 return '<div class="btn-group">
                     <button onclick="editform(`' . route('frame.update', $frame->id) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-pencil"></i></button>
+                    <button onclick="restockFrame(`' . route('frame.restock', $frame->id) . '`, `' . e($frame->merk_frame) . '`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-plus"></i></button>
                     <button onclick="deleteData(`' . route('frame.destroy', $frame->id) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
                 </div>';
             })

@@ -658,6 +658,21 @@
         </div>
     </div>
 
+    <div class="row" style="margin-bottom: 24px;">
+        <div class="col-md-12">
+            <div class="small-box bg-maroon" style="cursor:pointer" onclick="$('#modalKasirPiutang').modal('show')">
+                <div class="inner">
+                    <h3>Rp {{ number_format($totalPiutangKasir ?? 0, 0, ',', '.') }}</h3>
+                    <p>Total Piutang Keseluruhan</p>
+                </div>
+                <div class="icon"><i class="fa fa-credit-card"></i></div>
+                <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
+                    {{ $jumlahPiutangKasir ?? 0 }} transaksi belum lunas sepanjang waktu, klik untuk detail
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modals: Detail Kasir -->
     <div class="modal fade" id="modalKasirOmset" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
@@ -820,6 +835,85 @@
                                     </td>
                                 </tr>
                                 @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalKasirPiutang" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-maroon">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title"><i class="fa fa-credit-card"></i> Detail Piutang Keseluruhan</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped" id="tableKasirPiutang">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Tanggal</th>
+                                    <th>No. Transaksi</th>
+                                    <th>Nama Pasien</th>
+                                    <th>Layanan</th>
+                                    <th>Total</th>
+                                    <th>Sudah Bayar</th>
+                                    <th>Sisa Piutang</th>
+                                    <th>Status</th>
+                                    <th>Status Pengerjaan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($detailPiutangKasir ?? collect()) as $index => $piutang)
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>{{ !empty($piutang->tanggal) ? \Carbon\Carbon::parse($piutang->tanggal)->format('d/m/Y H:i') : '-' }}</td>
+                                    <td>{{ $piutang->kode_penjualan ?? '-' }}</td>
+                                    <td>{{ $piutang->nama_pasien ?? '-' }}</td>
+                                    <td>
+                                        @php
+                                            $servicePiutang = strtoupper((string) ($piutang->service_type ?? 'UMUM'));
+                                            $servicePiutangClass = in_array($servicePiutang, ['BPJS I', 'BPJS II', 'BPJS III']) ? 'label-info' : 'label-default';
+                                        @endphp
+                                        <span class="label {{ $servicePiutangClass }}">{{ $piutang->service_type ?? 'UMUM' }}</span>
+                                    </td>
+                                    <td>Rp {{ number_format((float) ($piutang->total ?? 0), 0, ',', '.') }}</td>
+                                    <td>Rp {{ number_format((float) ($piutang->bayar ?? 0), 0, ',', '.') }}</td>
+                                    <td><span class="label label-danger">Rp {{ number_format((float) ($piutang->kekurangan ?? 0), 0, ',', '.') }}</span></td>
+                                    <td>
+                                        @if(strtolower((string) ($piutang->status ?? '')) === 'lunas')
+                                            <span class="label label-success">Lunas</span>
+                                        @else
+                                            <span class="label label-warning">Belum Lunas</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @php
+                                            $statusKerjaPiutang = $piutang->status_pengerjaan ?? '-';
+                                            $statusKerjaClass = [
+                                                'Sedang Mengerjakan' => 'label-info',
+                                                'Lensa Di Pesan' => 'label-warning',
+                                                'Lensa Datang' => 'label-primary',
+                                                'Sudah Di Kerjakan' => 'label-success',
+                                                'Kirim WA' => 'label-default',
+                                                'Sudah Di Ambil' => 'label-success',
+                                            ];
+                                        @endphp
+                                        <span class="label {{ $statusKerjaClass[$statusKerjaPiutang] ?? 'label-default' }}">{{ $statusKerjaPiutang }}</span>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted">Tidak ada piutang pada periode ini.</td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
@@ -1741,6 +1835,36 @@ $(document).ready(function() {
             ]
         });
     }
+
+    function initKasirPiutangTable() {
+        var selector = '#tableKasirPiutang';
+        var $table = $(selector);
+
+        if (!$table.length) {
+            return;
+        }
+
+        if ($.fn.DataTable.isDataTable(selector)) {
+            var existing = $table.DataTable();
+            existing.columns.adjust();
+            if (existing.responsive && typeof existing.responsive.recalc === 'function') {
+                existing.responsive.recalc();
+            }
+            return;
+        }
+
+        $table.DataTable({
+            responsive: true,
+            pageLength: 10,
+            order: [[1, 'desc']],
+            language: {
+                url: '{{ asset('js/datatables-id.json') }}'
+            },
+            columnDefs: [
+                { targets: '_all', defaultContent: '-' }
+            ]
+        });
+    }
     
 
     
@@ -1787,6 +1911,12 @@ $(document).ready(function() {
     $(document).on('shown.bs.modal', '#modalKasirPasienBpjs', function() {
         setTimeout(function() {
             initKasirBpjsMonthlyTable();
+        }, 100);
+    });
+
+    $(document).on('shown.bs.modal', '#modalKasirPiutang', function() {
+        setTimeout(function() {
+            initKasirPiutangTable();
         }, 100);
     });
     

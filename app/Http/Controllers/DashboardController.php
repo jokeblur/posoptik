@@ -142,6 +142,9 @@ class DashboardController extends Controller
         $jumlahPasienBpjsKasir = 0;
         $detailPasienBpjsKasir = collect();
         $periodeBpjsBulananLabel = 'Bulan Ini';
+        $jumlahPiutangKasir = 0;
+        $totalPiutangKasir = 0;
+        $detailPiutangKasir = collect();
 
         if ($user->isKasir()) {
             $branchName = Str::lower((string) optional($user->branch)->name);
@@ -288,6 +291,33 @@ class DashboardController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->limit(500)
                 ->get();
+
+            $piutangKasirTransactions = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
+                ->where('user_id', $user->id)
+                ->where('status', 'Belum Lunas')
+                ->with('pasien')
+                ->orderBy('created_at', 'desc')
+                ->limit(5000)
+                ->get();
+
+            $detailPiutangKasir = $piutangKasirTransactions
+                ->map(function ($transaksi) {
+                    return (object) [
+                        'tanggal' => $transaksi->created_at,
+                        'kode_penjualan' => $transaksi->kode_penjualan,
+                        'nama_pasien' => optional($transaksi->pasien)->nama_pasien ?? '-',
+                        'service_type' => optional($transaksi->pasien)->service_type ?? 'UMUM',
+                        'total' => (float) ($transaksi->total ?? 0),
+                        'bayar' => (float) ($transaksi->bayar ?? 0),
+                        'kekurangan' => max(0, (float) ($transaksi->kekurangan ?? 0)),
+                        'status' => $transaksi->status ?? 'Belum Lunas',
+                        'status_pengerjaan' => $transaksi->status_pengerjaan ?? '-',
+                    ];
+                })
+                ->values();
+
+            $jumlahPiutangKasir = $detailPiutangKasir->count();
+            $totalPiutangKasir = (float) $detailPiutangKasir->sum('kekurangan');
 
             try {
                 $bpjsMonthDate = Carbon::createFromFormat('Y-m', $selectedBpjsMonth)->startOfMonth();
@@ -486,7 +516,8 @@ class DashboardController extends Controller
             'lowStockLensa', 'lowStockFrame', 'lowStockAksesoris', 'batasStok',
             'transaksiMenungguPengerjaan', 'transaksiSelesaiBulanIni',
             'selectedOmsetDate', 'isOmsetToday', 'omsetPeriodeLabel',
-            'isKasirOptikMelati1', 'isKasirOptikMelati2', 'jumlahPasienBpjsKasir', 'detailPasienBpjsKasir', 'periodeBpjsBulananLabel', 'selectedBpjsMonth'
+            'isKasirOptikMelati1', 'isKasirOptikMelati2', 'jumlahPasienBpjsKasir', 'detailPasienBpjsKasir', 'periodeBpjsBulananLabel', 'selectedBpjsMonth',
+            'jumlahPiutangKasir', 'totalPiutangKasir', 'detailPiutangKasir'
         ));
     }
 

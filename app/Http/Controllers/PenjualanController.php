@@ -26,6 +26,7 @@ class PenjualanController extends Controller
 {
     protected $bpjsPricingService;
     private const BPJS_SERVICE_TYPES = ['BPJS I', 'BPJS II', 'BPJS III'];
+    private const WORK_STATUS_MENUNGGU_PENGERJAAN = 'Menunggu Pengerjaan';
     private const WORK_STATUS_SEDANG_MENGERJAKAN = 'Sedang Mengerjakan';
     private const WORK_STATUS_LENSA_DI_PESAN = 'Lensa Di Pesan';
     private const WORK_STATUS_LENSA_DATANG = 'Lensa Datang';
@@ -33,6 +34,7 @@ class PenjualanController extends Controller
     private const WORK_STATUS_KIRIM_WA = 'Kirim WA';
     private const WORK_STATUS_SUDAH_DI_AMBIL = 'Sudah Di Ambil';
     private const WORK_STATUS_ALLOWED = [
+        self::WORK_STATUS_MENUNGGU_PENGERJAAN,
         self::WORK_STATUS_SEDANG_MENGERJAKAN,
         self::WORK_STATUS_LENSA_DI_PESAN,
         self::WORK_STATUS_LENSA_DATANG,
@@ -262,6 +264,8 @@ class PenjualanController extends Controller
         $user = auth()->user();
         $query = Penjualan::query();
         $hasJenisTransaksiColumn = $this->hasTableColumn('penjualan', 'jenis_transaksi');
+        $bulan = (int) request()->input('bulan', now()->format('m'));
+        $tahun = (int) request()->input('tahun', now()->format('Y'));
 
         // Jika user super admin atau admin, gunakan branch_id dari request jika ada
         if ($user->isSuperAdmin() || $user->isAdmin()) {
@@ -282,17 +286,25 @@ class PenjualanController extends Controller
 
         $this->applyJenisTransaksiFilter($query, request()->jenis_transaksi, $hasJenisTransaksiColumn);
 
+        $query->whereMonth('created_at', $bulan)->whereYear('created_at', $tahun);
+
         $statistics = $query->selectRaw('
-            SUM(CASE WHEN status_pengerjaan = "Lensa Di Pesan" THEN 1 ELSE 0 END) as menunggu,
+            SUM(CASE WHEN status_pengerjaan = "Menunggu Pengerjaan" THEN 1 ELSE 0 END) as menunggu,
+            SUM(CASE WHEN status_pengerjaan = "Lensa Di Pesan" THEN 1 ELSE 0 END) as lensa_dipesan,
+            SUM(CASE WHEN status_pengerjaan = "Lensa Datang" THEN 1 ELSE 0 END) as lensa_datang,
             SUM(CASE WHEN status_pengerjaan = "Sedang Mengerjakan" THEN 1 ELSE 0 END) as sedang,
             SUM(CASE WHEN status_pengerjaan = "Sudah Di Kerjakan" THEN 1 ELSE 0 END) as selesai,
+            SUM(CASE WHEN status_pengerjaan = "Kirim WA" THEN 1 ELSE 0 END) as kirim_wa,
             SUM(CASE WHEN status_pengerjaan = "Sudah Di Ambil" THEN 1 ELSE 0 END) as diambil
         ')->first();
 
         return response()->json([
             'menunggu' => (int) $statistics->menunggu,
+            'lensa_dipesan' => (int) $statistics->lensa_dipesan,
+            'lensa_datang' => (int) $statistics->lensa_datang,
             'sedang' => (int) $statistics->sedang,
             'selesai' => (int) $statistics->selesai,
+            'kirim_wa' => (int) $statistics->kirim_wa,
             'diambil' => (int) $statistics->diambil
         ]);
     }
@@ -302,6 +314,8 @@ class PenjualanController extends Controller
         $user = auth()->user();
         $query = Penjualan::with('user', 'branch', 'passetByUser', 'dokter', 'pasien')->latest();
         $hasJenisTransaksiColumn = $this->hasTableColumn('penjualan', 'jenis_transaksi');
+        $bulan = (int) $request->input('bulan', now()->format('m'));
+        $tahun = (int) $request->input('tahun', now()->format('Y'));
 
         // Jika user super admin atau admin, gunakan branch_id dari request jika ada
         if ($user->isSuperAdmin() || $user->isAdmin()) {
@@ -327,6 +341,9 @@ class PenjualanController extends Controller
 
         // Filter berdasarkan jenis transaksi jika ada
         $this->applyJenisTransaksiFilter($query, $request->jenis_transaksi, $hasJenisTransaksiColumn);
+
+        // Filter default per bulan
+        $query->whereMonth('created_at', $bulan)->whereYear('created_at', $tahun);
 
         // Add eager loading to prevent N+1 queries
         $penjualan = $query
@@ -454,7 +471,8 @@ class PenjualanController extends Controller
                     }
                 } elseif ($penjualan->status_pengerjaan == self::WORK_STATUS_LENSA_DI_PESAN) {
                     $statusClass = 'label-warning';
-                    $statusText = 'Menunggu Pengerjaan';
+                } elseif ($penjualan->status_pengerjaan == self::WORK_STATUS_MENUNGGU_PENGERJAAN) {
+                    $statusClass = 'label-warning';
                 } elseif ($penjualan->status_pengerjaan == self::WORK_STATUS_SEDANG_MENGERJAKAN) {
                     $statusClass = 'label-info';
                 } elseif ($penjualan->status_pengerjaan == self::WORK_STATUS_LENSA_DATANG) {
@@ -839,7 +857,7 @@ class PenjualanController extends Controller
                 'bpjs_default_price' => $bpjsDefaultPrice,
                 'total_additional_cost' => $totalAdditionalCost,
                 'pasien_service_type' => $pasienServiceType,
-                'status_pengerjaan' => self::WORK_STATUS_LENSA_DI_PESAN,
+                'status_pengerjaan' => self::WORK_STATUS_MENUNGGU_PENGERJAAN,
                 'waktu_sudah_diambil' => null,
                 'created_at' => $transactionDateTime,
                 'updated_at' => $transactionDateTime,

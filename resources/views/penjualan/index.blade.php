@@ -12,7 +12,7 @@
 @endif
 <!-- Info Cards -->
 <div class="row">
-    <div class="col-lg-3 col-xs-6">
+    <div class="col-lg-2 col-xs-6">
         <div class="small-box bg-yellow">
             <div class="inner">
                 <h3 id="menunggu-count">0</h3>
@@ -21,14 +21,43 @@
             <div class="icon">
                 <i class="fa fa-clock-o"></i>
             </div>
+            <a href="#" class="small-box-footer" onclick="filterByStatus('Menunggu Pengerjaan')">
+                Lihat Detail <i class="fa fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="col-lg-2 col-xs-6">
+        <div class="small-box bg-orange">
+            <div class="inner">
+                <h3 id="lensa-dipesan-count">0</h3>
+                <p>Lensa Di Pesan</p>
+            </div>
+            <div class="icon">
+                <i class="fa fa-shopping-basket"></i>
+            </div>
             <a href="#" class="small-box-footer" onclick="filterByStatus('Lensa Di Pesan')">
                 Lihat Detail <i class="fa fa-arrow-circle-right"></i>
             </a>
         </div>
     </div>
-    
-    
-    <div class="col-lg-3 col-xs-6">
+
+    <div class="col-lg-2 col-xs-6">
+        <div class="small-box bg-aqua">
+            <div class="inner">
+                <h3 id="lensa-datang-count">0</h3>
+                <p>Lensa Datang</p>
+            </div>
+            <div class="icon">
+                <i class="fa fa-truck"></i>
+            </div>
+            <a href="#" class="small-box-footer" onclick="filterByStatus('Lensa Datang')">
+                Lihat Detail <i class="fa fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="col-lg-2 col-xs-6">
         <div class="small-box bg-green">
             <div class="inner">
                 <h3 id="selesai-count">0</h3>
@@ -42,8 +71,23 @@
             </a>
         </div>
     </div>
-    
-    <div class="col-lg-3 col-xs-6">
+
+    <div class="col-lg-2 col-xs-6">
+        <div class="small-box bg-navy">
+            <div class="inner">
+                <h3 id="kirim-wa-count">0</h3>
+                <p>Kirim WA</p>
+            </div>
+            <div class="icon">
+                <i class="fa fa-whatsapp"></i>
+            </div>
+            <a href="#" class="small-box-footer" onclick="filterByStatus('Kirim WA')">
+                Lihat Detail <i class="fa fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="col-lg-2 col-xs-6">
         <div class="small-box bg-purple">
             <div class="inner">
                 <h3 id="diambil-count">0</h3>
@@ -69,6 +113,22 @@
                         <option value="">Semua Jenis Transaksi</option>
                         <option value="Stock">Stock</option>
                         <option value="Gosok">Gosok</option>
+                    </select>
+                </div>
+                <div class="form-group pull-right" style="margin-bottom: 0; margin-left: 10px;">
+                    <select id="tahun_filter" class="form-control input-sm">
+                        @for($i = date('Y') - 2; $i <= date('Y') + 1; $i++)
+                            <option value="{{ $i }}" {{ (int) date('Y') === $i ? 'selected' : '' }}>{{ $i }}</option>
+                        @endfor
+                    </select>
+                </div>
+                <div class="form-group pull-right" style="margin-bottom: 0; margin-left: 10px;">
+                    <select id="bulan_filter" class="form-control input-sm">
+                        @for($i = 1; $i <= 12; $i++)
+                            <option value="{{ sprintf('%02d', $i) }}" {{ (int) date('m') === $i ? 'selected' : '' }}>
+                                {{ date('F', mktime(0, 0, 0, $i, 1)) }}
+                            </option>
+                        @endfor
                     </select>
                 </div>
                 @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
@@ -122,6 +182,8 @@
     let currentFilter = '';
     let currentBranchId = $('#branch_id_filter').val(); // Ambil nilai awal dari dropdown
     let currentJenisTransaksi = $('#jenis_transaksi_filter').val();
+    let currentBulan = $('#bulan_filter').val();
+    let currentTahun = $('#tahun_filter').val();
 
     $(function () {
         table = $('#penjualan-table').DataTable({
@@ -136,6 +198,8 @@
                     if (currentJenisTransaksi) {
                         d.jenis_transaksi = currentJenisTransaksi;
                     }
+                    d.bulan = currentBulan;
+                    d.tahun = currentTahun;
                     // Tambahkan filter cabang
                     if (currentBranchId) {
                         d.branch_id = currentBranchId;
@@ -179,6 +243,15 @@
             table.ajax.reload();
                 updateStatistics();
         });
+
+        $('#bulan_filter, #tahun_filter').on('change', function() {
+            currentBulan = $('#bulan_filter').val();
+            currentTahun = $('#tahun_filter').val();
+            currentFilter = '';
+            table.ajax.reload();
+            updateStatistics();
+            $('.box-title').text('Daftar Penjualan');
+        });
     });
     
     function updateStatistics() {
@@ -187,12 +260,16 @@
             method: 'GET',
             data: {
                     branch_id: currentBranchId,
-                    jenis_transaksi: currentJenisTransaksi
+                    jenis_transaksi: currentJenisTransaksi,
+                    bulan: currentBulan,
+                    tahun: currentTahun
             },
             success: function(response) {
                 $('#menunggu-count').text(response.menunggu || 0);
-                $('#sedang-count').text(response.sedang || 0);
+                $('#lensa-dipesan-count').text(response.lensa_dipesan || 0);
+                $('#lensa-datang-count').text(response.lensa_datang || 0);
                 $('#selesai-count').text(response.selesai || 0);
+                $('#kirim-wa-count').text(response.kirim_wa || 0);
                 $('#diambil-count').text(response.diambil || 0);
             },
             error: function() {
@@ -200,13 +277,24 @@
             }
         });
     }
+
+    function getStatusLabel(status) {
+        if (status === 'Menunggu Pengerjaan') return 'Menunggu Pengerjaan';
+        if (status === 'Lensa Di Pesan') return 'Lensa Di Pesan';
+        if (status === 'Lensa Datang') return 'Lensa Datang';
+        if (status === 'Sedang Mengerjakan') return 'Sedang Mengerjakan';
+        if (status === 'Sudah Di Kerjakan') return 'Sudah Di Kerjakan';
+        if (status === 'Kirim WA') return 'Kirim WA';
+        if (status === 'Sudah Di Ambil') return 'Sudah Di Ambil';
+        return status || 'Semua';
+    }
     
     function filterByStatus(status) {
         currentFilter = status;
         table.ajax.reload();
         
         // Update judul tabel untuk menunjukkan filter aktif
-        $('.box-title').text('Daftar Penjualan - ' + status);
+        $('.box-title').text('Daftar Penjualan - ' + getStatusLabel(status));
     }
     
 
@@ -282,9 +370,10 @@
                     <label for="status_select">Pilih Status Baru:</label>
                     <select id="status_select" class="form-control">
                         <option value="">-- Pilih Status --</option>
-                        <option value="Sedang Mengerjakan">Sedang Mengerjakan</option>
-                        <option value="Lensa Di Pesan">Menunggu Pengerjaan</option>
+                        <option value="Menunggu Pengerjaan">Menunggu Pengerjaan</option>
+                        <option value="Lensa Di Pesan">Lensa Di Pesan</option>
                         <option value="Lensa Datang">Lensa Datang</option>
+                        <option value="Sedang Mengerjakan">Sedang Mengerjakan</option>
                         <option value="Sudah Di Kerjakan">Sudah Di Kerjakan</option>
                         <option value="Kirim WA">Kirim WA</option>
                         <option value="Sudah Di Ambil">Sudah Di Ambil</option>

@@ -91,7 +91,11 @@
                     </div>
                     <div class="form-group col-md-4">
                         <label for="tanggal">Tanggal Transaksi</label>
-                        <input type="text" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" readonly>
+                        @if(!empty($canBackdateTransaction))
+                        <input type="date" class="form-control" name="tanggal" id="tanggal" value="{{ $defaultTransactionDate ?? date('Y-m-d') }}" max="{{ date('Y-m-d') }}" required>
+                        @else
+                        <input type="text" class="form-control" name="tanggal" id="tanggal" value="{{ $defaultTransactionDate ?? date('Y-m-d') }}" readonly>
+                        @endif
                     </div>
                     <div class="form-group col-md-4">
                         <label for="tanggal_siap">Tanggal Siap</label>

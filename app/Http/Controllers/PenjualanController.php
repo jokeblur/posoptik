@@ -631,6 +631,8 @@ class PenjualanController extends Controller
     public function create(Request $request)
     {
         $user = auth()->user();
+        $canBackdateTransaction = $user->isAdmin() || $user->isSuperAdmin();
+        $defaultTransactionDate = now()->toDateString();
 
         $branch_id = $this->resolveBranchIdForUser($user);
         if (!$branch_id) {
@@ -642,17 +644,21 @@ class PenjualanController extends Controller
                 'frames' => collect(),
                 'lenses' => collect(),
                 'aksesoris' => collect(),
-                'selected_pasien' => null
+                'selected_pasien' => null,
+                'canBackdateTransaction' => $canBackdateTransaction,
+                'defaultTransactionDate' => $defaultTransactionDate,
             ]);
         }
-        
-        $today = now()->toDateString();
-        $openDay = OpenDay::where('branch_id', $branch_id)->where('tanggal', $today)->first();
-        
-        if (!$openDay || !$openDay->is_open) {
-            $branchName = \App\Models\Branch::find($branch_id)->name ?? 'Cabang ini';
-            return redirect()->route('penjualan.index')
-                ->with('error', "{$branchName} belum dibuka hari ini. Silakan hubungi admin untuk melakukan Open Day terlebih dahulu.");
+
+        if (!$canBackdateTransaction) {
+            $today = now()->toDateString();
+            $openDay = OpenDay::where('branch_id', $branch_id)->where('tanggal', $today)->first();
+
+            if (!$openDay || !$openDay->is_open) {
+                $branchName = \App\Models\Branch::find($branch_id)->name ?? 'Cabang ini';
+                return redirect()->route('penjualan.index')
+                    ->with('error', "{$branchName} belum dibuka hari ini. Silakan hubungi admin untuk melakukan Open Day terlebih dahulu.");
+            }
         }
         
         $pasiens = \App\Models\Pasien::all();
@@ -681,22 +687,34 @@ class PenjualanController extends Controller
             ]);
         }
         
-        return view('penjualan.create', compact('pasiens', 'dokters', 'frames', 'lenses', 'aksesoris', 'selected_pasien'));
+        return view('penjualan.create', compact(
+            'pasiens',
+            'dokters',
+            'frames',
+            'lenses',
+            'aksesoris',
+            'selected_pasien',
+            'canBackdateTransaction',
+            'defaultTransactionDate'
+        ));
     }
     
     public function store(Request $request)
     {
         $user = auth()->user();
+        $canBackdateTransaction = $user->isAdmin() || $user->isSuperAdmin();
 
         $branch_id = $this->resolveBranchIdForUser($user);
         if (!$branch_id) {
             return response()->json(['message' => 'Cabang tidak ditemukan. Silakan konfigurasi cabang terlebih dahulu.'], 422);
         }
-        
+
         $today = now()->toDateString();
-        $openDay = OpenDay::where('branch_id', $branch_id)->where('tanggal', $today)->first();
-        if (!$openDay || !$openDay->is_open) {
-            return response()->json(['message' => 'Transaksi tidak dapat dilakukan. Kasir cabang ini sudah tutup atau belum dibuka.'], 403);
+        if (!$canBackdateTransaction) {
+            $openDay = OpenDay::where('branch_id', $branch_id)->where('tanggal', $today)->first();
+            if (!$openDay || !$openDay->is_open) {
+                return response()->json(['message' => 'Transaksi tidak dapat dilakukan. Kasir cabang ini sudah tutup atau belum dibuka.'], 403);
+            }
         }
         // Validasi dasar
             $hasJenisTransaksiColumn = $this->hasTableColumn('penjualan', 'jenis_transaksi');
@@ -706,6 +724,7 @@ class PenjualanController extends Controller
 
             $rules = [
             'kode_penjualan' => 'required|unique:penjualan,kode_penjualan',
+            'tanggal' => $canBackdateTransaction ? 'required|date|before_or_equal:today' : 'required|date|in:' . $today,
             'items' => 'required|json',
             'total' => 'required|numeric',
             'diskon' => 'required|numeric|min:0',
@@ -735,6 +754,11 @@ class PenjualanController extends Controller
         }
 
         $request->validate($rules);
+
+        $transactionDate = $canBackdateTransaction
+            ? Carbon::parse((string) $request->tanggal)->toDateString()
+            : $today;
+        $transactionDateTime = Carbon::parse($transactionDate . ' ' . now()->format('H:i:s'));
 
         DB::beginTransaction();
         try {
@@ -796,7 +820,7 @@ class PenjualanController extends Controller
             $penjualanData = [
                 'kode_penjualan' => $request->kode_penjualan,
                 'barcode' => $barcode,
-                'tanggal' => now(),
+                'tanggal' => $transactionDate,
                 'tanggal_siap' => $tanggalSiap,
                 'pasien_id' => $request->filled('pasien_id') ? $request->pasien_id : null,
                 'nama_pasien_manual' => $request->filled('pasien_id') ? null : $request->pasien_name,
@@ -815,6 +839,8 @@ class PenjualanController extends Controller
                 'pasien_service_type' => $pasienServiceType,
                 'status_pengerjaan' => $hanyaAksesoris ? self::WORK_STATUS_SUDAH_DI_AMBIL : self::WORK_STATUS_LENSA_DI_PESAN,
                 'waktu_sudah_diambil' => $hanyaAksesoris ? now() : null,
+                'created_at' => $transactionDateTime,
+                'updated_at' => $transactionDateTime,
             ];
 
             if ($hasBpjsManualAdditionalColumn) {

@@ -1218,6 +1218,9 @@ class PenjualanController extends Controller
 
     public function edit($id)
     {
+        $user = auth()->user();
+        $canEditTransactionDate = $user && ($user->isAdmin() || $user->isSuperAdmin());
+
         $penjualan = Penjualan::with([
             'details.itemable', 
             'user', 
@@ -1251,17 +1254,23 @@ class PenjualanController extends Controller
             'details_data' => $penjualan->details ? $penjualan->details->toArray() : null
         ]);
         
-        return view('penjualan.edit', compact('penjualan', 'dokters', 'pasiens', 'latestPrescription', 'frames', 'lenses', 'aksesoris'));
+        return view('penjualan.edit', compact('penjualan', 'dokters', 'pasiens', 'latestPrescription', 'frames', 'lenses', 'aksesoris', 'canEditTransactionDate'));
     }
 
     public function update(Request $request, $id)
     {
+        $user = auth()->user();
+        $canEditTransactionDate = $user && ($user->isAdmin() || $user->isSuperAdmin());
+
         $hasMetodePembayaranColumn = $this->hasTableColumn('penjualan', 'metode_pembayaran');
         $hasBankTransferColumn = $this->hasTableColumn('penjualan', 'bank_transfer');
         $hasBpjsManualAdditionalColumn = $this->hasTableColumn('penjualan', 'bpjs_manual_additional_cost');
 
+        $today = now()->toDateString();
+
         $request->validate([
             'pasien_id' => 'required',
+            'tanggal' => $canEditTransactionDate ? 'required|date|before_or_equal:today' : 'required|date',
             'items' => 'required|json',
             'diskon' => 'required|numeric|min:0',
             'bayar' => 'required|numeric|min:0',
@@ -1295,6 +1304,18 @@ class PenjualanController extends Controller
             DB::beginTransaction();
 
             $penjualan = Penjualan::with('details.itemable')->findOrFail($id);
+
+            $selectedDate = $canEditTransactionDate
+                ? Carbon::parse((string) $request->tanggal)->toDateString()
+                : optional($penjualan->created_at)->toDateString();
+
+            if (!$canEditTransactionDate && $selectedDate !== (string) $request->tanggal) {
+                throw new \Exception('Tanggal transaksi tidak dapat diubah untuk role ini.');
+            }
+
+            $currentCreatedAt = $penjualan->created_at ? Carbon::parse($penjualan->created_at) : now();
+            $newCreatedAt = Carbon::parse($selectedDate . ' ' . $currentCreatedAt->format('H:i:s'));
+
             $items = json_decode($request->items, true);
 
             if (!is_array($items) || empty($items)) {
@@ -1450,6 +1471,8 @@ class PenjualanController extends Controller
             }
             
             // Update basic information
+            $penjualan->tanggal = $selectedDate;
+            $penjualan->created_at = $newCreatedAt;
             $penjualan->pasien_id = $request->pasien_id;
             $penjualan->dokter_id = $request->dokter_id ?: null;
             $penjualan->dokter_manual = $request->dokter_manual;

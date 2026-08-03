@@ -26,7 +26,12 @@
                     </div>
                     <div class="form-group col-md-4">
                         <label for="tanggal">Tanggal Transaksi</label>
-                        <input type="text" class="form-control" name="tanggal" value="{{ $penjualan->created_at->format('Y-m-d') }}" readonly>
+                        @if(!empty($canEditTransactionDate))
+                        <input type="date" class="form-control" name="tanggal" id="tanggal" value="{{ optional($penjualan->tanggal)->format('Y-m-d') ?? $penjualan->created_at->format('Y-m-d') }}" max="{{ date('Y-m-d') }}" required>
+                        <small class="text-muted">Khusus admin/super admin: bisa ubah ke tanggal sebelumnya.</small>
+                        @else
+                        <input type="text" class="form-control" name="tanggal" id="tanggal" value="{{ optional($penjualan->tanggal)->format('Y-m-d') ?? $penjualan->created_at->format('Y-m-d') }}" readonly>
+                        @endif
                     </div>
                     <div class="form-group col-md-4">
                         <label for="tanggal_siap">Tanggal Siap</label>

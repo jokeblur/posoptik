@@ -93,6 +93,7 @@
                         <label for="tanggal">Tanggal Transaksi</label>
                         @if(!empty($canBackdateTransaction))
                         <input type="date" class="form-control" name="tanggal" id="tanggal" value="{{ $defaultTransactionDate ?? date('Y-m-d') }}" max="{{ date('Y-m-d') }}" required>
+                        <small class="text-muted">Khusus admin/super admin: bisa ubah ke tanggal sebelumnya.</small>
                         @else
                         <input type="text" class="form-control" name="tanggal" id="tanggal" value="{{ $defaultTransactionDate ?? date('Y-m-d') }}" readonly>
                         @endif

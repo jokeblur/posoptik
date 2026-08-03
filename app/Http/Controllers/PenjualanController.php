@@ -372,7 +372,8 @@ class PenjualanController extends Controller
                 return $penjualan->passetByUser?->name ?? '-';
             })
             ->addColumn('nama_pasien', function ($penjualan) {
-                return $penjualan->pasien?->nama_pasien ?? '-';
+                return $penjualan->pasien?->nama_pasien
+                    ?? ($penjualan->nama_pasien_manual ?: '-');
             })
             ->addColumn('nama_dokter', function ($penjualan) {
                 if ($penjualan->dokter && !empty($penjualan->dokter->nama_dokter)) {
@@ -453,6 +454,7 @@ class PenjualanController extends Controller
                     }
                 } elseif ($penjualan->status_pengerjaan == self::WORK_STATUS_LENSA_DI_PESAN) {
                     $statusClass = 'label-warning';
+                    $statusText = 'Menunggu Pengerjaan';
                 } elseif ($penjualan->status_pengerjaan == self::WORK_STATUS_SEDANG_MENGERJAKAN) {
                     $statusClass = 'label-info';
                 } elseif ($penjualan->status_pengerjaan == self::WORK_STATUS_LENSA_DATANG) {
@@ -837,8 +839,8 @@ class PenjualanController extends Controller
                 'bpjs_default_price' => $bpjsDefaultPrice,
                 'total_additional_cost' => $totalAdditionalCost,
                 'pasien_service_type' => $pasienServiceType,
-                'status_pengerjaan' => $hanyaAksesoris ? self::WORK_STATUS_SUDAH_DI_AMBIL : self::WORK_STATUS_LENSA_DI_PESAN,
-                'waktu_sudah_diambil' => $hanyaAksesoris ? now() : null,
+                'status_pengerjaan' => self::WORK_STATUS_LENSA_DI_PESAN,
+                'waktu_sudah_diambil' => null,
                 'created_at' => $transactionDateTime,
                 'updated_at' => $transactionDateTime,
             ];

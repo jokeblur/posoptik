@@ -16,7 +16,7 @@
         <div class="small-box bg-yellow">
             <div class="inner">
                 <h3 id="menunggu-count">0</h3>
-                <p>Lensa Di Pesan</p>
+                <p>Menunggu Pengerjaan</p>
             </div>
             <div class="icon">
                 <i class="fa fa-clock-o"></i>
@@ -283,7 +283,7 @@
                     <select id="status_select" class="form-control">
                         <option value="">-- Pilih Status --</option>
                         <option value="Sedang Mengerjakan">Sedang Mengerjakan</option>
-                        <option value="Lensa Di Pesan">Lensa Di Pesan</option>
+                        <option value="Lensa Di Pesan">Menunggu Pengerjaan</option>
                         <option value="Lensa Datang">Lensa Datang</option>
                         <option value="Sudah Di Kerjakan">Sudah Di Kerjakan</option>
                         <option value="Kirim WA">Kirim WA</option>

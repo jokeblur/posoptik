@@ -113,8 +113,10 @@
     <div class="col-md-12">
         <div class="box">
             <div class="box-header with-border">
-                @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || auth()->user()->isKasir())
                 <button onclick="addform('{{ route('frame.store') }}')" class="btn btn-sm btn-custom">Tambah Frame</button>
+                @endif
+                @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
                 <button onclick="bulkDelete()" class="btn btn-danger" id="bulk-delete-btn" style="display:none;">
                     <i class="fa fa-trash"></i> Hapus Terpilih
                 </button>

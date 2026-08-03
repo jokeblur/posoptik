@@ -560,8 +560,19 @@ class PenjualanController extends Controller
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
 
-            $query = \App\Models\Lensa::with(['branch', 'sales'])
-                ->where('stok', '>', 0);
+            $includeOutOfStock = filter_var(
+                $request->input('include_out_of_stock', true),
+                FILTER_VALIDATE_BOOLEAN,
+                FILTER_NULL_ON_FAILURE
+            );
+            if ($includeOutOfStock === null) {
+                $includeOutOfStock = true;
+            }
+
+            $query = \App\Models\Lensa::with(['branch', 'sales']);
+            if (!$includeOutOfStock) {
+                $query->where('stok', '>', 0);
+            }
 
             // Filter by branch if not admin/super admin
             if (!$user->isAdmin() && !$user->isSuperAdmin()) {
@@ -646,7 +657,7 @@ class PenjualanController extends Controller
         
         $pasiens = \App\Models\Pasien::all();
         $dokters = \App\Models\Dokter::all();
-        $frames = \App\Models\Frame::where('branch_id', $branch_id)->where('stok', '>', 0)->get();
+        $frames = \App\Models\Frame::where('branch_id', $branch_id)->get();
         // Tampilkan semua lensa, termasuk yang stok 0
         $lenses = \App\Models\Lensa::where('branch_id', $branch_id)->get();
         $aksesoris = \App\Models\Aksesoris::where('branch_id', $branch_id)
@@ -1195,7 +1206,7 @@ class PenjualanController extends Controller
         $pasiens = \App\Models\Pasien::all();
 
         $branchId = $penjualan->branch_id;
-        $frames = \App\Models\Frame::where('branch_id', $branchId)->where('stok', '>', 0)->get();
+        $frames = \App\Models\Frame::where('branch_id', $branchId)->get();
         $lenses = \App\Models\Lensa::where('branch_id', $branchId)->where('stok', '>', 0)->get();
         $aksesoris = \App\Models\Aksesoris::where('branch_id', $branchId)->where('stok', '>', 0)->orderBy('nama_produk')->get();
         

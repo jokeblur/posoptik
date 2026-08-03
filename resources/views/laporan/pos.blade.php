@@ -53,6 +53,7 @@
                             <div class="form-group">
                                 <label>&nbsp;</label><br>
                                 <button type="submit" class="btn btn-primary">Filter</button>
+                                <button type="submit" class="btn btn-success" formaction="{{ route('laporan.pos.export-format') }}">Export Format Rekap</button>
                                 <a href="{{ route('laporan.pos') }}" class="btn btn-default">Reset</a>
                             </div>
                         </div>
@@ -110,6 +111,54 @@
     </div>
 </div>
 @endif
+@endif
+
+@if(!$isSuperAdmin)
+<div class="row">
+    <div class="col-md-12">
+        <div class="box box-default">
+            <div class="box-header with-border">
+                <h3 class="box-title">Filter & Export Laporan Bulanan</h3>
+            </div>
+            <div class="box-body">
+                <form method="GET" action="{{ route('laporan.pos') }}">
+                    <input type="hidden" name="branch_id" value="{{ auth()->user()->branch_id }}">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Bulan:</label>
+                                <select name="bulan" class="form-control">
+                                    @for($i = 1; $i <= 12; $i++)
+                                        <option value="{{ sprintf('%02d', $i) }}" {{ $bulan == sprintf('%02d', $i) ? 'selected' : '' }}>
+                                            {{ date('F', mktime(0, 0, 0, $i, 1)) }}
+                                        </option>
+                                    @endfor
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Tahun:</label>
+                                <select name="tahun" class="form-control">
+                                    @for($i = date('Y') - 2; $i <= date('Y') + 1; $i++)
+                                        <option value="{{ $i }}" {{ $tahun == $i ? 'selected' : '' }}>{{ $i }}</option>
+                                    @endfor
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="form-group">
+                                <label>&nbsp;</label><br>
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                                <button type="submit" class="btn btn-success" formaction="{{ route('laporan.pos.export-format') }}">Export Format Rekap</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 @endif
 
 <!-- Header Cabang Terpilih -->

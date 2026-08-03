@@ -15,6 +15,14 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
+                                <div class="checkbox pull-right" style="margin: 0 0 8px 0;">
+                                    <label style="font-weight: 600;">
+                                        <input type="checkbox" id="toggle-show-outofstock-lensa" checked>
+                                        Tampilkan stok habis
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
                                 <div class="btn-group pull-right">
                                     <button type="button" class="btn btn-sm btn-info" id="refresh-lensa-stok">
                                         <i class="fa fa-refresh"></i> Refresh

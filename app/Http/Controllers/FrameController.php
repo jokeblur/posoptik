@@ -15,12 +15,20 @@ class FrameController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
+            if (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || auth()->user()->isKasir())) {
+                return $next($request);
+            }
+            // Kasir boleh menambah dan restok data frame.
+            abort(403, 'Anda tidak memiliki akses ke halaman ini.');
+        })->only(['store', 'restock']);
+
+        $this->middleware(function ($request, $next) {
             if (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())) {
                 return $next($request);
             }
-            // Jika bukan admin atau super admin, bisa diganti dengan redirect atau abort
-            abort(403, 'Anda tidak memiliki akses ke halaman ini.');
-        })->only(['store', 'update', 'destroy', 'restock']);
+
+            abort(403, 'Hanya admin dan super admin yang dapat mengubah atau menghapus data frame.');
+        })->only(['update', 'destroy', 'bulkDelete']);
     }
     
     /**
@@ -63,7 +71,11 @@ class FrameController extends Controller
 
         return datatables()
             ->of($query)
-            ->addColumn('checkbox', function ($frame) {
+            ->addColumn('checkbox', function ($frame) use ($user) {
+                if (!($user->isSuperAdmin() || $user->isAdmin())) {
+                    return '';
+                }
+
                 return '<input type="checkbox" name="selected_frame[]" value="' . $frame->id . '">';
             })
             ->editColumn('branch_name', function ($frame) {
@@ -85,7 +97,13 @@ class FrameController extends Controller
                 return $frame->jenis_frame;
             })
             ->addIndexColumn()
-            ->addColumn('aksi', function ($frame) {
+            ->addColumn('aksi', function ($frame) use ($user) {
+                if ($user->isKasir()) {
+                    return '<div class="btn-group">
+                        <button onclick="restockFrame(`' . route('frame.restock', $frame->id) . '`, `' . e($frame->merk_frame) . '`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-plus"></i></button>
+                    </div>';
+                }
+
                 return '<div class="btn-group">
                     <button onclick="editform(`' . route('frame.update', $frame->id) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-pencil"></i></button>
                     <button onclick="restockFrame(`' . route('frame.restock', $frame->id) . '`, `' . e($frame->merk_frame) . '`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-plus"></i></button>

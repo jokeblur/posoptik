@@ -368,7 +368,19 @@ $(document).ready(function() {
         }
     });
 
+    $('#toggle-show-outofstock-frame').on('change', function() {
+        if (frameTable) {
+            frameTable.draw();
+        }
+    });
+
     $('#search-lensa-stok').on('keyup', function() {
+        if (lensaStokTable) {
+            lensaStokTable.ajax.reload();
+        }
+    });
+
+    $('#toggle-show-outofstock-lensa').on('change', function() {
         if (lensaStokTable) {
             lensaStokTable.ajax.reload();
         }
@@ -581,12 +593,28 @@ let cart = @json($initialEditCart);
 
 let renderVersion = 0;
 let lensaStokTable = null;
+let frameTable = null;
+
+$.fn.dataTable.ext.search.push(function(settings, data) {
+    if (!settings || !settings.nTable || settings.nTable.id !== 'table-frames') {
+        return true;
+    }
+
+    if ($('#toggle-show-outofstock-frame').is(':checked')) {
+        return true;
+    }
+
+    const stokText = (data[3] || '').toString().replace(/<[^>]*>/g, '').replace(/[^0-9-]/g, '');
+    const stok = parseInt(stokText, 10);
+    return Number.isNaN(stok) ? true : stok > 0;
+});
 
 function initModalDataTables() {
     if ($.fn.DataTable.isDataTable('#table-frames')) {
         $('#table-frames').DataTable().destroy();
     }
-    $('#table-frames').DataTable();
+    frameTable = $('#table-frames').DataTable();
+    frameTable.draw();
 
     if ($.fn.DataTable.isDataTable('#table-aksesoris')) {
         $('#table-aksesoris').DataTable().destroy();
@@ -757,6 +785,7 @@ function initLensaStokTable() {
             type: 'GET',
             data: function(d) {
                 d.search = $('#search-lensa-stok').val();
+                d.include_out_of_stock = $('#toggle-show-outofstock-lensa').is(':checked') ? 1 : 0;
             }
         },
         columns: [
@@ -771,7 +800,8 @@ function initLensaStokTable() {
                 data: 'stok',
                 name: 'stok',
                 render: function(data) {
-                    return '<span class="label label-success">' + data + '</span>';
+                    const badgeClass = Number(data) > 0 ? 'label-success' : 'label-danger';
+                    return '<span class="label ' + badgeClass + '">' + data + '</span>';
                 }
             },
             { data: 'harga_formatted', name: 'harga_formatted' },
@@ -781,6 +811,12 @@ function initLensaStokTable() {
                 orderable: false,
                 searchable: false,
                 render: function(data, type, row) {
+                    const stok = Number(row.stok || 0);
+                    if (stok <= 0) {
+                        return '<button type="button" class="btn btn-default btn-sm" disabled>' +
+                               '<i class="fa fa-ban"></i> Stok Habis</button>';
+                    }
+
                     return '<a href="#" class="btn btn-primary btn-sm add-to-cart" ' +
                            'data-id="' + data + '" ' +
                            'data-name="' + row.merk_lensa + '" ' +

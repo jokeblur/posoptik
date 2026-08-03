@@ -8,8 +8,10 @@ use App\Models\Branch;
 use App\Models\Frame;
 use App\Models\Lensa;
 use App\Services\BpjsPricingService;
+use App\Exports\LaporanPosMonthlyFormatExport;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class LaporanPosController extends Controller
 {
@@ -407,6 +409,63 @@ class LaporanPosController extends Controller
         ];
 
         return response()->json($data);
+    }
+
+    /**
+     * Export laporan POS bulanan dengan format rekap manual (sesuai template operasional).
+     */
+    public function exportMonthlyFormat(Request $request)
+    {
+        $user = auth()->user();
+        $isSuperAdmin = $user->role === 'super admin';
+
+        $bulan = (int) $request->input('bulan', date('m'));
+        $tahun = (int) $request->input('tahun', date('Y'));
+
+        if ($bulan < 1 || $bulan > 12) {
+            return back()->with('error', 'Bulan tidak valid.');
+        }
+
+        $branchId = $request->input('branch_id');
+        if (!$isSuperAdmin) {
+            $branchId = $user->branch_id;
+        } elseif (!empty($branchId) && !Branch::where('id', $branchId)->exists()) {
+            return back()->with('error', 'Cabang tidak ditemukan.');
+        }
+
+        $query = Penjualan::query()
+            ->when($branchId, function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId);
+            })
+            ->whereMonth('created_at', $bulan)
+            ->whereYear('created_at', $tahun)
+            ->with([
+                'branch',
+                'dokter:id_dokter,nama_dokter',
+                'pasien:id_pasien,nama_pasien,alamat,nohp,service_type',
+                'pasien.prescriptions',
+                'pasien.prescriptions.dokter:id_dokter,nama_dokter',
+                'details.itemable',
+            ])
+            ->orderBy('created_at', 'asc');
+
+        $transactions = $query->get();
+
+        $bulanLabel = strtoupper(Carbon::createFromDate($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y'));
+        $branchLabel = 'SEMUA CABANG';
+
+        if ($branchId) {
+            $branchLabel = strtoupper((string) optional(Branch::find($branchId))->name ?: 'CABANG TIDAK DIKETAHUI');
+        } elseif (!$isSuperAdmin) {
+            $branchLabel = strtoupper((string) optional($user->branch)->name ?: 'CABANG');
+        }
+
+        $filename = 'laporan_pos_format_' . sprintf('%02d', $bulan) . '_' . $tahun . '.xlsx';
+
+        return Excel::download(
+            new LaporanPosMonthlyFormatExport($transactions, $bulanLabel, $branchLabel),
+            $filename
+        );
     }
 
     /**

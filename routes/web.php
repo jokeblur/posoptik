@@ -160,6 +160,7 @@ Route::middleware([
 
     Route::get('/laporan-pos', [App\Http\Controllers\LaporanPosController::class, 'index'])->name('laporan.pos')->middleware('role:admin,super admin');
     Route::get('/laporan-pos/data', [App\Http\Controllers\LaporanPosController::class, 'getData'])->name('laporan.pos.data')->middleware('role:admin,super admin');
+    Route::get('/laporan-pos/export-format', [App\Http\Controllers\LaporanPosController::class, 'exportMonthlyFormat'])->name('laporan.pos.export-format')->middleware('role:admin,super admin');
     Route::get('/laporan-laba-rugi', [App\Http\Controllers\LaporanPosController::class, 'profitLoss'])->name('laporan.profit-loss')->middleware('role:super admin');
     
     // Laporan BPJS routes

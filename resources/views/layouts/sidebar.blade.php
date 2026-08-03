@@ -44,12 +44,14 @@
                           <li style="margin: 0;"><a href="{{ route('user.index') }}" style="padding: 8px 15px;"><i class="fa fa-user"></i> <span>Data User</span></a></li>
                           @endif
                           
-                          @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                          @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || auth()->user()->isKasir())
                           <li class="header" style="padding: 8px 15px; margin: 8px 0 0 0; background-color: #a4193d; color: #fff; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">INVENTORY</li>
                           <li style="margin: 0;"><a href="{{ route('frame.index') }}" style="padding: 8px 15px;"><i class="fa fa-eye"></i> <span>Data Frame</span></a></li>
                           <li style="margin: 0;"><a href="{{ route('lensa.index') }}" style="padding: 8px 15px;"><i class="fa fa-circle-o"></i> <span>Data Lensa</span></a></li>
+                          @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
                           <li style="margin: 0;"><a href="{{ route('aksesoris.index') }}" style="padding: 8px 15px;"><i class="fa fa-gift"></i> <span>Data Aksesoris</span></a></li>
                           <li style="margin: 0;"><a href="{{ route('kategori.index') }}" style="padding: 8px 15px;"><i class="fa fa-tags"></i> <span>Data Kategori</span></a></li>
+                          @endif
                           @endif
                           
                           <!-- Stock Transfer Menu - accessible by all authenticated users except passet bantu -->

@@ -12,6 +12,25 @@ use Illuminate\Support\Facades\Log;
 
 class LensaController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || auth()->user()->isKasir())) {
+                return $next($request);
+            }
+
+            abort(403, 'Anda tidak memiliki akses ke halaman ini.');
+        })->only(['store', 'restock']);
+
+        $this->middleware(function ($request, $next) {
+            if (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())) {
+                return $next($request);
+            }
+
+            abort(403, 'Hanya admin dan super admin yang dapat mengubah atau menghapus data lensa.');
+        })->only(['update', 'destroy', 'bulkDelete']);
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -91,7 +110,11 @@ class LensaController extends Controller
             ->orderColumn('lens_index', function ($query, $order) {
                 $query->orderBy('lensa.index', $order);
             })
-            ->addColumn('select_all', function ($lensa) {
+            ->addColumn('select_all', function ($lensa) use ($user) {
+                if (!($user->isSuperAdmin() || $user->isAdmin())) {
+                    return '';
+                }
+
                 return '<input type="checkbox" name="selected_lensa[]" value="' . $lensa->id . '">';
             })
             ->editColumn('kode_lensa', function ($lensa) {
@@ -135,7 +158,13 @@ class LensaController extends Controller
                 return $lensa->cly ? substr($lensa->cly, 0, 50) . (strlen($lensa->cly) > 50 ? '...' : '') : '-';
             })
             ->addIndexColumn()
-            ->addColumn('aksi', function ($lensa) {
+            ->addColumn('aksi', function ($lensa) use ($user) {
+                if ($user->isKasir()) {
+                    return '<div class="btn-group">
+                        <button onclick="restockLensa(\'' . route('lensa.restock', $lensa->id) . '\', \'' . e($lensa->merk_lensa) . '\')" class="btn btn-xs btn-success btn-flat"><i class="fa fa-plus"></i></button>
+                    </div>';
+                }
+
                 return '<div class="btn-group">
                     <button onclick="editform(\'' . route('lensa.update', $lensa->id) . '\')" class="btn btn-xs btn-info btn-flat"><i class="fa fa-pencil"></i></button>
                     <button onclick="restockLensa(\'' . route('lensa.restock', $lensa->id) . '\', \'' . e($lensa->merk_lensa) . '\')" class="btn btn-xs btn-success btn-flat"><i class="fa fa-plus"></i></button>

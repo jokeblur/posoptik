@@ -38,12 +38,17 @@
                 <div class="form-group">
                   <label for="branch_id" class="col-sm-2 control-label">Cabang</label>
                   <div class="col-sm-10">
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
                     <select name="branch_id" class="form-control" required>
                         <option value="">-- Pilih Cabang --</option>
                         @foreach($branches as $key => $item)
                           <option value="{{ $key }}">{{ $item }}</option>
                         @endforeach
                     </select>
+                    @else
+                    <input type="text" class="form-control" value="{{ optional(auth()->user()->branch)->name ?? '-' }}" readonly>
+                    <input type="hidden" name="branch_id" value="{{ auth()->user()->branch_id }}">
+                    @endif
                   </div>
                 </div>
                 <div class="form-group">

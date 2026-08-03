@@ -6,6 +6,12 @@
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
             <div class="modal-body">
+                <div class="checkbox" style="margin-top: 0; margin-bottom: 10px;">
+                    <label style="font-weight: 600;">
+                        <input type="checkbox" id="toggle-show-outofstock-frame" checked>
+                        Tampilkan stok habis
+                    </label>
+                </div>
                 <table class="table table-bordered table-striped" id="table-frames">
                     <thead>
                         <tr>
@@ -42,6 +48,7 @@
                             <td>{{ $frame->stok }}</td>
                             <td>{{ format_uang($frame->harga_jual_frame) }}</td>
                             <td>
+                                @if((int) $frame->stok > 0)
                                 <a href="#" class="btn btn-primary btn-sm add-to-cart" 
                                    data-id="{{ $frame->id }}" 
                                    data-name="{{ $frame->merk_frame }}"
@@ -50,6 +57,11 @@
                                    data-jenis-frame="{{ $frame->jenis_frame }}">
                                     <i class="fa fa-plus"></i> Pilih
                                 </a>
+                                @else
+                                <button type="button" class="btn btn-default btn-sm" disabled>
+                                    <i class="fa fa-ban"></i> Stok Habis
+                                </button>
+                                @endif
                             </td>
                         </tr>
                         @endforeach

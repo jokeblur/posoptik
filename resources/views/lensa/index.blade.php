@@ -180,9 +180,11 @@
         <div class="box box-info">
             <div class="box-header with-border">
                 <button onclick="addform('{{ route('lensa.store') }}')" class="btn btn-sm btn-custom">Tambah lensa</button>
+                @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
                 <button onclick="bulkDelete()" class="btn btn-danger" id="bulk-delete-btn" style="display:none;">
                     <i class="fa fa-trash"></i> Hapus Terpilih
                 </button>
+                @endif
             </div>
             
             <div class="box-body table-responsive">

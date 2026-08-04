@@ -61,7 +61,7 @@ class RealtimeController extends Controller
             $defaultPrice = $this->getBpjsDefaultPrice($serviceType);
         }
 
-        return $defaultPrice + max(0, (float) ($transaksi->bpjs_manual_additional_cost ?? 0));
+        return $defaultPrice + max(0, (float) ($transaksi->total_additional_cost ?? 0));
     }
 
     public function dashboard(Request $request)

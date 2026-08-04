@@ -251,6 +251,11 @@
                         <label for="total_additional_cost_display">Biaya Tambahan BPJS</label>
                         <input type="text" class="form-control" id="total_additional_cost_display" value="Rp. {{ number_format((float) ($penjualan->total_additional_cost ?? 0), 0, ',', '.') }}" readonly>
                     </div>
+                    <div class="form-group col-md-4" id="bpjs-manual-additional-group" style="display: none;">
+                        <label for="bpjs_manual_additional_cost">Biaya Tambahan BPJS (Manual)</label>
+                        <input type="number" class="form-control" id="bpjs_manual_additional_cost" name="bpjs_manual_additional_cost" value="{{ (int) ($penjualan->bpjs_manual_additional_cost ?? 0) }}" min="0" step="1000">
+                        <small class="text-muted">Nominal ini menjadi dasar jumlah bayar pasien BPJS bersama tambahan lain yang tidak ditanggung.</small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -356,7 +361,17 @@ $(document).ready(function() {
 
     toggleBankTransferField();
 
+    $('#bayar').data('user-has-changed', false);
+
     $('#diskon, #bayar').on('input', function() {
+        if (this.id === 'bayar') {
+            $('#bayar').data('user-has-changed', true);
+        }
+        renderCartAndTotals();
+    });
+
+    $('#bpjs_manual_additional_cost').on('input change', function() {
+        $('#bayar').data('user-has-changed', false);
         renderCartAndTotals();
     });
 
@@ -637,6 +652,18 @@ function isBpjsPatient() {
     return serviceType.includes('BPJS');
 }
 
+function getBpjsManualAdditionalCost() {
+    return Math.max(0, Number($('#bpjs_manual_additional_cost').val()) || 0);
+}
+
+function getBpjsPatientPayableTotal(bpjsAdditionalCost, aksesorisTotal, manualAdditionalCost) {
+    return Math.max(0,
+        (Number(bpjsAdditionalCost) || 0)
+        + (Number(aksesorisTotal) || 0)
+        + (Number(manualAdditionalCost) || 0)
+    );
+}
+
 function getBpjsDefaultPrice() {
     const serviceType = ($('#detail-jenis_layanan').text() || '').toUpperCase();
     if (serviceType.includes('BPJS III') || serviceType.includes('BPJS 3')) return 165000;
@@ -651,7 +678,7 @@ function renderCartRows(frameCalculatedPrice = null) {
 
     if (!Array.isArray(cart) || cart.length === 0) {
         tbody.append('<tr><td colspan="5" class="text-center text-muted"><i class="fa fa-info-circle"></i> Keranjang kosong</td></tr>');
-        return { subtotal: 0, total: 0, frameAdditionalCost: 0, transactionStatus: 'Normal' };
+        return { subtotal: 0, total: 0, frameAdditionalCost: 0, transactionStatus: 'Normal', lensTotal: 0, aksesorisTotal: 0, defaultPrice: 0, manualAdditionalCost: getBpjsManualAdditionalCost() };
     }
 
     const isBpjs = isBpjsPatient();
@@ -659,6 +686,10 @@ function renderCartRows(frameCalculatedPrice = null) {
     let total = 0;
     let frameAdditionalCost = 0;
     let transactionStatus = 'Normal';
+    let lensTotal = 0;
+    let aksesorisTotal = 0;
+    const manualAdditionalCost = isBpjs ? getBpjsManualAdditionalCost() : 0;
+    const defaultPrice = isBpjs ? getBpjsDefaultPrice() : 0;
 
     cart.forEach((item, index) => {
         const quantity = Math.max(1, Number(item.quantity) || 1);
@@ -672,6 +703,12 @@ function renderCartRows(frameCalculatedPrice = null) {
         const itemSubtotal = effectivePrice * quantity;
         subtotal += normalPrice * quantity;
         total += itemSubtotal;
+
+        if (item.type === 'lensa' || item.type === 'lensa_gosok') {
+            lensTotal += normalPrice * quantity;
+        } else if (item.type === 'aksesoris') {
+            aksesorisTotal += normalPrice * quantity;
+        }
 
         const row = `
             <tr>
@@ -691,29 +728,37 @@ function renderCartRows(frameCalculatedPrice = null) {
     });
 
     if (isBpjs) {
-        const defaultPrice = getBpjsDefaultPrice();
         const frameItem = cart.find((item) => item.type === 'frame');
         if (frameItem && frameCalculatedPrice !== null) {
             const normalFramePrice = Number(frameItem.price) || 0;
             frameAdditionalCost = Math.max(0, (normalFramePrice - defaultPrice) * (Number(frameItem.quantity) || 1));
-            transactionStatus = frameAdditionalCost > 0 ? 'Naik Kelas' : 'Normal';
         }
+
+        total = getBpjsPatientPayableTotal(frameAdditionalCost, aksesorisTotal, manualAdditionalCost);
+        transactionStatus = (frameAdditionalCost > 0 || manualAdditionalCost > 0) ? 'Naik Kelas' : 'Normal';
     }
 
-    return { subtotal, total, frameAdditionalCost, transactionStatus };
+    return { subtotal, total, frameAdditionalCost, transactionStatus, lensTotal, aksesorisTotal, defaultPrice, manualAdditionalCost };
 }
 
 function applyTotalsToUi(subtotal, total, frameAdditionalCost, transactionStatus) {
     const diskon = Math.max(0, Number($('#diskon').val()) || 0);
-    const bayar = Math.max(0, Number($('#bayar').val()) || 0);
     const finalTotal = Math.max(0, total - diskon);
+    const bayarInput = $('#bayar');
+    const totalAdditionalCost = frameAdditionalCost + (isBpjsPatient() ? getBpjsManualAdditionalCost() : 0);
+
+    if (!bayarInput.data('user-has-changed')) {
+        bayarInput.val(Math.round(finalTotal));
+    }
+
+    const bayar = Math.max(0, Number(bayarInput.val()) || 0);
     const kekurangan = finalTotal - bayar;
 
     $('#total').val(Math.round(finalTotal));
     $('#total-display').val(formatRupiah(finalTotal));
     $('#kekurangan').val(Math.round(kekurangan));
     $('#transaction_status_display').val(transactionStatus);
-    $('#total_additional_cost_display').val(formatRupiah(frameAdditionalCost));
+    $('#total_additional_cost_display').val(formatRupiah(totalAdditionalCost));
 
     if (kekurangan <= 0) {
         $('#status').val('Lunas');
@@ -745,8 +790,14 @@ function renderCartAndTotals() {
             const frameCalculatedPrice = response.success ? Number(response.data.calculated_price || 0) : null;
             const state = renderCartRows(frameCalculatedPrice);
             if (response.success) {
-                state.frameAdditionalCost = Number(response.data.additional_cost || 0) * (Number(frameItem.quantity) || 1);
-                state.transactionStatus = state.frameAdditionalCost > 0 ? 'Naik Kelas' : 'Normal';
+                const isNaikKelas = (response.data.status || '').toLowerCase() === 'naik kelas';
+                const frameQty = Number(frameItem.quantity) || 1;
+                const frameTotal = (Number(frameItem.price) || 0) * frameQty;
+                state.frameAdditionalCost = isNaikKelas
+                    ? Math.max(0, (frameTotal + state.lensTotal) - state.defaultPrice)
+                    : 0;
+                state.total = getBpjsPatientPayableTotal(state.frameAdditionalCost, state.aksesorisTotal, state.manualAdditionalCost);
+                state.transactionStatus = (state.frameAdditionalCost > 0 || state.manualAdditionalCost > 0) ? 'Naik Kelas' : 'Normal';
             }
             applyTotalsToUi(state.subtotal, state.total, state.frameAdditionalCost, state.transactionStatus);
         }).fail(function() {
@@ -776,6 +827,7 @@ function toggleBpjsEditSection() {
     const serviceTypeText = ($('#detail-jenis_layanan').text() || '').toLowerCase();
     const isBpjs = serviceTypeText.includes('bpjs');
     $('#bpjs-edit-section').toggle(isBpjs);
+    $('#bpjs-manual-additional-group').toggle(isBpjs);
 }
 
 function initLensaStokTable() {

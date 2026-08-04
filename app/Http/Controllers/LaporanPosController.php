@@ -137,14 +137,14 @@ class LaporanPosController extends Controller
                     ->whereYear('created_at', $tahun)
                     ->sum('total');
             } else {
-                // Untuk layanan BPJS, gunakan default BPJS + total tambahan biaya BPJS
+                // Untuk layanan BPJS, omset utama tetap nilai default; tambahan direkap terpisah.
                 $omsetLayanan[$layanan] = Penjualan::when($branchId, fn($q) => $q->where('branch_id', $branchId))
                     ->whereHas('pasien', function($q) use ($layanan) {
                         $q->where('service_type', $layanan);
                     })
                     ->whereMonth('created_at', $bulan)
                     ->whereYear('created_at', $tahun)
-                    ->selectRaw('COALESCE(SUM(COALESCE(bpjs_default_price, 0) + COALESCE(total_additional_cost, 0)), 0) as total')
+                    ->selectRaw('COALESCE(SUM(COALESCE(bpjs_default_price, 0)), 0) as total')
                     ->value('total');
             }
         }

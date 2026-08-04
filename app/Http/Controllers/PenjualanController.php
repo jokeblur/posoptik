@@ -54,6 +54,16 @@ class PenjualanController extends Controller
         return in_array($serviceType, self::BPJS_SERVICE_TYPES, true);
     }
 
+    private function resolveBpjsTransactionStatus(float $frameAdditionalCost, float $manualAdditionalCost): string
+    {
+        return ($frameAdditionalCost > 0 || $manualAdditionalCost > 0) ? 'Naik Kelas' : 'Normal';
+    }
+
+    private function calculateBpjsPatientPayableTotal(float $bpjsAdditionalCost, float $aksesoriTotal, float $diskon = 0): float
+    {
+        return max(0, ($bpjsAdditionalCost + $aksesoriTotal) - max(0, $diskon));
+    }
+
     private function storeBase64ImageToPublicDisk(string $base64Image, string $directory = 'photos_bpjs'): ?string
     {
         if (!preg_match('/^data:image\/(png|jpe?g|webp);base64,/', $base64Image, $matches)) {
@@ -793,7 +803,9 @@ class PenjualanController extends Controller
             $pasienServiceType = null;
             $bpjsFrameSaleTotal = 0;
             $bpjsLensSaleTotal = 0;
+            $bpjsAksesorisSaleTotal = 0;
             $firstFrameDetailId = null;
+            $calculatedTotal = 0;
 
             $items = json_decode($request->items, true);
             $hanyaAksesoris = !empty($items) && collect($items)->every(function($item) {
@@ -986,14 +998,21 @@ class PenjualanController extends Controller
                 $totalHargaJualProduk = ($totalHargaJualProduk ?? 0) + ($normalUnitPrice * ($itemData['quantity'] ?? 0));
 
                 if ($itemModel) {
+                    $detailSubtotal = $price * $itemData['quantity'];
                     $detail = $penjualan->details()->create([
                         'itemable_id' => $itemModel->id,
                         'itemable_type' => get_class($itemModel),
                         'quantity' => $itemData['quantity'],
                         'price' => $price,
-                        'subtotal' => $price * $itemData['quantity'],
+                        'subtotal' => $detailSubtotal,
                         'additional_cost' => $additionalCost, // Simpan biaya tambahan
                     ]);
+
+                    $calculatedTotal += $detailSubtotal;
+
+                    if ($pasien && $this->isBpjsServiceType($pasien->service_type ?? null) && ($itemData['type'] ?? null) === 'aksesoris') {
+                        $bpjsAksesorisSaleTotal += $detailSubtotal;
+                    }
 
                     if (($itemData['type'] ?? null) === 'frame' && $firstFrameDetailId === null) {
                         $firstFrameDetailId = $detail->id;
@@ -1039,7 +1058,7 @@ class PenjualanController extends Controller
             // Untuk BPJS, status naik kelas ditentukan dari hasil kalkulasi frame.
             // Jangan override dengan total seluruh produk agar lensa/aksesoris tidak salah memicu naik kelas.
             if ($pasien && $this->isBpjsServiceType($pasien->service_type)) {
-                if ($transactionStatus === 'Naik Kelas') {
+                if ($totalAdditionalCost > 0) {
                     // Naik kelas: biaya tambahan = (harga frame + harga lensa) - default BPJS.
                     $totalAdditionalCost = max(0, ($bpjsFrameSaleTotal + $bpjsLensSaleTotal) - $bpjsDefaultPrice);
 
@@ -1060,10 +1079,25 @@ class PenjualanController extends Controller
                     'bpjs_frame_sale_total' => $bpjsFrameSaleTotal,
                     'bpjs_lens_sale_total' => $bpjsLensSaleTotal,
                 ]);
+
+                $transactionStatus = $this->resolveBpjsTransactionStatus($totalAdditionalCost, $bpjsManualAdditionalCost);
             }
+
+            $diskon = max(0, (float) $request->diskon);
+            $finalTotal = ($pasien && $this->isBpjsServiceType($pasien->service_type ?? null))
+                ? $this->calculateBpjsPatientPayableTotal($totalAdditionalCost + $bpjsManualAdditionalCost, $bpjsAksesorisSaleTotal, $diskon)
+                : max(0, $calculatedTotal - $diskon);
+            $bayar = max(0, (float) $request->bayar);
+            $kekurangan = $finalTotal - $bayar;
+            $status = $kekurangan <= 0 ? 'Lunas' : 'Belum Lunas';
             
             // Update status transaksi dan informasi BPJS jika ada perubahan
             $updateData = [
+                'total' => $finalTotal,
+                'diskon' => $diskon,
+                'bayar' => $bayar,
+                'kekurangan' => $kekurangan,
+                'status' => $status,
                 'transaction_status' => $transactionStatus,
                 'total_additional_cost' => $totalAdditionalCost + $bpjsManualAdditionalCost
             ];
@@ -1351,6 +1385,10 @@ class PenjualanController extends Controller
                 ? max(0, (float) $request->input('bpjs_manual_additional_cost', (float) ($penjualan->bpjs_manual_additional_cost ?? 0)))
                 : 0;
             $calculatedTotal = 0;
+            $bpjsFrameSaleTotal = 0;
+            $bpjsLensSaleTotal = 0;
+            $bpjsAksesorisSaleTotal = 0;
+            $firstFrameDetailId = null;
             $containsCleanerItem = false;
 
             // Kembalikan stok item lama sebelum mengganti detail transaksi.
@@ -1383,10 +1421,12 @@ class PenjualanController extends Controller
                 $itemModel = null;
                 $price = (float) ($itemData['price'] ?? 0);
                 $additionalCost = 0;
+                $normalUnitPrice = $price;
 
                 if ($itemType === 'frame') {
                     $itemModel = Frame::find($itemId);
                     if ($itemModel && $isBpjs) {
+                        $normalUnitPrice = (float) ($itemModel->harga_jual_frame ?? $price);
                         $pricing = $this->bpjsPricingService->calculateFramePrice($pasien, $itemModel);
                         $price = (float) $pricing['price'];
                         $additionalCost = (float) $pricing['additional_cost'];
@@ -1397,14 +1437,18 @@ class PenjualanController extends Controller
                         }
                     } elseif ($itemModel) {
                         $price = (float) ($itemModel->harga_jual_frame ?? $price);
+                        $normalUnitPrice = $price;
                     }
                 } elseif ($itemType === 'lensa') {
                     $itemModel = Lensa::find($itemId);
                     if ($itemModel) {
                         $price = (float) ($itemModel->harga_jual_lensa ?? $price);
+                        $normalUnitPrice = $price;
                     }
                 } elseif ($itemType === 'lensa_gosok') {
                     $kodeLensaGosok = 'GSK-' . now()->format('YmdHis') . '-' . strtoupper(substr(md5(uniqid((string) mt_rand(), true)), 0, 4));
+
+                    $normalUnitPrice = $price;
 
                     $lensaData = [
                         'kode_lensa' => $kodeLensaGosok,
@@ -1430,6 +1474,7 @@ class PenjualanController extends Controller
                     $itemModel = Aksesoris::find($itemId);
                     if ($itemModel) {
                         $price = (float) ($itemModel->harga_jual ?? $price);
+                        $normalUnitPrice = $price;
                         $containsCleanerItem = $containsCleanerItem || str_contains(strtolower($itemModel->nama_produk ?? ''), 'cleaner');
                     }
                 }
@@ -1441,7 +1486,7 @@ class PenjualanController extends Controller
                 $subtotal = $price * $quantity;
                 $calculatedTotal += $subtotal;
 
-                $penjualan->details()->create([
+                $detail = $penjualan->details()->create([
                     'itemable_id' => $itemModel->id,
                     'itemable_type' => get_class($itemModel),
                     'quantity' => $quantity,
@@ -1449,6 +1494,19 @@ class PenjualanController extends Controller
                     'subtotal' => $subtotal,
                     'additional_cost' => $additionalCost,
                 ]);
+
+                if ($isBpjs) {
+                    if ($itemType === 'frame') {
+                        $bpjsFrameSaleTotal += ($normalUnitPrice * $quantity);
+                        if ($firstFrameDetailId === null) {
+                            $firstFrameDetailId = $detail->id;
+                        }
+                    } elseif (in_array($itemType, ['lensa', 'lensa_gosok'], true)) {
+                        $bpjsLensSaleTotal += ($normalUnitPrice * $quantity);
+                    } elseif ($itemType === 'aksesoris') {
+                        $bpjsAksesorisSaleTotal += ($normalUnitPrice * $quantity);
+                    }
+                }
 
                 $isCustomLensa = $itemModel instanceof Lensa
                     && $this->hasTableColumn('lensa', 'is_custom_order')
@@ -1476,13 +1534,24 @@ class PenjualanController extends Controller
             }
 
             $diskon = (float) $request->diskon;
-            $finalTotal = max(0, ($calculatedTotal + $bpjsManualAdditionalCost) - $diskon);
+
+            if ($isBpjs && $totalAdditionalCost > 0) {
+                $totalAdditionalCost = max(0, ($bpjsFrameSaleTotal + $bpjsLensSaleTotal) - $bpjsDefaultPrice);
+                $penjualan->details()->update(['additional_cost' => 0]);
+                if ($firstFrameDetailId) {
+                    $penjualan->details()->where('id', $firstFrameDetailId)->update(['additional_cost' => $totalAdditionalCost]);
+                }
+            }
+
+            $finalTotal = $isBpjs
+                ? $this->calculateBpjsPatientPayableTotal($totalAdditionalCost + $bpjsManualAdditionalCost, $bpjsAksesorisSaleTotal, $diskon)
+                : max(0, $calculatedTotal - $diskon);
             $bayar = (float) $request->bayar;
             $kekurangan = $finalTotal - $bayar;
             $statusPembayaran = $kekurangan <= 0 ? 'Lunas' : 'Belum Lunas';
 
             if ($isBpjs) {
-                $transactionStatus = $totalAdditionalCost > 0 ? 'Naik Kelas' : 'Normal';
+                $transactionStatus = $this->resolveBpjsTransactionStatus($totalAdditionalCost, $bpjsManualAdditionalCost);
             } else {
                 $totalAdditionalCost = 0;
                 $bpjsManualAdditionalCost = 0;

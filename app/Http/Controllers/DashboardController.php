@@ -63,8 +63,7 @@ class DashboardController extends Controller
             $defaultPrice = $this->getBpjsDefaultPrice($serviceType);
         }
 
-        $manualAdditional = max(0, (float) ($transaksi->bpjs_manual_additional_cost ?? 0));
-        return $defaultPrice + $manualAdditional;
+        return $defaultPrice + $this->getBpjsAdditionalReceiptValue($transaksi);
     }
 
     private function getBpjsAdditionalReceiptValue($transaksi): float

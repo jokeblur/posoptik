@@ -98,6 +98,7 @@ class BarcodeController extends Controller
             'kode_penjualan' => $transaksi->kode_penjualan,
             'tanggal' => tanggal_indonesia($transaksi->created_at, false),
             'nama_pasien' => $transaksi->pasien->nama_pasien ?? $transaksi->nama_pasien,
+            'nohp' => $transaksi->pasien->nohp ?? null,
             'service_type' => $transaksi->pasien->service_type ?? $transaksi->pasien_service_type ?? '-',
             'no_bpjs' => $transaksi->pasien->no_bpjs ?? '-',
             'status' => $transaksi->status ?? 'Belum Lunas',

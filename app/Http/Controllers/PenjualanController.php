@@ -205,13 +205,23 @@ class PenjualanController extends Controller
         $namaPasien = $penjualan->nama_pasien ?: 'Pelanggan';
         $kode = $penjualan->kode_penjualan ?: '-';
         $cabang = $penjualan->branch->name ?? 'Optik Melati';
+        $normalizedCabang = Str::lower($cabang);
+
+        $jamOperasional = "*Jam Operasional*\n"
+            . "Senin - Sabtu: 08.00 - 16.30 WIB\n"
+            . "Istirahat: 12.30 - 13.30 WIB\n"
+            . "Minggu: Tutup";
+
+        if (Str::contains($normalizedCabang, ['optik melati cabang 2', 'optik melati 2'])) {
+            $jamOperasional = "*Jam Operasional*\n"
+                . "Senin - Jumat: 11.00 - 20.00 WIB\n"
+                . "Sabtu: 09.00 - 18.00 WIB\n"
+                . "Minggu dan tanggal merah: Tutup";
+        }
 
         return "Halo Bapak/Ibu {$namaPasien},\n\n"
             . "Kami informasikan bahwa kacamata Anda dengan nomor nota *{$kode}* telah selesai dikerjakan dan sudah dapat diambil di *{$cabang}*.\n\n"
-            . "*Jam Operasional*\n"
-            . "Senin - Sabtu: 08.00 - 16.30 WIB\n"
-            . "Istirahat: 12.30 - 13.30 WIB\n"
-            . "Minggu: Tutup\n\n"
+            . $jamOperasional . "\n\n"
             . "Mohon melakukan pengambilan pada jam operasional. Kami tidak melayani pengambilan di luar jam kerja.\n\n"
             . "Terima kasih atas kepercayaan Anda kepada Optik Melati. Kami tunggu kedatangannya.";
     }
@@ -1746,8 +1756,9 @@ class PenjualanController extends Controller
                     ];
                 } else {
                     $pasienName = $penjualan->nama_pasien ?: 'Pelanggan';
-                    $kode = $penjualan->kode_penjualan ?: '-';
-                    $waMessage = "Halo {$pasienName}, berikut QR code nota Anda ({$kode}): {$imageUrl}";
+                    $waMessage = "Terima kasih Bapak/Ibu {$pasienName} telah bertransaksi di Optik Melati. "
+                        . "Berikut kami lampirkan link QR code transaksi Anda: {$imageUrl}. "
+                        . "Pada saat pengambilan, Anda bisa menunjukkan QR code ini kepada kami.";
 
                     $gatewayResult = WhatsAppHelper::sendViaGateway($normalizedPhone, $waMessage);
                     if ($gatewayResult['success']) {

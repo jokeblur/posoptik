@@ -198,7 +198,7 @@
                                                 <option value="Sudah Di Ambil">Sudah Di Ambil</option>
                                             </select>
                                         </div>
-                                        <button id="directUpdateStatusBtn" class="btn btn-warning" data-transaksi-id="{{ $transaksi->id }}">Update Status</button>
+                                        <button id="directUpdateStatusBtn" class="btn btn-warning" data-transaksi-id="{{ $transaksi->id }}" data-nohp="{{ $transaksi->pasien->nohp ?? '' }}">Update Status</button>
                                     </div>
                                 </div>
                             </div>
@@ -406,6 +406,7 @@ $(document).ready(function() {
     // Direct update status
     $('#directUpdateStatusBtn').on('click', function() {
         const transaksiId = $(this).data('transaksi-id');
+        const transaksiNoHp = ($(this).data('nohp') || '').toString().trim();
         const newStatus = $('#directStatusSelect').val();
         
         if (!newStatus) {
@@ -413,7 +414,7 @@ $(document).ready(function() {
             return;
         }
         
-        updateStatusDirect(transaksiId, newStatus);
+        updateStatusDirect(transaksiId, newStatus, { nohp: transaksiNoHp });
     });
     
     // Modal update status button
@@ -862,7 +863,7 @@ function updateStatus() {
         cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
-            askNoHpIfKirimWa(newStatus, function(nohpInput) {
+            askNoHpIfKirimWa(newStatus, currentTransaksi, function(nohpInput) {
             $.ajax({
                 url: '{{ route("barcode.update-status") }}',
                 method: 'POST',
@@ -901,7 +902,7 @@ function updateStatus() {
     });
 }
 
-function updateStatusDirect(transaksiId, newStatus) {
+function updateStatusDirect(transaksiId, newStatus, transaksiContext = null) {
     Swal.fire({
         title: 'Konfirmasi Update Status',
         text: `Apakah Anda yakin ingin mengubah status menjadi "${newStatus}"?`,
@@ -913,7 +914,7 @@ function updateStatusDirect(transaksiId, newStatus) {
         cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
-            askNoHpIfKirimWa(newStatus, function(nohpInput) {
+            askNoHpIfKirimWa(newStatus, transaksiContext, function(nohpInput) {
             $.ajax({
                 url: '{{ route("barcode.update-status") }}',
                 method: 'POST',
@@ -1183,7 +1184,7 @@ function updateModalStatus() {
         cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
-            askNoHpIfKirimWa(newStatus, function(nohpInput) {
+            askNoHpIfKirimWa(newStatus, modalCurrentTransaksi, function(nohpInput) {
             $.ajax({
                 url: '{{ route("barcode.update-status") }}',
                 method: 'POST',
@@ -1224,8 +1225,22 @@ function updateModalStatus() {
     });
 }
 
-function askNoHpIfKirimWa(status, onDone) {
+function hasStoredPatientPhone(transaksi) {
+    if (!transaksi) {
+        return false;
+    }
+
+    const phone = (transaksi.nohp || transaksi.no_hp || '').toString().trim();
+    return phone !== '';
+}
+
+function askNoHpIfKirimWa(status, transaksi, onDone) {
     if (status !== 'Kirim WA') {
+        onDone('');
+        return;
+    }
+
+    if (hasStoredPatientPhone(transaksi)) {
         onDone('');
         return;
     }

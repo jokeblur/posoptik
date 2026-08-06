@@ -242,6 +242,24 @@
     let jenisFilter = '';
     let allSelectedIds = new Set(); // Untuk menyimpan semua ID yang dipilih dari semua halaman
     let isSelectAllActive = false; // Status select all
+    const isKasir = @json(auth()->user()->isKasir());
+
+    function setKasirFrameEditMode(isEditMode) {
+        if (!isKasir) {
+            return;
+        }
+
+        // Kasir hanya boleh edit jenis frame dan harga jual saat mode edit.
+        $('#modal-form [name=kode_frame]').prop('readonly', isEditMode);
+        $('#modal-form [name=merk_frame]').prop('readonly', isEditMode);
+        $('#modal-form [name=id_sales]').prop('disabled', isEditMode);
+        $('#modal-form [name=stok]').prop('readonly', isEditMode);
+        $('#modal-form [name=harga_beli_frame]').prop('readonly', isEditMode);
+
+        $('#modal-form [name=jenis_frame]').prop('disabled', false);
+        $('#modal-form [name=harga_jual_frame]').prop('readonly', false);
+    }
+
     $(function () {
         let columns = [
             {data: 'checkbox', searchable: false, orderable: false},
@@ -408,6 +426,7 @@
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('post');
+        setKasirFrameEditMode(false);
         $('#modal-form [name=merk_frame]').focus();
     }
     function editform(url) {
@@ -416,6 +435,7 @@
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('put');
+        setKasirFrameEditMode(true);
         $('#modal-form [name=merk_frame]').focus();
         $.get(url)
             .done((response) => {

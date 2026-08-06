@@ -284,6 +284,28 @@
     let jenisFilter = '';
     let allSelectedIds = new Set(); // Untuk menyimpan semua ID yang dipilih dari semua halaman
     let isSelectAllActive = false; // Status select all
+    const isKasir = @json(auth()->user()->isKasir());
+
+    function setKasirLensaEditMode(isEditMode) {
+        if (!isKasir) {
+            return;
+        }
+
+        // Kasir hanya boleh ubah harga jual saat mode edit.
+        $('#modal-form [name=kode_lensa]').prop('readonly', isEditMode);
+        $('#modal-form [name=merk_lensa]').prop('readonly', isEditMode);
+        $('#modal-form [name=type]').prop('readonly', isEditMode);
+        $('#modal-form [name=index]').prop('readonly', isEditMode);
+        $('#modal-form [name=coating]').prop('readonly', isEditMode);
+        $('#modal-form [name=add]').prop('readonly', isEditMode);
+        $('#modal-form [name=cly]').prop('readonly', isEditMode);
+        $('#modal-form [name=harga_beli_lensa]').prop('readonly', isEditMode);
+        $('#modal-form [name=stok]').prop('readonly', isEditMode);
+        $('#modal-form [name=is_custom_order]').prop('disabled', isEditMode);
+        $('#modal-form [name=sales_id]').prop('disabled', isEditMode);
+
+        $('#modal-form [name=harga_jual_lensa]').prop('readonly', false);
+    }
   
  $(function () {
         // Build columns array dynamically
@@ -476,6 +498,7 @@
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('post');
+        setKasirLensaEditMode(false);
         $('#modal-form [name=kode_lensa]').focus();
     }
     function editform(url) {
@@ -484,6 +507,7 @@
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('put');
+        setKasirLensaEditMode(true);
         $('#modal-form [name=kode_lensa]').focus();
         $.get(url)
             .done((response) => {

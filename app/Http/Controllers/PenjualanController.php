@@ -214,8 +214,8 @@ class PenjualanController extends Controller
 
         if (Str::contains($normalizedCabang, ['optik melati cabang 2', 'optik melati 2'])) {
             $jamOperasional = "*Jam Operasional*\n"
-                . "Senin - Jumat: 11.00 - 20.00 WIB\n"
-                . "Sabtu: 09.00 - 18.00 WIB\n"
+                . "Senin - Jumat: 11.00 - 19.30 WIB ISTIRAHAT 15.00-16.00\n"
+                . "Sabtu: 09.00 - 17.30 WIB ISTIRAHAT 12.00-13.00\n"
                 . "Minggu dan tanggal merah: Tutup";
         }
 

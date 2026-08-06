@@ -20,15 +20,15 @@ class LensaController extends Controller
             }
 
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
-        })->only(['store', 'restock']);
+        })->only(['store', 'restock', 'update']);
 
         $this->middleware(function ($request, $next) {
             if (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())) {
                 return $next($request);
             }
 
-            abort(403, 'Hanya admin dan super admin yang dapat mengubah atau menghapus data lensa.');
-        })->only(['update', 'destroy', 'bulkDelete']);
+            abort(403, 'Hanya admin dan super admin yang dapat menghapus data lensa.');
+        })->only(['destroy', 'bulkDelete']);
     }
 
     /**
@@ -161,6 +161,7 @@ class LensaController extends Controller
             ->addColumn('aksi', function ($lensa) use ($user) {
                 if ($user->isKasir()) {
                     return '<div class="btn-group">
+                        <button onclick="editform(\'' . route('lensa.update', $lensa->id) . '\')" class="btn btn-xs btn-info btn-flat"><i class="fa fa-pencil"></i></button>
                         <button onclick="restockLensa(\'' . route('lensa.restock', $lensa->id) . '\', \'' . e($lensa->merk_lensa) . '\')" class="btn btn-xs btn-success btn-flat"><i class="fa fa-plus"></i></button>
                     </div>';
                 }
@@ -237,8 +238,22 @@ class LensaController extends Controller
 
     public function update(Request $request, $id)
     {
-        $lensa = Lensa::find($id);
         $user = auth()->user();
+
+        if ($user->isKasir()) {
+            $lensa = Lensa::query()
+                ->accessibleByUser($user)
+                ->findOrFail($id);
+
+            $data = $request->validate([
+                'harga_jual_lensa' => 'nullable|numeric|min:0',
+            ]);
+
+            $lensa->update($data);
+            return response()->json(['message' => 'Harga jual lensa berhasil diperbarui']);
+        }
+
+        $lensa = Lensa::findOrFail($id);
 
         $request->validate([
             'kode_lensa' => 'required|string|max:255',
@@ -253,20 +268,11 @@ class LensaController extends Controller
             'is_custom_order' => 'nullable|boolean',
             'add' => 'nullable|string|max:255',
             'cly' => 'nullable|string|max:255',
+            'branch_id' => 'required|exists:branches,id',
         ]);
 
         $data = $request->all();
-
-        // Admin/Super Admin bisa mengubah semua data termasuk cabang
-        // Kasir tidak bisa mengubah data cabang
-        if (!$user->isSuperAdmin() && !$user->isAdmin()) {
-            unset($data['branch_id']);
-        } else {
-             $request->validate([
-                'branch_id' => 'required|exists:branches,id',
-            ]);
-             $data['branch_id'] = $request->branch_id;
-        }
+        $data['branch_id'] = $request->branch_id;
         
         $lensa->update($data);
         return response()->json(['message' => 'Lensa berhasil diperbarui']);

@@ -14,6 +14,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OpenDayController;
 use App\Http\Controllers\LaporanPosController;
 use App\Http\Controllers\StockTransferController;
+use App\Http\Controllers\KwitansiController;
 
 use Illuminate\Routing\Console\MiddlewareMakeCommand;
 use Illuminate\Support\Facades\Route;
@@ -150,6 +151,8 @@ Route::middleware([
     Route::post('/penjualan/{penjualan}/wa-image', [PenjualanController::class, 'uploadWhatsappReceiptImage'])->name('penjualan.wa-image');
     Route::get('penjualan/omset-harian', [\App\Http\Controllers\PenjualanController::class, 'omsetHarian'])->name('penjualan.omset_harian');
     Route::post('/penjualan/calculate-bpjs-price', [PenjualanController::class, 'calculateBpjsPrice'])->name('penjualan.calculate_bpjs_price');
+    Route::get('/kwitansi', [KwitansiController::class, 'create'])->name('kwitansi.create')->middleware('role:kasir,admin,super admin');
+    Route::post('/kwitansi/print', [KwitansiController::class, 'print'])->name('kwitansi.print')->middleware('role:kasir,admin,super admin');
 
     Route::post('/penjualan/test-bpjs-pricing', [PenjualanController::class, 'testBpjsPricing'])->name('penjualan.test_bpjs_pricing');
     Route::post('/penjualan/debug-frame-data', [PenjualanController::class, 'debugFrameData'])->name('penjualan.debug_frame_data');

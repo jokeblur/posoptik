@@ -20,15 +20,15 @@ class FrameController extends Controller
             }
             // Kasir boleh menambah dan restok data frame.
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
-        })->only(['store', 'restock']);
+        })->only(['store', 'restock', 'update']);
 
         $this->middleware(function ($request, $next) {
             if (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())) {
                 return $next($request);
             }
 
-            abort(403, 'Hanya admin dan super admin yang dapat mengubah atau menghapus data frame.');
-        })->only(['update', 'destroy', 'bulkDelete']);
+            abort(403, 'Hanya admin dan super admin yang dapat menghapus data frame.');
+        })->only(['destroy', 'bulkDelete']);
     }
     
     /**
@@ -100,6 +100,7 @@ class FrameController extends Controller
             ->addColumn('aksi', function ($frame) use ($user) {
                 if ($user->isKasir()) {
                     return '<div class="btn-group">
+                        <button onclick="editform(`' . route('frame.update', $frame->id) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-pencil"></i></button>
                         <button onclick="restockFrame(`' . route('frame.restock', $frame->id) . '`, `' . e($frame->merk_frame) . '`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-plus"></i></button>
                     </div>';
                 }
@@ -169,8 +170,24 @@ class FrameController extends Controller
 
     public function update(Request $request, $id)
     {
-        $frame = Frame::find($id);
         $user = auth()->user();
+
+        if ($user->isKasir()) {
+            $frame = Frame::query()
+                ->accessibleByUser($user)
+                ->findOrFail($id);
+
+            $data = $request->validate([
+                'jenis_frame' => 'nullable|string|max:255',
+                'harga_jual_frame' => 'nullable|numeric|min:0',
+            ]);
+
+            $frame->update($data);
+
+            return response()->json('Data berhasil disimpan', 200);
+        }
+
+        $frame = Frame::findOrFail($id);
 
         $request->validate([
             'kode_frame' => 'required|string|max:255|unique:frames,kode_frame,' . $id,
@@ -180,20 +197,11 @@ class FrameController extends Controller
             'harga_jual_frame' => 'nullable|numeric|min:0',
             'stok' => 'nullable|integer|min:0',
             'id_sales' => 'nullable|exists:sales,id_sales',
+            'branch_id' => 'required|exists:branches,id',
         ]);
 
         $data = $request->all();
-
-        // Admin/Super Admin bisa mengubah semua data termasuk cabang
-        // Kasir tidak bisa mengubah data cabang
-        if (!$user->isSuperAdmin() && !$user->isAdmin()) {
-            unset($data['branch_id']);
-        } else {
-             $request->validate([
-                'branch_id' => 'required|exists:branches,id',
-            ]);
-             $data['branch_id'] = $request->branch_id;
-        }
+        $data['branch_id'] = $request->branch_id;
 
         $frame->update($data);
 

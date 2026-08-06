@@ -123,9 +123,26 @@
             display: grid;
             grid-template-rows: auto 1fr auto;
             gap: 1.3mm;
+            position: relative;
+            overflow: hidden;
             background:
                 linear-gradient(135deg, rgba(5, 52, 115, 0.035), rgba(5, 52, 115, 0) 34mm),
                 #ffffff;
+        }
+
+        .main-right::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url('{{ asset('image/optik-melati.png') }}') center center / 72mm no-repeat;
+            opacity: 0.07;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .main-right > * {
+            position: relative;
+            z-index: 1;
         }
 
         .header {
@@ -253,7 +270,7 @@
 
         .ttd-date {
             font-size: 3.1mm;
-            margin-bottom: 8.5mm;
+            margin-bottom: 12mm;
             color: #2f3542;
         }
 

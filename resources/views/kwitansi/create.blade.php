@@ -15,7 +15,14 @@
                     <div class="row">
                         <div class="form-group col-md-4">
                             <label for="nomor">No. Kwitansi</label>
-                            <input type="text" class="form-control" id="nomor" name="nomor" value="{{ old('nomor') }}" placeholder="Contoh: 001/KWT/OM/VIII/2026">
+                            <input type="text" class="form-control" id="nomor_display" value="" readonly>
+                            <input type="hidden" id="nomor" name="nomor" value="{{ old('nomor') }}">
+                            <small class="text-muted">Nomor urut otomatis (001, 002, dst).</small>
+                        </div>
+                        <div class="form-group col-md-2">
+                            <label for="nomor_periode">Periode No.</label>
+                            <input type="text" class="form-control" id="nomor_periode" value="{{ old('nomor_periode', date('m/Y')) }}" placeholder="08/2026" maxlength="7">
+                            <small class="text-muted">Isi manual: MM/YYYY</small>
                         </div>
                         <div class="form-group col-md-4">
                             <label for="tempat_tanggal">Tempat, Tanggal</label>
@@ -79,6 +86,14 @@
         return Number(value || 0).toLocaleString('id-ID');
     }
 
+    function pad3(value) {
+        return String(value).padStart(3, '0');
+    }
+
+    function isValidPeriod(value) {
+        return /^\d{2}\/\d{4}$/.test(value);
+    }
+
     function capitalizeFirstLetter(value) {
         if (!value) {
             return '';
@@ -132,10 +147,45 @@
     const displayInput = document.getElementById('jumlah_display');
     const hiddenInput = document.getElementById('jumlah');
     const terbilangInput = document.getElementById('terbilang');
+    const nomorHiddenInput = document.getElementById('nomor');
+    const nomorDisplayInput = document.getElementById('nomor_display');
+    const nomorPeriodeInput = document.getElementById('nomor_periode');
+    const form = document.querySelector('form[action="{{ route('kwitansi.print') }}"]');
 
-    if (!displayInput || !hiddenInput || !terbilangInput) {
+    if (!displayInput || !hiddenInput || !terbilangInput || !nomorHiddenInput || !nomorDisplayInput || !nomorPeriodeInput || !form) {
         return;
     }
+
+    let currentSequence = 1;
+
+    function updateNomorKwitansi() {
+        const period = String(nomorPeriodeInput.value || '').trim();
+
+        if (!isValidPeriod(period)) {
+            nomorHiddenInput.value = '';
+            nomorDisplayInput.value = '';
+            return;
+        }
+
+        const storageKey = 'kwitansi_counter_' + period;
+        const lastUsed = parseInt(localStorage.getItem(storageKey) || '0', 10);
+        currentSequence = Number.isNaN(lastUsed) ? 1 : (lastUsed + 1);
+
+        const fullNumber = pad3(currentSequence) + '/KWT/OM/' + period;
+        nomorHiddenInput.value = fullNumber;
+        nomorDisplayInput.value = fullNumber;
+    }
+
+    nomorPeriodeInput.addEventListener('input', updateNomorKwitansi);
+
+    form.addEventListener('submit', function() {
+        const period = String(nomorPeriodeInput.value || '').trim();
+        if (isValidPeriod(period) && nomorHiddenInput.value) {
+            localStorage.setItem('kwitansi_counter_' + period, String(currentSequence));
+        }
+    });
+
+    updateNomorKwitansi();
 
     const initial = toNumber(hiddenInput.value);
     if (initial > 0) {

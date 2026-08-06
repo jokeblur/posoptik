@@ -52,7 +52,7 @@
                     <div class="row">
                         <div class="form-group col-md-6">
                             <label for="nama_pembuat">Nama Pembuat Kwitansi</label>
-                            <input type="text" class="form-control" id="nama_pembuat" name="nama_pembuat" value="{{ old('nama_pembuat') }}" placeholder="Contoh: Rina Putri">
+                            <input type="text" class="form-control" id="nama_pembuat" name="nama_pembuat" value="{{ old('nama_pembuat') }}" placeholder="Contoh: Udin Kasep">
                         </div>
                     </div>
                 </div>

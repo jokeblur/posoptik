@@ -1727,15 +1727,14 @@ class PenjualanController extends Controller
                 throw new \Exception('Failed to write barcode file to disk');
             }
 
-            // Generate simple token-based URL (WhatsApp safe)
-            $token = Str::uuid()->toString();
-            $cacheKey = 'barcode_' . $token;
-            
-            // Store filename in cache for 15 days
-            Cache::put($cacheKey, $filename, now()->addDays(15));
-            
-            // Generate simple URL without signatures
-            $imageUrl = url('/share/barcode-image/' . $token);
+            // Generate signed URL berbasis filename agar tetap valid walau cache dibersihkan.
+            $signedRelativePath = URL::signedRoute(
+                'penjualan.share-barcode-image',
+                ['token' => $filename],
+                false
+            );
+
+            $imageUrl = url($signedRelativePath);
 
             Log::info('Barcode generated successfully', [
                 'penjualan_id' => $penjualan->id,
@@ -1865,21 +1864,27 @@ class PenjualanController extends Controller
     }
 
     /**
-     * Share barcode image via token
+     * Share barcode image via legacy token or signed filename URL
      */
-    public function shareBarcodeImage($token)
+    public function shareBarcodeImage(Request $request, $token)
     {
-        // Validate token format
-        if (!preg_match('/^[a-f0-9\-]{36}$/', $token)) {
-            abort(404, 'Invalid token.');
-        }
+        $filename = null;
 
-        // Get filename from cache
-        $cacheKey = 'barcode_' . $token;
-        $filename = Cache::get($cacheKey);
-        
-        if (!$filename) {
-            abort(404, 'Link telah expired atau tidak ditemukan.');
+        // Backward compatibility: link lama berbasis token UUID + cache.
+        if (preg_match('/^[a-f0-9\-]{36}$/', (string) $token)) {
+            $cacheKey = 'barcode_' . $token;
+            $filename = Cache::get($cacheKey);
+
+            if (!$filename) {
+                abort(404, 'Link telah expired atau tidak ditemukan.');
+            }
+        } else {
+            // Link baru: wajib signed URL, tidak bergantung cache.
+            if (!URL::hasValidSignature($request, false)) {
+                abort(403, 'Invalid signature.');
+            }
+
+            $filename = (string) $token;
         }
 
         // Validate filename format

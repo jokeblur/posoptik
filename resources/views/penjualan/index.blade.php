@@ -154,7 +154,7 @@
                             <th>Kode Penjualan</th>
                             <th>Nama Dokter</th>
                             <th>Total</th>
-                            <th>Passet Oleh</th>
+                            <th>Update Oleh</th>
                             <th>Jenis Layanan</th>
                             <th>Jenis Transaksi</th>
                             <th>Status Transaksi</th>

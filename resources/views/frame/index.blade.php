@@ -55,6 +55,13 @@
 </div>
 <div class="row mb-3">
     <div class="col-md-12">
+        <a href="{{ route('frame.analysis') }}" class="btn btn-primary">
+            <i class="fa fa-bar-chart"></i> Lihat Analisa Frame
+        </a>
+    </div>
+</div>
+<div class="row mb-3">
+    <div class="col-md-12">
         <div class="box box-danger">
             <div class="box-header with-border">
                 <h3 class="box-title">

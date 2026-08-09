@@ -353,7 +353,7 @@
                                 </button>
                             </span>
                         </div>
-                        <p class="help-block">Wajib diisi untuk pasien BPJS. Ambil foto langsung atau dari webcam.</p>
+                        <p class="help-block">Opsional untuk pasien BPJS. Anda tetap bisa menyimpan transaksi jika belum memilih atau mengambil foto.</p>
                     </div>
                     
                     <div class="form-group" id="signature-bpjs-container" style="display: none;">
@@ -647,9 +647,9 @@ $(function() {
         // Tampilkan input foto BPJS dan tanda tangan jika layanan BPJS
         @if(str_contains(strtolower($selected_pasien->service_type), 'bpjs'))
             $('#photo-bpjs-container').slideDown();
-            $('#photo_bpjs').prop('required', true);
+            $('#photo_bpjs').prop('required', false);
             $('#signature-bpjs-container').slideDown();
-            $('#signature_bpjs').prop('required', true);
+            $('#signature_bpjs').prop('required', false);
         @endif
         
         // Tampilkan pesan sukses
@@ -702,9 +702,9 @@ $(function() {
                 // Logika untuk menampilkan input foto BPJS dan tanda tangan
                 if (response.service_type && response.service_type.toLowerCase().includes('bpjs')) {
                     $('#photo-bpjs-container').slideDown();
-                    $('#photo_bpjs').prop('required', true);
+                    $('#photo_bpjs').prop('required', false);
                     $('#signature-bpjs-container').slideDown();
-                    $('#signature_bpjs').prop('required', true);
+                    $('#signature_bpjs').prop('required', false);
                 } else {
                     $('#photo-bpjs-container').slideUp();
                     $('#photo_bpjs').prop('required', false);

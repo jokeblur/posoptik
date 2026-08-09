@@ -8,7 +8,9 @@ use App\Models\Sales;
 use App\Imports\FrameImport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\FrameExport;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class FrameController extends Controller
 {
@@ -49,7 +51,261 @@ class FrameController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        return view('frame.index', compact('sales', 'branches', 'lowStockFrame', 'batasStok'));
+        $frameAnalysisStart = now()->subDays(30)->startOfDay();
+        $frameAnalysisEnd = now()->endOfDay();
+        $frameAnalysisPeriodLabel = '30 Hari Terakhir';
+
+        $frameAnalysisBaseQuery = DB::table('penjualan_detail as pd')
+            ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+            ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
+            ->where('pd.itemable_type', Frame::class)
+            ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd]);
+
+        if (!($user->isSuperAdmin() || $user->isAdmin())) {
+            $frameAnalysisBaseQuery->where('p.branch_id', $user->branch_id);
+        }
+
+        $frameAnalysisBpjsSummary = (clone $frameAnalysisBaseQuery)
+            ->whereNotNull('p.pasien_service_type')
+            ->whereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) LIKE ?', ['%bpjs%'])
+            ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
+            ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+            ->first();
+
+        $frameAnalysisUmumSummary = (clone $frameAnalysisBaseQuery)
+            ->where(function ($query) {
+                $query->whereNull('p.pasien_service_type')
+                    ->orWhereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) NOT LIKE ?', ['%bpjs%']);
+            })
+            ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
+            ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+            ->first();
+
+        $frameAnalysisUmumByBranch = collect();
+        $branchNames = [
+            'Optik Melati 1' => ['optik melati cabang 1', 'optik melati 1'],
+            'Optik Melati 2' => ['optik melati cabang 2', 'optik melati 2'],
+        ];
+
+        foreach ($branchNames as $branchLabel => $branchKeywords) {
+            $branchQuery = DB::table('penjualan_detail as pd')
+                ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+                ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
+                ->join('branches as b', 'b.id', '=', 'p.branch_id')
+                ->where('pd.itemable_type', Frame::class)
+                ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd])
+                ->where(function ($query) use ($branchKeywords) {
+                    foreach ($branchKeywords as $keyword) {
+                        $query->orWhereRaw('LOWER(TRIM(COALESCE(b.name, ""))) LIKE ?', ['%' . strtolower($keyword) . '%']);
+                    }
+                })
+                ->where(function ($query) {
+                    $query->whereNull('p.pasien_service_type')
+                        ->orWhereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) NOT LIKE ?', ['%bpjs%']);
+                })
+                ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
+                ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+                ->first();
+
+            $branchSummary = $branchQuery ? (object) array_merge((array) $branchQuery, ['branch_name' => $branchLabel]) : (object) [
+                'branch_name' => $branchLabel,
+                'total_qty' => 0,
+                'total_transaksi' => 0,
+            ];
+
+            $frameAnalysisUmumByBranch->push($branchSummary);
+        }
+
+        $frameAnalysisBpjs = (clone $frameAnalysisBaseQuery)
+            ->whereNotNull('p.pasien_service_type')
+            ->whereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) LIKE ?', ['%bpjs%'])
+            ->selectRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') as merk_frame")
+            ->selectRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') as jenis_frame")
+            ->selectRaw('SUM(COALESCE(pd.quantity, 0)) as total_qty')
+            ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+            ->groupBy('merk_frame', 'jenis_frame')
+            ->havingRaw('SUM(COALESCE(pd.quantity, 0)) > 2')
+            ->orderByDesc('total_qty')
+            ->limit(10)
+            ->get();
+
+        $frameAnalysisUmum = collect();
+        foreach ($branchNames as $branchLabel => $branchKeywords) {
+            $branchItems = (clone $frameAnalysisBaseQuery)
+                ->join('branches as b', 'b.id', '=', 'p.branch_id')
+                ->where(function ($query) use ($branchKeywords) {
+                    foreach ($branchKeywords as $keyword) {
+                        $query->orWhereRaw('LOWER(TRIM(COALESCE(b.name, ""))) LIKE ?', ['%' . strtolower($keyword) . '%']);
+                    }
+                })
+                ->where(function ($query) {
+                    $query->whereNull('p.pasien_service_type')
+                        ->orWhereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) NOT LIKE ?', ['%bpjs%']);
+                })
+                ->selectRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') as merk_frame")
+                ->selectRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') as jenis_frame")
+                ->selectRaw('SUM(COALESCE(pd.quantity, 0)) as total_qty')
+                ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+                ->groupBy('merk_frame', 'jenis_frame')
+                ->orderByDesc('total_qty')
+                ->limit(10)
+                ->get()
+                ->map(function ($item) use ($branchLabel) {
+                    $item->cabang = $branchLabel;
+                    return $item;
+                });
+
+            $frameAnalysisUmum = $frameAnalysisUmum->merge($branchItems);
+        }
+
+        return view('frame.index', compact(
+            'sales',
+            'branches',
+            'lowStockFrame',
+            'batasStok',
+            'frameAnalysisBpjsSummary',
+            'frameAnalysisUmumSummary',
+            'frameAnalysisBpjs',
+            'frameAnalysisUmum',
+            'frameAnalysisUmumByBranch',
+            'frameAnalysisPeriodLabel'
+        ));
+    }
+
+    public function analysis(Request $request)
+    {
+        $user = auth()->user();
+        $selectedMonth = $request->get('month', now()->format('Y-m'));
+        $selectedYear = (int) substr($selectedMonth, 0, 4);
+        $selectedMonthNumber = (int) substr($selectedMonth, 5, 2);
+
+        $frameAnalysisStart = Carbon::create($selectedYear, $selectedMonthNumber, 1, 0, 0, 0, 'Asia/Jakarta')->startOfMonth();
+        $frameAnalysisEnd = Carbon::create($selectedYear, $selectedMonthNumber, 1, 0, 0, 0, 'Asia/Jakarta')->endOfMonth();
+        $frameAnalysisPeriodLabel = $frameAnalysisStart->translatedFormat('F Y');
+        $sales = Sales::all()->pluck('nama_sales', 'id_sales');
+        $branches = \App\Models\Branch::all()->pluck('name', 'id');
+        $batasStok = 2;
+        $lowStockFrame = Frame::accessibleByUser($user)
+            ->where('stok', '<=', $batasStok)
+            ->with('branch')
+            ->orderBy('stok', 'asc')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $frameAnalysisBaseQuery = DB::table('penjualan_detail as pd')
+            ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+            ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
+            ->where('pd.itemable_type', Frame::class)
+            ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd]);
+
+        if (!($user->isSuperAdmin() || $user->isAdmin())) {
+            $frameAnalysisBaseQuery->where('p.branch_id', $user->branch_id);
+        }
+
+        $frameAnalysisBpjsSummary = (clone $frameAnalysisBaseQuery)
+            ->whereNotNull('p.pasien_service_type')
+            ->whereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) LIKE ?', ['%bpjs%'])
+            ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
+            ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+            ->first();
+
+        $frameAnalysisUmumSummary = (clone $frameAnalysisBaseQuery)
+            ->where(function ($query) {
+                $query->whereNull('p.pasien_service_type')
+                    ->orWhereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) NOT LIKE ?', ['%bpjs%']);
+            })
+            ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
+            ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+            ->first();
+
+        $branchNames = [
+            'Optik Melati 1' => ['optik melati cabang 1', 'optik melati 1'],
+            'Optik Melati 2' => ['optik melati cabang 2', 'optik melati 2'],
+        ];
+
+        $frameAnalysisUmumByBranch = collect();
+        foreach ($branchNames as $branchLabel => $branchKeywords) {
+            $branchQuery = DB::table('penjualan_detail as pd')
+                ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+                ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
+                ->join('branches as b', 'b.id', '=', 'p.branch_id')
+                ->where('pd.itemable_type', Frame::class)
+                ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd])
+                ->where(function ($query) use ($branchKeywords) {
+                    foreach ($branchKeywords as $keyword) {
+                        $query->orWhereRaw('LOWER(TRIM(COALESCE(b.name, ""))) LIKE ?', ['%' . strtolower($keyword) . '%']);
+                    }
+                })
+                ->where(function ($query) {
+                    $query->whereNull('p.pasien_service_type')
+                        ->orWhereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) NOT LIKE ?', ['%bpjs%']);
+                })
+                ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
+                ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+                ->first();
+
+            $frameAnalysisUmumByBranch->push((object) [
+                'branch_name' => $branchLabel,
+                'total_qty' => (int) ($branchQuery->total_qty ?? 0),
+                'total_transaksi' => (int) ($branchQuery->total_transaksi ?? 0),
+            ]);
+        }
+
+        $frameAnalysisBpjs = (clone $frameAnalysisBaseQuery)
+            ->whereNotNull('p.pasien_service_type')
+            ->whereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) LIKE ?', ['%bpjs%'])
+            ->selectRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') as merk_frame")
+            ->selectRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') as jenis_frame")
+            ->selectRaw('SUM(COALESCE(pd.quantity, 0)) as total_qty')
+            ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+            ->groupBy('merk_frame', 'jenis_frame')
+            ->havingRaw('SUM(COALESCE(pd.quantity, 0)) > 2')
+            ->orderByDesc('total_qty')
+            ->limit(10)
+            ->get();
+
+        $frameAnalysisUmum = collect();
+        foreach ($branchNames as $branchLabel => $branchKeywords) {
+            $branchItems = (clone $frameAnalysisBaseQuery)
+                ->join('branches as b', 'b.id', '=', 'p.branch_id')
+                ->where(function ($query) use ($branchKeywords) {
+                    foreach ($branchKeywords as $keyword) {
+                        $query->orWhereRaw('LOWER(TRIM(COALESCE(b.name, ""))) LIKE ?', ['%' . strtolower($keyword) . '%']);
+                    }
+                })
+                ->where(function ($query) {
+                    $query->whereNull('p.pasien_service_type')
+                        ->orWhereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) NOT LIKE ?', ['%bpjs%']);
+                })
+                ->selectRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') as merk_frame")
+                ->selectRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') as jenis_frame")
+                ->selectRaw('SUM(COALESCE(pd.quantity, 0)) as total_qty')
+                ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+                ->groupBy('merk_frame', 'jenis_frame')
+                ->orderByDesc('total_qty')
+                ->limit(10)
+                ->get()
+                ->map(function ($item) use ($branchLabel) {
+                    $item->cabang = $branchLabel;
+                    return $item;
+                });
+
+            $frameAnalysisUmum = $frameAnalysisUmum->merge($branchItems);
+        }
+
+        return view('frame.analysis', compact(
+            'sales',
+            'branches',
+            'lowStockFrame',
+            'batasStok',
+            'frameAnalysisBpjsSummary',
+            'frameAnalysisUmumSummary',
+            'frameAnalysisBpjs',
+            'frameAnalysisUmum',
+            'frameAnalysisUmumByBranch',
+            'frameAnalysisPeriodLabel',
+            'selectedMonth'
+        ));
     }
 
     public function data(Request $request)

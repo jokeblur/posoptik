@@ -771,6 +771,7 @@ class PenjualanController extends Controller
             'bayar' => 'required|numeric|min:0',
             'kekurangan' => 'required|numeric',
             'bpjs_manual_additional_cost' => 'nullable|numeric|min:0',
+            'photo_bpjs' => 'nullable|image|max:3072',
             'photo_bpjs_webcam' => 'nullable|string',
         ];
 

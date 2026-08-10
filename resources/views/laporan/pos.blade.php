@@ -172,6 +172,12 @@
 </div>
 @endif
 
+@php
+    $currentBranchName = strtolower((string) ($selectedBranch->name ?? optional(auth()->user()->branch)->name ?? ''));
+    $isOptikMelati2Context = strpos($currentBranchName, 'optik melati cabang 2') !== false
+        || strpos($currentBranchName, 'optik melati 2') !== false;
+@endphp
+
 <div class="row">
     <div class="col-md-12">
         <div class="box box-primary">
@@ -197,20 +203,22 @@
                             </a>
                         </div>
                     </div>
+                    @unless($isOptikMelati2Context)
                     <div class="col-md-4">
-                        <div class="small-box bg-aqua">
-                            <div class="inner">
-                                <h3>Rp {{ number_format($omsetHarianBpjs ?? 0,0,',','.') }}</h3>
-                                <p>Omset Hari Ini BPJS (Harga Default)</p>
+                            <div class="small-box bg-aqua">
+                                <div class="inner">
+                                    <h3>Rp {{ number_format($omsetHarianBpjs ?? 0,0,',','.') }}</h3>
+                                    <p>Omset Hari Ini BPJS (Harga Default)</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fa fa-hospital-o"></i>
+                                </div>
+                                <a href="#" class="small-box-footer" data-toggle="modal" data-target="#modal-harian-bpjs">
+                                    Detail Omset BPJS Hari Ini <i class="fa fa-arrow-circle-right"></i>
+                                </a>
                             </div>
-                            <div class="icon">
-                                <i class="fa fa-hospital-o"></i>
-                            </div>
-                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#modal-harian-bpjs">
-                                Detail Omset BPJS Hari Ini <i class="fa fa-arrow-circle-right"></i>
-                            </a>
-                        </div>
                     </div>
+                    @endunless
                     <div class="col-md-4">
                         <div class="small-box bg-teal">
                             <div class="inner">
@@ -225,20 +233,22 @@
                             </span>
                         </div>
                     </div>
+                    @unless($isOptikMelati2Context)
                     <div class="col-md-4">
-                        <div class="small-box bg-orange">
-                            <div class="inner">
-                                <h3>Rp {{ number_format($totalTambahanBpjsHarian ?? 0,0,',','.') }}</h3>
-                                <p>Biaya Tambahan BPJS Hari Ini</p>
+                            <div class="small-box bg-orange">
+                                <div class="inner">
+                                    <h3>Rp {{ number_format($totalTambahanBpjsHarian ?? 0,0,',','.') }}</h3>
+                                    <p>Biaya Tambahan BPJS Hari Ini</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fa fa-plus-circle"></i>
+                                </div>
+                                <span class="small-box-footer">
+                                    Ikut dihitung ke omset harian
+                                </span>
                             </div>
-                            <div class="icon">
-                                <i class="fa fa-plus-circle"></i>
-                            </div>
-                            <span class="small-box-footer">
-                                Ikut dihitung ke omset harian
-                            </span>
-                        </div>
                     </div>
+                    @endunless
 
                     <div class="col-md-4">
                         <div class="small-box bg-success">
@@ -254,20 +264,22 @@
                             </a>
                         </div>
                     </div>
+                    @unless($isOptikMelati2Context)
                     <div class="col-md-4">
-                        <div class="small-box bg-navy">
-                            <div class="inner">
-                                <h3>Rp {{ number_format($omsetBulananBpjs ?? 0,0,',','.') }}</h3>
-                                <p>Omset Bulanan BPJS (Harga Default)</p>
+                            <div class="small-box bg-navy">
+                                <div class="inner">
+                                    <h3>Rp {{ number_format($omsetBulananBpjs ?? 0,0,',','.') }}</h3>
+                                    <p>Omset Bulanan BPJS (Harga Default)</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fa fa-medkit"></i>
+                                </div>
+                                <span class="small-box-footer">
+                                    Hanya total plafon/default BPJS
+                                </span>
                             </div>
-                            <div class="icon">
-                                <i class="fa fa-medkit"></i>
-                            </div>
-                            <span class="small-box-footer">
-                                Hanya total plafon/default BPJS
-                            </span>
-                        </div>
                     </div>
+                    @endunless
                     <div class="col-md-4">
                         <div class="small-box bg-olive">
                             <div class="inner">
@@ -282,20 +294,22 @@
                             </span>
                         </div>
                     </div>
+                    @unless($isOptikMelati2Context)
                     <div class="col-md-4">
-                        <div class="small-box bg-yellow">
-                            <div class="inner">
-                                <h3>Rp {{ number_format($totalTambahanBpjsBulanan ?? 0,0,',','.') }}</h3>
-                                <p>Biaya Tambahan BPJS Bulanan</p>
+                            <div class="small-box bg-yellow">
+                                <div class="inner">
+                                    <h3>Rp {{ number_format($totalTambahanBpjsBulanan ?? 0,0,',','.') }}</h3>
+                                    <p>Biaya Tambahan BPJS Bulanan</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fa fa-plus-square"></i>
+                                </div>
+                                <span class="small-box-footer">
+                                    Ikut dihitung ke omset bulanan
+                                </span>
                             </div>
-                            <div class="icon">
-                                <i class="fa fa-plus-square"></i>
-                            </div>
-                            <span class="small-box-footer">
-                                Ikut dihitung ke omset bulanan
-                            </span>
-                        </div>
                     </div>
+                    @endunless
 
                     <div class="col-md-12">
                         <div class="small-box bg-danger">
@@ -387,6 +401,7 @@
         </div>
     </div>
 </div>
+@unless($isOptikMelati2Context)
 <div class="row">
     <div class="col-md-12">
         <div class="box box-info">
@@ -414,6 +429,7 @@
         </div>
     </div>
 </div>
+@endunless
 <div class="row">
     <div class="col-md-6">
         <div class="box box-warning">
@@ -498,6 +514,7 @@
 </div>
 
     <!-- Modal Detail Omset BPJS Harian -->
+    @unless($isOptikMelati2Context)
     <div class="modal fade" id="modal-harian-bpjs" tabindex="-1" role="dialog" aria-labelledby="modalHarianBpjsLabel">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
@@ -557,6 +574,7 @@
             </div>
         </div>
     </div>
+    @endunless
 
 <!-- Modal Detail Aksesoris Harian -->
 <div class="modal fade" id="modal-aksesoris-harian" tabindex="-1" role="dialog" aria-labelledby="modalAksesorisHarianLabel">

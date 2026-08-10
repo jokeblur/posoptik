@@ -55,6 +55,11 @@ class Penjualan extends Model
         return $this->hasMany(PenjualanDetail::class);
     }
 
+    public function comments()
+    {
+        return $this->hasMany(TransactionComment::class, 'penjualan_id');
+    }
+
     public function passetByUser()
     {
         return $this->belongsTo(User::class, 'passet_by_user_id');

@@ -3,6 +3,11 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OpenDayController;
+use App\Http\Controllers\Api\V1\PosApiController;
+use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\FrameApiController;
+use App\Http\Controllers\Api\V1\PasienApiController;
+use App\Http\Controllers\Api\V1\PenjualanApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -52,4 +57,27 @@ Route::middleware('auth:sanctum')->get('/users', function (Request $request) {
         \Log::error('Error getting users: ' . $e->getMessage());
         return response()->json(['error' => 'Failed to get users'], 500);
     }
+});
+
+Route::prefix('v1')->group(function () {
+    Route::post('/auth/login', [AuthController::class, 'login']);
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/auth/me', [AuthController::class, 'me']);
+        Route::post('/auth/logout', [AuthController::class, 'logout']);
+
+        Route::get('/frames', [FrameApiController::class, 'index']);
+        Route::get('/frames/{frame}', [FrameApiController::class, 'show']);
+
+        Route::get('/pasien', [PasienApiController::class, 'index']);
+        Route::get('/pasien/{pasien}', [PasienApiController::class, 'show']);
+
+        Route::get('/penjualan', [PenjualanApiController::class, 'index']);
+        Route::get('/penjualan/{penjualan}', [PenjualanApiController::class, 'show']);
+
+        Route::get('/search', [PosApiController::class, 'search']);
+        Route::get('/reports/transactions', [PosApiController::class, 'report']);
+        Route::get('/comments', [PosApiController::class, 'comments']);
+        Route::post('/comments', [PosApiController::class, 'storeComment']);
+    });
 });

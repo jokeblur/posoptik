@@ -1,0 +1,70 @@
+{
+  "info": {
+    "name": "POS Optik Melati API v1",
+    "_postman_id": "f4b3e2b7-1a7c-4e10-8b1a-000000000001",
+    "description": "Collection untuk API login, data inti, search, report, dan comment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"secret123\",\n  \"device_name\": \"android-mobile\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/api/v1/auth/login", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "login"]}
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {"raw": "{{base_url}}/api/v1/auth/me", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "me"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Core Data",
+      "item": [
+        {
+          "name": "Frames",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{base_url}}/api/v1/frames", "host": ["{{base_url}}"], "path": ["api", "v1", "frames"]}}
+        },
+        {
+          "name": "Pasien",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{base_url}}/api/v1/pasien", "host": ["{{base_url}}"], "path": ["api", "v1", "pasien"]}}
+        },
+        {
+          "name": "Penjualan",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{base_url}}/api/v1/penjualan", "host": ["{{base_url}}"], "path": ["api", "v1", "penjualan"]}}
+        }
+      ]
+    },
+    {
+      "name": "Search and Report",
+      "item": [
+        {"name": "Search", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{base_url}}/api/v1/search?q=frame", "host": ["{{base_url}}"], "path": ["api", "v1", "search"], "query": [{"key": "q", "value": "frame"}]}}},
+        {"name": "Report Transactions", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{base_url}}/api/v1/reports/transactions", "host": ["{{base_url}}"], "path": ["api", "v1", "reports", "transactions"]}}}
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {"name": "List Comments", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{base_url}}/api/v1/comments?penjualan_id=123", "host": ["{{base_url}}"], "path": ["api", "v1", "comments"], "query": [{"key": "penjualan_id", "value": "123"}]}}},
+        {"name": "Store Comment", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"penjualan_id\": 123,\n  \"comment\": \"Follow up besok\"\n}"}, "url": {"raw": "{{base_url}}/api/v1/comments", "host": ["{{base_url}}"], "path": ["api", "v1", "comments"]}}}
+      ]
+    }
+  ],
+  "variable": [
+    {"key": "base_url", "value": "http://localhost:8000"},
+    {"key": "token", "value": ""}
+  ]
+}

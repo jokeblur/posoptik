@@ -1,0 +1,208 @@
+openapi: 3.0.3
+info:
+  title: POS Optik Melati API
+  version: 1.0.0
+  description: API v1 untuk login token Sanctum, data inti, search, report, dan comment.
+servers:
+  - url: /api/v1
+paths:
+  /auth/login:
+    post:
+      summary: Login dan ambil token Sanctum
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                device_name:
+                  type: string
+      responses:
+        '200':
+          description: Token berhasil dibuat
+  /auth/me:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Data user login saat ini
+      responses:
+        '200':
+          description: OK
+  /auth/logout:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Hapus token aktif
+      responses:
+        '200':
+          description: OK
+  /frames:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Daftar frame
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: branch_id
+          schema: { type: integer }
+        - in: query
+          name: sales_id
+          schema: { type: integer }
+        - in: query
+          name: jenis_frame
+          schema: { type: string }
+        - in: query
+          name: stok_min
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+  /frames/{frame}:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Detail frame
+      parameters:
+        - in: path
+          name: frame
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+  /pasien:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Daftar pasien
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: service_type
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+  /pasien/{pasien}:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Detail pasien
+      parameters:
+        - in: path
+          name: pasien
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+  /penjualan:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Daftar penjualan
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: branch_id
+          schema: { type: integer }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: status_pengerjaan
+          schema: { type: string }
+        - in: query
+          name: start_date
+          schema: { type: string, format: date }
+        - in: query
+          name: end_date
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: OK
+  /penjualan/{penjualan}:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Detail penjualan
+      parameters:
+        - in: path
+          name: penjualan
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+  /search:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Search transaksi
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+  /reports/transactions:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Report transaksi
+      responses:
+        '200':
+          description: OK
+  /comments:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Daftar comment transaksi
+      parameters:
+        - in: query
+          name: penjualan_id
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+    post:
+      security:
+        - bearerAuth: []
+      summary: Simpan comment transaksi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [penjualan_id, comment]
+              properties:
+                penjualan_id:
+                  type: integer
+                comment:
+                  type: string
+      responses:
+        '201':
+          description: Created
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

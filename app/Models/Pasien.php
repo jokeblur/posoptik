@@ -14,6 +14,11 @@ class Pasien extends Model
     protected $guarded = [];
     protected $fillable = ['nama_pasien', 'alamat', 'nohp', 'service_type', 'no_bpjs'];
 
+    public function getRouteKeyName()
+    {
+        return 'id_pasien';
+    }
+
     public function prescriptions()
     {
         return $this->hasMany(Prescription::class, 'id_pasien')->orderBy('tanggal', 'asc');

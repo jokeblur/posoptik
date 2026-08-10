@@ -421,7 +421,7 @@
                 <h3 class="box-title">Rekap DP (Belum Lunas)</h3>
             </div>
             <div class="box-body table-responsive">
-                <table id="table-rekap-dp" class="table table-bordered table-striped">
+                <table id="table-rekap-dp" class="table table-bordered table-striped datatable">
                     <thead>
                         <tr>
                             <th>Kode</th>
@@ -462,7 +462,7 @@
                 <h3 class="box-title">Rekap Lunas (Pasien Umum)</h3>
             </div>
             <div class="box-body table-responsive">
-                <table id="table-rekap-lunas" class="table table-bordered table-striped">
+                <table id="table-rekap-lunas" class="table table-bordered table-striped datatable">
                     <thead>
                         <tr>
                             <th>Kode</th>
@@ -859,7 +859,7 @@
 <script>
 $(function() {
     const dtLanguage = {
-        url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json'
+        url: window.DATATABLES_LANG_URL || '//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json'
     };
 
     const hasBranchColumn = @json($isSuperAdmin && !$selectedBranchId);
@@ -937,6 +937,12 @@ $(function() {
     // Rekap DP (Belum Lunas)
     initDataTable('#table-rekap-dp', {
         order: [[1, 'desc']],
+        searching: true,
+        paging: true,
+        info: true,
+        lengthChange: true,
+        pageLength: 10,
+        autoWidth: false,
         columnDefs: [
             {
                 targets: hasBranchColumn ? [4, 5, 6] : [3, 4, 5],
@@ -948,6 +954,12 @@ $(function() {
     // Rekap Lunas
     initDataTable('#table-rekap-lunas', {
         order: [[1, 'desc']],
+        searching: true,
+        paging: true,
+        info: true,
+        lengthChange: true,
+        pageLength: 10,
+        autoWidth: false,
         columnDefs: [
             {
                 targets: hasBranchColumn ? [4, 5] : [3, 4],

@@ -21,6 +21,17 @@
                 <label for="month" style="margin-right:8px;">Pilih Bulan</label>
                 <input type="month" class="form-control" id="month" name="month" value="{{ $selectedMonth ?? now()->format('Y-m') }}">
             </div>
+            <div class="form-group" style="margin-left:10px;">
+                <label for="sales_id" style="margin-right:8px;">Nama Sales</label>
+                <select class="form-control" id="sales_id" name="sales_id">
+                    <option value="">Semua Sales</option>
+                    @foreach($sales as $salesId => $salesName)
+                        <option value="{{ $salesId }}" {{ (string) ($selectedSalesId ?? '') === (string) $salesId ? 'selected' : '' }}>
+                            {{ $salesName }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
             <button type="submit" class="btn btn-primary">Tampilkan</button>
         </form>
     </div>
@@ -57,11 +68,12 @@
                 </div>
                 @if($frameAnalysisBpjs->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-bordered table-striped">
+                        <table id="table-frame-analysis-bpjs" class="table table-bordered table-striped">
                             <thead>
                                 <tr>
                                     <th>Merk</th>
                                     <th>Jenis</th>
+                                    <th>Sales</th>
                                     <th>Qty</th>
                                     <th>Transaksi</th>
                                     <th>Aksi</th>
@@ -72,6 +84,7 @@
                                     <tr>
                                         <td>{{ $item->merk_frame }}</td>
                                         <td>{{ $item->jenis_frame }}</td>
+                                        <td>{{ $item->sales_name ?? '-' }}</td>
                                         <td>{{ number_format($item->total_qty) }}</td>
                                         <td>{{ number_format($item->total_transaksi) }}</td>
                                         <td>
@@ -135,11 +148,12 @@
                                 <div class="panel-heading"><strong>Optik Melati 1</strong></div>
                                 <div class="panel-body" style="padding: 0;">
                                     <div class="table-responsive">
-                                        <table class="table table-bordered table-striped" style="margin-bottom: 0;">
+                                        <table id="table-frame-analysis-umum-om1" class="table table-bordered table-striped" style="margin-bottom: 0;">
                                             <thead>
                                                 <tr>
                                                     <th>Merk</th>
                                                     <th>Jenis</th>
+                                                    <th>Sales</th>
                                                     <th>Qty</th>
                                                     <th>Transaksi</th>
                                                     <th>Aksi</th>
@@ -150,6 +164,7 @@
                                                     <tr>
                                                         <td>{{ $item->merk_frame }}</td>
                                                         <td>{{ $item->jenis_frame }}</td>
+                                                        <td>{{ $item->sales_name ?? '-' }}</td>
                                                         <td>{{ number_format($item->total_qty) }}</td>
                                                         <td>{{ number_format($item->total_transaksi) }}</td>
                                                         <td>
@@ -177,11 +192,12 @@
                                 <div class="panel-heading"><strong>Optik Melati 2</strong></div>
                                 <div class="panel-body" style="padding: 0;">
                                     <div class="table-responsive">
-                                        <table class="table table-bordered table-striped" style="margin-bottom: 0;">
+                                        <table id="table-frame-analysis-umum-om2" class="table table-bordered table-striped" style="margin-bottom: 0;">
                                             <thead>
                                                 <tr>
                                                     <th>Merk</th>
                                                     <th>Jenis</th>
+                                                    <th>Sales</th>
                                                     <th>Qty</th>
                                                     <th>Transaksi</th>
                                                     <th>Aksi</th>
@@ -192,6 +208,7 @@
                                                     <tr>
                                                         <td>{{ $item->merk_frame }}</td>
                                                         <td>{{ $item->jenis_frame }}</td>
+                                                        <td>{{ $item->sales_name ?? '-' }}</td>
                                                         <td>{{ number_format($item->total_qty) }}</td>
                                                         <td>{{ number_format($item->total_transaksi) }}</td>
                                                         <td>
@@ -330,6 +347,25 @@
     createChart('chart-frame-bpjs', bpjsLabels, bpjsData, 'Qty Frame BPJS', 'rgba(0, 166, 90, 0.7)');
     createChart('chart-frame-umum-om1', umumOm1Labels, umumOm1Data, 'Qty Frame Umum OM1', 'rgba(60, 141, 188, 0.7)');
     createChart('chart-frame-umum-om2', umumOm2Labels, umumOm2Data, 'Qty Frame Umum OM2', 'rgba(243, 156, 18, 0.7)');
+
+    const initAnalysisTable = (selector, orderColumnIndex) => {
+        if (!$(selector).length || $.fn.dataTable.isDataTable(selector)) {
+            return;
+        }
+
+        $(selector).DataTable({
+            responsive: true,
+            pageLength: 10,
+            order: [[orderColumnIndex, 'asc']],
+            language: {
+                url: window.DATATABLES_LANG_URL || '//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json'
+            }
+        });
+    };
+
+    initAnalysisTable('#table-frame-analysis-bpjs', 2);
+    initAnalysisTable('#table-frame-analysis-umum-om1', 2);
+    initAnalysisTable('#table-frame-analysis-umum-om2', 2);
 
     const escapeHtml = (value) => String(value ?? '')
         .replace(/&/g, '&amp;')

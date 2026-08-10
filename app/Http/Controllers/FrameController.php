@@ -353,7 +353,7 @@ class FrameController extends Controller
             ->limit(10)
             ->get();
 
-        $frameAnalysisBpjs = $frameAnalysisBpjs->map(function ($item) use ($frameAnalysisStart, $frameAnalysisEnd, $selectedSalesId) {
+        $frameAnalysisBpjs = $frameAnalysisBpjs->map(function ($item) use ($frameAnalysisStart, $frameAnalysisEnd, $selectedSalesId, $bpjsServiceTypeSql) {
             $item->kode_frame_details = DB::table('penjualan_detail as pd')
                 ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
                 ->join('frames as f', 'f.id', '=', 'pd.itemable_id')

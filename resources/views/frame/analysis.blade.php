@@ -27,7 +27,7 @@
 </div>
 
 <div class="row mb-3">
-    <div class="col-md-6">
+    <div class="col-md-12">
         <div class="box box-primary">
             <div class="box-header with-border">
                 <h3 class="box-title">
@@ -64,6 +64,7 @@
                                     <th>Jenis</th>
                                     <th>Qty</th>
                                     <th>Transaksi</th>
+                                    <th>Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -73,6 +74,18 @@
                                         <td>{{ $item->jenis_frame }}</td>
                                         <td>{{ number_format($item->total_qty) }}</td>
                                         <td>{{ number_format($item->total_transaksi) }}</td>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                class="btn btn-xs btn-info btn-flat btn-show-frame-codes"
+                                                data-toggle="modal"
+                                                data-target="#modal-frame-codes"
+                                                data-judul="Kode Frame Terjual - BPJS"
+                                                data-kode-detail='@json(($item->kode_frame_details ?? collect())->values())'
+                                            >
+                                                <i class="fa fa-eye"></i> Lihat Kode
+                                            </button>
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -84,7 +97,10 @@
             </div>
         </div>
     </div>
-    <div class="col-md-6">
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
         <div class="box box-success">
             <div class="box-header with-border">
                 <h3 class="box-title">
@@ -126,6 +142,7 @@
                                                     <th>Jenis</th>
                                                     <th>Qty</th>
                                                     <th>Transaksi</th>
+                                                    <th>Aksi</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -135,6 +152,18 @@
                                                         <td>{{ $item->jenis_frame }}</td>
                                                         <td>{{ number_format($item->total_qty) }}</td>
                                                         <td>{{ number_format($item->total_transaksi) }}</td>
+                                                        <td>
+                                                            <button
+                                                                type="button"
+                                                                class="btn btn-xs btn-info btn-flat btn-show-frame-codes"
+                                                                data-toggle="modal"
+                                                                data-target="#modal-frame-codes"
+                                                                data-judul="Kode Frame Terjual - Umum Optik Melati 1"
+                                                                data-kode-detail='@json(($item->kode_frame_details ?? collect())->values())'
+                                                            >
+                                                                <i class="fa fa-eye"></i> Lihat Kode
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>
@@ -155,6 +184,7 @@
                                                     <th>Jenis</th>
                                                     <th>Qty</th>
                                                     <th>Transaksi</th>
+                                                    <th>Aksi</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -164,6 +194,18 @@
                                                         <td>{{ $item->jenis_frame }}</td>
                                                         <td>{{ number_format($item->total_qty) }}</td>
                                                         <td>{{ number_format($item->total_transaksi) }}</td>
+                                                        <td>
+                                                            <button
+                                                                type="button"
+                                                                class="btn btn-xs btn-info btn-flat btn-show-frame-codes"
+                                                                data-toggle="modal"
+                                                                data-target="#modal-frame-codes"
+                                                                data-judul="Kode Frame Terjual - Umum Optik Melati 2"
+                                                                data-kode-detail='@json(($item->kode_frame_details ?? collect())->values())'
+                                                            >
+                                                                <i class="fa fa-eye"></i> Lihat Kode
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>
@@ -209,6 +251,33 @@
             </div>
             <div class="box-body">
                 <canvas id="chart-frame-umum-om2" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-frame-codes" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document" style="width: 90%; max-width: 980px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="modal-frame-codes-title">Kode Frame Terjual</h4>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped" style="margin-bottom: 0;">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">No</th>
+                                <th>Kode Frame</th>
+                                <th>Merk Frame</th>
+                                <th>Sales</th>
+                                <th style="width: 90px;" class="text-right">Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-frame-codes-list"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -261,6 +330,52 @@
     createChart('chart-frame-bpjs', bpjsLabels, bpjsData, 'Qty Frame BPJS', 'rgba(0, 166, 90, 0.7)');
     createChart('chart-frame-umum-om1', umumOm1Labels, umumOm1Data, 'Qty Frame Umum OM1', 'rgba(60, 141, 188, 0.7)');
     createChart('chart-frame-umum-om2', umumOm2Labels, umumOm2Data, 'Qty Frame Umum OM2', 'rgba(243, 156, 18, 0.7)');
+
+    const escapeHtml = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+    $(document).on('click', '.btn-show-frame-codes', function () {
+        const title = $(this).data('judul') || 'Kode Frame Terjual';
+        const rawCodeDetails = $(this).attr('data-kode-detail');
+        let codeDetails = [];
+
+        try {
+            codeDetails = JSON.parse(rawCodeDetails || '[]');
+        } catch (error) {
+            codeDetails = [];
+        }
+
+        $('#modal-frame-codes-title').text(title);
+
+        const listElement = $('#modal-frame-codes-list');
+        listElement.empty();
+
+        if (!codeDetails.length) {
+            listElement.append('<tr><td colspan="5" class="text-center text-muted">Tidak ada kode frame terjual pada data ini.</td></tr>');
+            return;
+        }
+
+        codeDetails.forEach(function (item, index) {
+            const code = item && item.kode_frame ? item.kode_frame : '-';
+            const merk = item && item.merk_frame ? item.merk_frame : '-';
+            const sales = item && item.sales_name ? item.sales_name : '-';
+            const qty = item && typeof item.total_qty !== 'undefined' ? parseInt(item.total_qty, 10) : 0;
+
+            listElement.append(
+                '<tr>' +
+                    '<td>' + (index + 1) + '</td>' +
+                    '<td>' + escapeHtml(code) + '</td>' +
+                    '<td>' + escapeHtml(merk) + '</td>' +
+                    '<td>' + escapeHtml(sales) + '</td>' +
+                    '<td class="text-right">' + (isNaN(qty) ? 0 : qty) + '</td>' +
+                '</tr>'
+            );
+        });
+    });
 </script>
 @endpush
 

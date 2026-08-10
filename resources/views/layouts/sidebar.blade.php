@@ -50,7 +50,9 @@
                               <a href="#" style="padding: 8px 15px;"><i class="fa fa-eye"></i> <span>Data Frame</span> <span class="pull-right-container"><i class="fa fa-angle-left pull-right"></i></span></a>
                               <ul class="treeview-menu" style="display: none;">
                                   <li style="margin: 0;"><a href="{{ route('frame.index') }}" style="padding: 8px 15px;"><i class="fa fa-list"></i> <span>Data Frame</span></a></li>
+                                  @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
                                   <li style="margin: 0;"><a href="{{ route('frame.analysis') }}" style="padding: 8px 15px;"><i class="fa fa-bar-chart"></i> <span>Analisa Frame</span></a></li>
+                                  @endif
                               </ul>
                           </li>
                           <li style="margin: 0;"><a href="{{ route('lensa.index') }}" style="padding: 8px 15px;"><i class="fa fa-circle-o"></i> <span>Data Lensa</span></a></li>

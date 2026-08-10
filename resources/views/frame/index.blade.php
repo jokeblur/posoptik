@@ -54,11 +54,13 @@
     </div>
 </div>
 <div class="row mb-3">
+    @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
     <div class="col-md-12">
         <a href="{{ route('frame.analysis') }}" class="btn btn-primary">
             <i class="fa fa-bar-chart"></i> Lihat Analisa Frame
         </a>
     </div>
+    @endif
 </div>
 <div class="row mb-3">
     <div class="col-md-12">

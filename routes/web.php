@@ -232,7 +232,7 @@ Route::group(['middleware' => 'auth'], function() {
     Route::get('/branch/user-branches', [BranchController::class, 'getUserBranches'])->name('branch.user-branches');
 
     Route::get('/frame/data', [FrameController::class, 'data'])->name('frame.data');
-    Route::get('/frame/analisa', [FrameController::class, 'analysis'])->name('frame.analysis');
+    Route::get('/frame/analisa', [FrameController::class, 'analysis'])->name('frame.analysis')->middleware('role:admin,super admin');
     Route::post('/frame/{id}/restock', [FrameController::class, 'restock'])->name('frame.restock');
     Route::post('/frame/bulk-delete', [FrameController::class, 'bulkDelete'])->name('frame.bulk-delete');
     Route::resource('/frame', FrameController::class);

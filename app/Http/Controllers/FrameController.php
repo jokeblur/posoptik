@@ -31,6 +31,14 @@ class FrameController extends Controller
 
             abort(403, 'Hanya admin dan super admin yang dapat menghapus data frame.');
         })->only(['destroy', 'bulkDelete']);
+
+        $this->middleware(function ($request, $next) {
+            if (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())) {
+                return $next($request);
+            }
+
+            abort(403, 'Hanya admin dan super admin yang dapat mengakses analisa frame.');
+        })->only(['analysis']);
     }
     
     /**
@@ -129,6 +137,54 @@ class FrameController extends Controller
             ->limit(10)
             ->get();
 
+        $frameAnalysisBpjs = $frameAnalysisBpjs->map(function ($item) use ($frameAnalysisStart, $frameAnalysisEnd) {
+            $item->kode_frame_details = DB::table('penjualan_detail as pd')
+                ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+                ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
+                ->where('pd.itemable_type', Frame::class)
+                ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd])
+                ->whereNotNull('p.pasien_service_type')
+                ->whereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) LIKE ?', ['%bpjs%'])
+                ->whereRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') = ?", [$item->merk_frame])
+                ->whereRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') = ?", [$item->jenis_frame])
+                ->whereNotNull('f.kode_frame')
+                ->selectRaw('f.kode_frame as kode_frame')
+                ->selectRaw('SUM(COALESCE(pd.quantity, 0)) as total_qty')
+                ->groupBy('f.kode_frame')
+                ->orderByDesc('total_qty')
+                ->orderBy('f.kode_frame')
+                ->get()
+                ->map(function ($detail) {
+                    return [
+                        'kode_frame' => $detail->kode_frame,
+                        'total_qty' => (int) $detail->total_qty,
+                    ];
+                })
+                ->values();
+
+            return $item;
+        });
+
+        $frameAnalysisBpjs = $frameAnalysisBpjs->map(function ($item) use ($frameAnalysisStart, $frameAnalysisEnd) {
+            $item->kode_frames = DB::table('penjualan_detail as pd')
+                ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+                ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
+                ->where('pd.itemable_type', Frame::class)
+                ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd])
+                ->whereNotNull('p.pasien_service_type')
+                ->whereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) LIKE ?', ['%bpjs%'])
+                ->whereRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') = ?", [$item->merk_frame])
+                ->whereRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') = ?", [$item->jenis_frame])
+                ->whereNotNull('f.kode_frame')
+                ->select('f.kode_frame')
+                ->distinct()
+                ->orderBy('f.kode_frame')
+                ->pluck('f.kode_frame')
+                ->values();
+
+            return $item;
+        });
+
         $frameAnalysisUmum = collect();
         foreach ($branchNames as $branchLabel => $branchKeywords) {
             $branchItems = (clone $frameAnalysisBaseQuery)
@@ -150,8 +206,33 @@ class FrameController extends Controller
                 ->orderByDesc('total_qty')
                 ->limit(10)
                 ->get()
-                ->map(function ($item) use ($branchLabel) {
+                ->map(function ($item) use ($branchLabel, $branchKeywords, $frameAnalysisStart, $frameAnalysisEnd) {
                     $item->cabang = $branchLabel;
+
+                    $item->kode_frames = DB::table('penjualan_detail as pd')
+                        ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+                        ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
+                        ->join('branches as b', 'b.id', '=', 'p.branch_id')
+                        ->where('pd.itemable_type', Frame::class)
+                        ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd])
+                        ->where(function ($query) use ($branchKeywords) {
+                            foreach ($branchKeywords as $keyword) {
+                                $query->orWhereRaw('LOWER(TRIM(COALESCE(b.name, ""))) LIKE ?', ['%' . strtolower($keyword) . '%']);
+                            }
+                        })
+                        ->where(function ($query) {
+                            $query->whereNull('p.pasien_service_type')
+                                ->orWhereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) NOT LIKE ?', ['%bpjs%']);
+                        })
+                        ->whereRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') = ?", [$item->merk_frame])
+                        ->whereRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') = ?", [$item->jenis_frame])
+                        ->whereNotNull('f.kode_frame')
+                        ->select('f.kode_frame')
+                        ->distinct()
+                        ->orderBy('f.kode_frame')
+                        ->pluck('f.kode_frame')
+                        ->values();
+
                     return $item;
                 });
 
@@ -264,6 +345,39 @@ class FrameController extends Controller
             ->limit(10)
             ->get();
 
+        $frameAnalysisBpjs = $frameAnalysisBpjs->map(function ($item) use ($frameAnalysisStart, $frameAnalysisEnd) {
+            $item->kode_frame_details = DB::table('penjualan_detail as pd')
+                ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+                ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
+                ->leftJoin('sales as s', 'f.id_sales', '=', 's.id_sales')
+                ->where('pd.itemable_type', Frame::class)
+                ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd])
+                ->whereNotNull('p.pasien_service_type')
+                ->whereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) LIKE ?', ['%bpjs%'])
+                ->whereRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') = ?", [$item->merk_frame])
+                ->whereRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') = ?", [$item->jenis_frame])
+                ->whereNotNull('f.kode_frame')
+                ->selectRaw('f.kode_frame as kode_frame')
+                ->selectRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') as merk_frame")
+                ->selectRaw("COALESCE(NULLIF(TRIM(s.nama_sales), ''), '-') as sales_name")
+                ->selectRaw('SUM(COALESCE(pd.quantity, 0)) as total_qty')
+                ->groupBy('f.kode_frame', 'merk_frame', 'sales_name')
+                ->orderByDesc('total_qty')
+                ->orderBy('f.kode_frame')
+                ->get()
+                ->map(function ($detail) {
+                    return [
+                        'kode_frame' => $detail->kode_frame,
+                        'merk_frame' => $detail->merk_frame,
+                        'sales_name' => $detail->sales_name,
+                        'total_qty' => (int) $detail->total_qty,
+                    ];
+                })
+                ->values();
+
+            return $item;
+        });
+
         $frameAnalysisUmum = collect();
         foreach ($branchNames as $branchLabel => $branchKeywords) {
             $branchItems = (clone $frameAnalysisBaseQuery)
@@ -285,8 +399,46 @@ class FrameController extends Controller
                 ->orderByDesc('total_qty')
                 ->limit(10)
                 ->get()
-                ->map(function ($item) use ($branchLabel) {
+                ->map(function ($item) use ($branchLabel, $branchKeywords, $frameAnalysisStart, $frameAnalysisEnd) {
                     $item->cabang = $branchLabel;
+
+                    $item->kode_frame_details = DB::table('penjualan_detail as pd')
+                        ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+                        ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
+                        ->leftJoin('sales as s', 'f.id_sales', '=', 's.id_sales')
+                        ->join('branches as b', 'b.id', '=', 'p.branch_id')
+                        ->where('pd.itemable_type', Frame::class)
+                        ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd])
+                        ->where(function ($query) use ($branchKeywords) {
+                            foreach ($branchKeywords as $keyword) {
+                                $query->orWhereRaw('LOWER(TRIM(COALESCE(b.name, ""))) LIKE ?', ['%' . strtolower($keyword) . '%']);
+                            }
+                        })
+                        ->where(function ($query) {
+                            $query->whereNull('p.pasien_service_type')
+                                ->orWhereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) NOT LIKE ?', ['%bpjs%']);
+                        })
+                        ->whereRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') = ?", [$item->merk_frame])
+                        ->whereRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') = ?", [$item->jenis_frame])
+                        ->whereNotNull('f.kode_frame')
+                        ->selectRaw('f.kode_frame as kode_frame')
+                        ->selectRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') as merk_frame")
+                        ->selectRaw("COALESCE(NULLIF(TRIM(s.nama_sales), ''), '-') as sales_name")
+                        ->selectRaw('SUM(COALESCE(pd.quantity, 0)) as total_qty')
+                        ->groupBy('f.kode_frame', 'merk_frame', 'sales_name')
+                        ->orderByDesc('total_qty')
+                        ->orderBy('f.kode_frame')
+                        ->get()
+                        ->map(function ($detail) {
+                            return [
+                                'kode_frame' => $detail->kode_frame,
+                                'merk_frame' => $detail->merk_frame,
+                                'sales_name' => $detail->sales_name,
+                                'total_qty' => (int) $detail->total_qty,
+                            ];
+                        })
+                        ->values();
+
                     return $item;
                 });
 

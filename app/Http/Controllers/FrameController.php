@@ -291,6 +291,11 @@ class FrameController extends Controller
 
         $patientServiceTypeSql = "(SELECT service_type FROM pasien WHERE pasien.id_pasien = p.pasien_id LIMIT 1)";
         $bpjsServiceTypeSql = "LOWER(TRIM(COALESCE(NULLIF(p.pasien_service_type, ''), NULLIF($patientServiceTypeSql, ''), '')))";
+        $jenisFrameNormalizedSql = "CASE
+            WHEN LOWER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), ''))) = 'umum' THEN 'Umum'
+            WHEN LOWER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), ''))) LIKE 'bpjs%' THEN UPPER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), '-')))
+            ELSE COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-')
+        END";
 
         if (!($user->isSuperAdmin() || $user->isAdmin())) {
             $frameAnalysisBaseQuery->where('p.branch_id', $user->branch_id);
@@ -299,20 +304,6 @@ class FrameController extends Controller
         if (!empty($selectedSalesId)) {
             $frameAnalysisBaseQuery->where('f.id_sales', $selectedSalesId);
         }
-
-        $frameAnalysisBpjsSummary = (clone $frameAnalysisBaseQuery)
-            ->whereRaw($bpjsServiceTypeSql . ' LIKE ?', ['%bpjs%'])
-            ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
-            ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
-            ->first();
-
-        $frameAnalysisUmumSummary = (clone $frameAnalysisBaseQuery)
-            ->where(function ($query) {
-                $query->whereRaw("LOWER(TRIM(COALESCE(NULLIF(p.pasien_service_type, ''), NULLIF((SELECT service_type FROM pasien WHERE pasien.id_pasien = p.pasien_id LIMIT 1), ''), ''))) NOT LIKE ?", ['%bpjs%']);
-            })
-            ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
-            ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
-            ->first();
 
         $branchNames = [
             'Optik Melati 1' => ['optik melati cabang 1', 'optik melati 1'],
@@ -359,7 +350,7 @@ class FrameController extends Controller
             ->limit(10)
             ->get();
 
-        $frameAnalysisBpjs = $frameAnalysisBpjs->map(function ($item) use ($frameAnalysisStart, $frameAnalysisEnd, $selectedSalesId, $bpjsServiceTypeSql) {
+        $frameAnalysisBpjs = $frameAnalysisBpjs->map(function ($item) use ($frameAnalysisStart, $frameAnalysisEnd, $selectedSalesId, $bpjsServiceTypeSql, $jenisFrameNormalizedSql) {
             $item->kode_frame_details = DB::table('penjualan_detail as pd')
                 ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
                 ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
@@ -416,7 +407,7 @@ class FrameController extends Controller
                 ->orderByDesc('total_qty')
                 ->limit(10)
                 ->get()
-                ->map(function ($item) use ($branchLabel, $branchKeywords, $frameAnalysisStart, $frameAnalysisEnd, $selectedSalesId) {
+                ->map(function ($item) use ($branchLabel, $branchKeywords, $frameAnalysisStart, $frameAnalysisEnd, $selectedSalesId, $jenisFrameNormalizedSql) {
                     $item->cabang = $branchLabel;
 
                     $item->kode_frame_details = DB::table('penjualan_detail as pd')
@@ -465,6 +456,28 @@ class FrameController extends Controller
             $frameAnalysisUmum = $frameAnalysisUmum->merge($branchItems);
         }
 
+        $frameAnalysisBpjsSummary = (object) [
+            'total_qty' => (int) $frameAnalysisBpjs->sum('total_qty'),
+            'total_transaksi' => (int) $frameAnalysisBpjs->sum('total_transaksi'),
+        ];
+
+        $frameAnalysisUmumSummary = (object) [
+            'total_qty' => (int) $frameAnalysisUmum->sum('total_qty'),
+            'total_transaksi' => (int) $frameAnalysisUmum->sum('total_transaksi'),
+        ];
+
+        $frameAnalysisUmumByBranch = collect($frameAnalysisUmumByBranch)->map(function ($branchSummary) use ($frameAnalysisUmum) {
+            $branchRows = $frameAnalysisUmum->where('cabang', $branchSummary->branch_name);
+
+            return (object) [
+                'branch_name' => $branchSummary->branch_name,
+                'total_qty' => (int) $branchRows->sum('total_qty'),
+                'total_transaksi' => (int) $branchRows->sum('total_transaksi'),
+            ];
+        });
+
+        $frameAnalysisUmumSummaryByBranch = $frameAnalysisUmumByBranch->keyBy('branch_name');
+
         return view('frame.analysis', compact(
             'sales',
             'branches',
@@ -475,6 +488,7 @@ class FrameController extends Controller
             'frameAnalysisBpjs',
             'frameAnalysisUmum',
             'frameAnalysisUmumByBranch',
+            'frameAnalysisUmumSummaryByBranch',
             'frameAnalysisPeriodLabel',
             'selectedMonth',
             'selectedSalesId'

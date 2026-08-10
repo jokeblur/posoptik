@@ -124,19 +124,45 @@
             </div>
             <div class="box-body">
                 <div class="row" style="margin-bottom: 15px;">
+                    @php
+                        $om1Summary = $frameAnalysisUmumSummaryByBranch->get('Optik Melati 1');
+                        $om2Summary = $frameAnalysisUmumSummaryByBranch->get('Optik Melati 2');
+                    @endphp
                     <div class="col-md-6">
-                        <div class="small-box bg-green" style="margin-bottom: 0; min-height: 120px;">
-                            <div class="inner">
-                                <h3>{{ number_format($frameAnalysisUmumSummary->total_qty ?? 0) }}</h3>
-                                <p>Total Qty Terjual</p>
+                        <div class="panel panel-default" style="margin-bottom: 0;">
+                            <div class="panel-heading"><strong>Optik Melati 1</strong></div>
+                            <div class="panel-body">
+                                <div class="small-box bg-green" style="margin-bottom: 15px; min-height: 120px;">
+                                    <div class="inner">
+                                        <h3>{{ number_format($om1Summary->total_qty ?? 0) }}</h3>
+                                        <p>Total Qty Terjual</p>
+                                    </div>
+                                </div>
+                                <div class="small-box bg-olive" style="margin-bottom: 0; min-height: 120px;">
+                                    <div class="inner">
+                                        <h3>{{ number_format($om1Summary->total_transaksi ?? 0) }}</h3>
+                                        <p>Total Transaksi</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="small-box bg-olive" style="margin-bottom: 0; min-height: 120px;">
-                            <div class="inner">
-                                <h3>{{ number_format($frameAnalysisUmumSummary->total_transaksi ?? 0) }}</h3>
-                                <p>Total Transaksi</p>
+                        <div class="panel panel-default" style="margin-bottom: 0;">
+                            <div class="panel-heading"><strong>Optik Melati 2</strong></div>
+                            <div class="panel-body">
+                                <div class="small-box bg-green" style="margin-bottom: 15px; min-height: 120px;">
+                                    <div class="inner">
+                                        <h3>{{ number_format($om2Summary->total_qty ?? 0) }}</h3>
+                                        <p>Total Qty Terjual</p>
+                                    </div>
+                                </div>
+                                <div class="small-box bg-olive" style="margin-bottom: 0; min-height: 120px;">
+                                    <div class="inner">
+                                        <h3>{{ number_format($om2Summary->total_transaksi ?? 0) }}</h3>
+                                        <p>Total Transaksi</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -191,14 +191,18 @@ class DashboardController extends Controller
                 }
             }
 
-            // Ambil semua transaksi kasir dengan relasi pasien
-            $kasirTransactions = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
+            // Ambil semua transaksi kasir dengan relasi pasien.
+            // Data ini dipakai bersama untuk card dan tabel detail agar nilainya konsisten.
+            $transaksiKasir = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
                 ->where('created_at', '>=', $omsetStartKasir)
                 ->where('created_at', '<=', $omsetEndKasir)
                 ->with('pasien')
+                ->orderBy('created_at', 'desc')
                 ->limit(5000)
                 ->get();
+
+            $kasirTransactions = $transaksiKasir;
                 
             // Hitung omset kasir dengan harga default BPJS
             $omsetKasir = $kasirTransactions->sum(function($transaksi) {
@@ -282,15 +286,6 @@ class DashboardController extends Controller
             ]);
             }
             
-            $transaksiKasir = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
-                ->where('user_id', $user->id)
-                ->where('created_at', '>=', $omsetStartKasir)
-                ->where('created_at', '<=', $omsetEndKasir)
-                ->with('pasien')
-                ->orderBy('created_at', 'desc')
-                ->limit(500)
-                ->get();
-
             $piutangKasirTransactions = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
                 ->where('status', 'Belum Lunas')

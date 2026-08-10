@@ -698,16 +698,33 @@
                             <tbody>
                                 @php $no=1; @endphp
                                 @foreach(($transaksiKasir ?? collect()) as $trx)
+                                @php
+                                    $serviceTypeOmset = strtoupper((string) ($trx->pasien_service_type ?? ($trx->pasien->service_type ?? 'UMUM')));
+                                    $isBpjsOmset = in_array($serviceTypeOmset, ['BPJS I','BPJS II','BPJS III'], true);
+                                    $defaultBpjsOmset = (float) ($trx->bpjs_default_price ?? 0);
+                                    if ($isBpjsOmset && $defaultBpjsOmset <= 0) {
+                                        if ($serviceTypeOmset === 'BPJS I') {
+                                            $defaultBpjsOmset = \App\Services\BpjsPricingService::BPJS_I_PRICE;
+                                        } elseif ($serviceTypeOmset === 'BPJS II') {
+                                            $defaultBpjsOmset = \App\Services\BpjsPricingService::BPJS_II_PRICE;
+                                        } elseif ($serviceTypeOmset === 'BPJS III') {
+                                            $defaultBpjsOmset = \App\Services\BpjsPricingService::BPJS_III_PRICE;
+                                        }
+                                    }
+                                    $tambahanBpjsOmset = $isBpjsOmset ? max(0, (float) ($trx->total_additional_cost ?? 0)) : 0;
+                                    $nilaiOmset = $isBpjsOmset
+                                        ? ($defaultBpjsOmset + $tambahanBpjsOmset)
+                                        : (float) ($trx->total ?? 0);
+                                @endphp
                                 <tr>
                                     <td>{{ $no++ }}</td>
                                     <td>{{ $trx->created_at->format('d/m/Y H:i') }}</td>
                                     <td>{{ $trx->kode_penjualan }}</td>
                                     <td>{{ $trx->pasien->nama_pasien ?? '-' }}</td>
                                     <td>
-                                        @php $stype = $trx->pasien->service_type ?? 'UMUM'; @endphp
-                                        <span class="label label-{{ in_array($stype, ['BPJS I','BPJS II','BPJS III']) ? 'info' : 'default' }}">{{ $stype }}</span>
+                                        <span class="label label-{{ $isBpjsOmset ? 'info' : 'default' }}">{{ $serviceTypeOmset }}</span>
                                     </td>
-                                    <td>Rp {{ number_format($trx->total, 0, ',', '.') }}</td>
+                                    <td>Rp {{ number_format($nilaiOmset, 0, ',', '.') }}</td>
                                     <td>
                                         @if($trx->status_pengerjaan == 'Sudah Di Ambil')
                                             <span class="label label-success">{{ $trx->status_pengerjaan }}</span>
@@ -752,7 +769,7 @@
                             </thead>
                             <tbody>
                                 @php $no=1; @endphp
-                                @foreach(($transaksiKasir ?? collect())->filter(function($t){ $st=$t->pasien->service_type ?? 'UMUM'; return in_array($st,['BPJS I','BPJS II','BPJS III']); }) as $trx)
+                                @foreach(($transaksiKasir ?? collect())->filter(function($t){ $st = strtoupper((string) ($t->pasien_service_type ?? ($t->pasien->service_type ?? 'UMUM'))); return in_array($st,['BPJS I','BPJS II','BPJS III'], true); }) as $trx)
                                 @php
                                     $serviceTypeBpjs = strtoupper((string) ($trx->pasien_service_type ?? ($trx->pasien->service_type ?? '')));
                                     $defaultBpjs = (float) ($trx->bpjs_default_price ?? 0);
@@ -818,7 +835,7 @@
                             </thead>
                             <tbody>
                                 @php $no=1; @endphp
-                                @foreach(($transaksiKasir ?? collect())->filter(function($t){ $st=$t->pasien->service_type ?? 'UMUM'; return !in_array($st,['BPJS I','BPJS II','BPJS III']); }) as $trx)
+                                @foreach(($transaksiKasir ?? collect())->filter(function($t){ $st = strtoupper((string) ($t->pasien_service_type ?? ($t->pasien->service_type ?? 'UMUM'))); return !in_array($st,['BPJS I','BPJS II','BPJS III'], true); }) as $trx)
                                 <tr>
                                     <td>{{ $no++ }}</td>
                                     <td>{{ $trx->created_at->format('d/m/Y H:i') }}</td>

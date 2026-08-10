@@ -59,6 +59,7 @@ class FrameController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
+        $selectedSalesId = null;
         $frameAnalysisStart = now()->subDays(30)->startOfDay();
         $frameAnalysisEnd = now()->endOfDay();
         $frameAnalysisPeriodLabel = '30 Hari Terakhir';
@@ -621,13 +622,24 @@ class FrameController extends Controller
                 ->findOrFail($id);
 
             $data = $request->validate([
+                'kode_frame' => 'nullable|string|max:255',
+                'merk_frame' => 'nullable|string|max:255',
                 'jenis_frame' => 'nullable|string|max:255',
+                'harga_beli_frame' => 'nullable|numeric|min:0',
                 'harga_jual_frame' => 'nullable|numeric|min:0',
+                'stok' => 'nullable|integer|min:0',
+                'id_sales' => 'nullable|exists:sales,id_sales',
             ]);
+
+            if ($request->has('branch_id')) {
+                $data['branch_id'] = $request->branch_id;
+            } else {
+                $data['branch_id'] = $frame->branch_id;
+            }
 
             $frame->update($data);
 
-            return response()->json('Data berhasil disimpan', 200);
+            return response()->json(['success' => true, 'message' => 'Data berhasil disimpan'], 200);
         }
 
         $frame = Frame::findOrFail($id);

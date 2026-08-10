@@ -18,7 +18,14 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, $role)
     {
-        if (!Auth::check() || !$request->user()->hasRole($role)) {
+        if (!Auth::check()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $normalizedUserRole = strtolower(trim((string) $request->user()->role));
+        $normalizedRequiredRole = strtolower(trim((string) $role));
+
+        if ($normalizedUserRole !== $normalizedRequiredRole) {
             abort(403, 'Unauthorized action.');
         }
 

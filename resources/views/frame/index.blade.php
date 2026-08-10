@@ -365,23 +365,31 @@
             const $submitBtn = $(this).find(':submit').first();
             $submitBtn.prop('disabled', true);
 
-            $.post($crudForm.attr('action'), $crudForm.serialize())
+            $.ajax({
+                url: $crudForm.attr('action'),
+                type: 'POST',
+                data: $crudForm.serialize(),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
                 .done((response) => {
                     $modalForm.modal('hide');
                     table.ajax.reload();
                     Swal.fire({
                         icon: 'success',
                         title: 'Berhasil!',
-                        text: 'Data berhasil disimpan.',
+                        text: response.message || 'Data berhasil disimpan.',
                         timer: 2000,
                         showConfirmButton: false
                     });
                 })
-                .fail((errors) => {
+                .fail((xhr) => {
+                    const message = xhr.responseJSON?.message || xhr.responseJSON?.errors ? Object.values(xhr.responseJSON.errors || {}).flat().join('\n') : 'Tidak dapat menyimpan data.';
                     Swal.fire({
                         icon: 'error',
                         title: 'Gagal!',
-                        text: 'Tidak dapat menyimpan data.',
+                        text: message,
                     });
                 })
                 .always(() => {

@@ -22,8 +22,9 @@ class CheckRole
         }
 
         $user = auth()->user();
+        $normalizedUserRole = strtolower(trim((string) $user->role));
         foreach ($roles as $role) {
-            if ($user->role === $role) {
+            if ($normalizedUserRole === strtolower(trim((string) $role))) {
                 return $next($request);
             }
         }

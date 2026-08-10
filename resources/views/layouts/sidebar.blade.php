@@ -44,13 +44,18 @@
                           <li style="margin: 0;"><a href="{{ route('user.index') }}" style="padding: 8px 15px;"><i class="fa fa-user"></i> <span>Data User</span></a></li>
                           @endif
                           
-                          @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || auth()->user()->isKasir())
+                          @php
+                              $currentSidebarUser = auth()->user();
+                              $canAccessFrameMenu = $currentSidebarUser && $currentSidebarUser->canAccessFrameMenu();
+                              $canAccessFrameAnalysis = $currentSidebarUser && ($currentSidebarUser->isSuperAdmin() || $currentSidebarUser->isAdmin());
+                          @endphp
+                          @if($canAccessFrameMenu)
                           <li class="header" style="padding: 8px 15px; margin: 8px 0 0 0; background-color: #a4193d; color: #fff; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">INVENTORY</li>
                           <li class="treeview" style="margin: 0;">
                               <a href="#" style="padding: 8px 15px;"><i class="fa fa-eye"></i> <span>Data Frame</span> <span class="pull-right-container"><i class="fa fa-angle-left pull-right"></i></span></a>
                               <ul class="treeview-menu" style="display: none;">
                                   <li style="margin: 0;"><a href="{{ route('frame.index') }}" style="padding: 8px 15px;"><i class="fa fa-list"></i> <span>Data Frame</span></a></li>
-                                  @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                                  @if($canAccessFrameAnalysis)
                                   <li style="margin: 0;"><a href="{{ route('frame.analysis') }}" style="padding: 8px 15px;"><i class="fa fa-bar-chart"></i> <span>Analisa Frame</span></a></li>
                                   @endif
                               </ul>

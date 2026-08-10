@@ -34,24 +34,34 @@ class User extends Authenticatable
     public const ROLE_KASIR = 'kasir';
     public const ROLE_PASSET_BANTU = 'passet bantu';
 
+    protected function normalizeRole(?string $role = null): string
+    {
+        return strtolower(trim((string) ($role ?? $this->role)));
+    }
+
     public function isSuperAdmin(): bool
     {
-        return trim($this->role) === self::ROLE_SUPER_ADMIN;
+        return $this->normalizeRole() === self::ROLE_SUPER_ADMIN;
     }
 
     public function isAdmin(): bool
     {
-        return trim($this->role) === self::ROLE_ADMIN;
+        return $this->normalizeRole() === self::ROLE_ADMIN;
     }
 
     public function isKasir(): bool
     {
-        return trim($this->role) === self::ROLE_KASIR;
+        return $this->normalizeRole() === self::ROLE_KASIR;
     }
 
     public function isPassetBantu(): bool
     {
-        return trim($this->role) === self::ROLE_PASSET_BANTU;
+        return $this->normalizeRole() === self::ROLE_PASSET_BANTU;
+    }
+
+    public function canAccessFrameMenu(): bool
+    {
+        return $this->isSuperAdmin() || $this->isAdmin() || $this->isKasir();
     }
 
     /**

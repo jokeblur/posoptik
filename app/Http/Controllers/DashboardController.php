@@ -318,10 +318,9 @@ class DashboardController extends Controller
             $awalBulan = now()->startOfMonth();
             $akhirBulan = now()->endOfMonth();
 
-            // Jumlah pasien unik yang transaksinya sudah selesai diambil pada bulan berjalan.
+            // Jumlah pasien unik yang bertransaksi pada bulan berjalan.
             $jumlahPasienSelesaiTransaksiBulanIni = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
-                ->where('status_pengerjaan', 'Sudah Di Ambil')
                 ->whereBetween('created_at', [$awalBulan, $akhirBulan])
                 ->whereNotNull('pasien_id')
                 ->distinct('pasien_id')
@@ -329,7 +328,6 @@ class DashboardController extends Controller
 
             $transaksiSelesaiBulanIniKasir = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
-                ->where('status_pengerjaan', 'Sudah Di Ambil')
                 ->whereBetween('created_at', [$awalBulan, $akhirBulan])
                 ->whereNotNull('pasien_id')
                 ->with('pasien')

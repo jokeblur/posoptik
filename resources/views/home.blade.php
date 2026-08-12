@@ -576,7 +576,7 @@
 
     {{-- Box Omset untuk Kasir --}}
     <div class="row" style="margin-bottom: 32px;">
-        <div class="{{ (!empty($isKasirOptikMelati2) && $isKasirOptikMelati2) ? 'col-md-6' : 'col-md-4' }}">
+        <div class="{{ (!empty($isKasirOptikMelati2) && $isKasirOptikMelati2) ? 'col-md-12' : 'col-md-4' }}">
             <div class="small-box bg-success omset-total" style="cursor:pointer" onclick="$('#modalKasirOmset').modal('show')">
                 <div class="inner">
                     <h3>Rp {{ number_format($omsetKasir ?? 0, 0, ',', '.') }}</h3>
@@ -602,7 +602,8 @@
             </div>
         </div>
         @endif
-        <div class="{{ (!empty($isKasirOptikMelati2) && $isKasirOptikMelati2) ? 'col-md-6' : 'col-md-4' }}">
+        @if(empty($isKasirOptikMelati2) || !$isKasirOptikMelati2)
+        <div class="col-md-4">
             <div class="small-box bg-warning omset-umum" style="cursor:pointer" onclick="$('#modalKasirUmum').modal('show')">
                 <div class="inner">
                     <h3>Rp {{ number_format($omsetUmum ?? 0, 0, ',', '.') }}</h3>
@@ -614,6 +615,7 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
 
     @if(!empty($isKasirOptikMelati2) && $isKasirOptikMelati2)
@@ -622,11 +624,11 @@
             <div class="small-box bg-purple" style="cursor:pointer" onclick="$('#modalKasirPasienSelesaiBulanIni').modal('show')">
                 <div class="inner">
                     <h3>{{ $jumlahPasienSelesaiTransaksiBulanIni ?? 0 }}</h3>
-                    <p>Jumlah Pasien Selesai Transaksi Bulan Ini</p>
+                    <p>Jumlah Pasien Bertransaksi Bulan Ini</p>
                 </div>
                 <div class="icon"><i class="fa fa-check-circle"></i></div>
                 <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
-                    Klik untuk audit detail pasien selesai transaksi
+                    Klik untuk audit detail pasien yang bertransaksi
                 </div>
             </div>
         </div>
@@ -1039,7 +1041,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-purple">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title"><i class="fa fa-check-circle"></i> Detail Pasien Selesai Transaksi Bulan Ini</h4>
+                    <h4 class="modal-title"><i class="fa fa-check-circle"></i> Detail Pasien Bertransaksi Bulan Ini</h4>
                 </div>
                 <div class="modal-body">
                     <div class="table-responsive">
@@ -1050,7 +1052,7 @@
                                     <th>Nama Pasien</th>
                                     <th>Layanan</th>
                                     <th>No HP</th>
-                                    <th>Jumlah Transaksi</th>
+                                    <th>Jumlah Transaksi Bulan Ini</th>
                                     <th>No. Transaksi Terakhir</th>
                                     <th>Waktu Transaksi Terakhir</th>
                                 </tr>
@@ -1074,7 +1076,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted">Belum ada pasien selesai transaksi pada bulan ini.</td>
+                                    <td colspan="7" class="text-center text-muted">Belum ada pasien yang bertransaksi pada bulan ini.</td>
                                 </tr>
                                 @endforelse
                             </tbody>

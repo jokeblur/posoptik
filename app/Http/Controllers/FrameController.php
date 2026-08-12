@@ -131,8 +131,10 @@ class FrameController extends Controller
         $frameAnalysisUmumSummaryQuery = clone $frameAnalysisBaseQuery;
         $this->applyNonBpjsFilter($frameAnalysisUmumSummaryQuery);
         $frameAnalysisUmumSummary = $frameAnalysisUmumSummaryQuery
+            ->whereRaw("LOWER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), '-'))) = ?", ['umum'])
             ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
             ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+            ->selectRaw('COUNT(DISTINCT p.pasien_id) as total_pasien_unik')
             ->first();
 
         $frameAnalysisUmumByBranch = collect();
@@ -157,12 +159,14 @@ class FrameController extends Controller
                 ->whereRaw("LOWER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), '-'))) = ?", ['umum'])
                 ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
                 ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+                ->selectRaw('COUNT(DISTINCT p.pasien_id) as total_pasien_unik')
                 ->first();
 
             $branchSummary = $branchQuery ? (object) array_merge((array) $branchQuery, ['branch_name' => $branchLabel]) : (object) [
                 'branch_name' => $branchLabel,
                 'total_qty' => 0,
                 'total_transaksi' => 0,
+                'total_pasien_unik' => 0,
             ];
 
             $frameAnalysisUmumByBranch->push($branchSummary);
@@ -351,14 +355,20 @@ class FrameController extends Controller
                     }
                 })
                 ->whereRaw($this->normalizedServiceTypeSql('p') . ' NOT IN (?, ?, ?)', $this->bpjsServiceTypes())
+                ->whereRaw("LOWER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), '-'))) = ?", ['umum'])
+                ->when(!empty($selectedSalesId), function ($query) use ($selectedSalesId) {
+                    $query->where('f.id_sales', $selectedSalesId);
+                })
                 ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
                 ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+                ->selectRaw('COUNT(DISTINCT p.pasien_id) as total_pasien_unik')
                 ->first();
 
             $frameAnalysisUmumByBranch->push((object) [
                 'branch_name' => $branchLabel,
                 'total_qty' => (int) ($branchQuery->total_qty ?? 0),
                 'total_transaksi' => (int) ($branchQuery->total_transaksi ?? 0),
+                'total_pasien_unik' => (int) ($branchQuery->total_pasien_unik ?? 0),
             ]);
         }
 
@@ -503,19 +513,10 @@ class FrameController extends Controller
         }
 
         $frameAnalysisUmumSummary = (object) [
-            'total_qty' => (int) $frameAnalysisUmum->sum('total_qty'),
-            'total_transaksi' => (int) $frameAnalysisUmum->sum('total_transaksi'),
+            'total_qty' => (int) collect($frameAnalysisUmumByBranch)->sum('total_qty'),
+            'total_transaksi' => (int) collect($frameAnalysisUmumByBranch)->sum('total_transaksi'),
+            'total_pasien_unik' => (int) collect($frameAnalysisUmumByBranch)->sum('total_pasien_unik'),
         ];
-
-        $frameAnalysisUmumByBranch = collect($frameAnalysisUmumByBranch)->map(function ($branchSummary) use ($frameAnalysisUmum) {
-            $branchRows = $frameAnalysisUmum->where('cabang', $branchSummary->branch_name);
-
-            return (object) [
-                'branch_name' => $branchSummary->branch_name,
-                'total_qty' => (int) $branchRows->sum('total_qty'),
-                'total_transaksi' => (int) $branchRows->sum('total_transaksi'),
-            ];
-        });
 
         $frameAnalysisUmumSummaryByBranch = $frameAnalysisUmumByBranch->keyBy('branch_name');
 

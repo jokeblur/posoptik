@@ -157,6 +157,12 @@
                                         <p>Total Transaksi</p>
                                     </div>
                                 </div>
+                                <div class="small-box bg-teal" style="margin-top: 15px; margin-bottom: 0; min-height: 120px;">
+                                    <div class="inner">
+                                        <h3>{{ number_format($om1Summary->total_pasien_unik ?? 0) }}</h3>
+                                        <p>Pasien Umum Unik Beli Frame Umum</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -174,6 +180,12 @@
                                     <div class="inner">
                                         <h3>{{ number_format($om2Summary->total_transaksi ?? 0) }}</h3>
                                         <p>Total Transaksi</p>
+                                    </div>
+                                </div>
+                                <div class="small-box bg-teal" style="margin-top: 15px; margin-bottom: 0; min-height: 120px;">
+                                    <div class="inner">
+                                        <h3>{{ number_format($om2Summary->total_pasien_unik ?? 0) }}</h3>
+                                        <p>Pasien Umum Unik Beli Frame Umum</p>
                                     </div>
                                 </div>
                             </div>

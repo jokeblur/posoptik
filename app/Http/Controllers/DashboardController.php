@@ -140,6 +140,8 @@ class DashboardController extends Controller
         $isKasirOptikMelati2 = false;
         $jumlahPasienBpjsKasir = 0;
         $detailPasienBpjsKasir = collect();
+        $jumlahPasienUmumKasir = 0;
+        $detailPasienUmumKasir = collect();
         $periodeBpjsBulananLabel = 'Bulan Ini';
         $jumlahPiutangKasir = 0;
         $totalPiutangKasir = 0;
@@ -402,6 +404,33 @@ class DashboardController extends Controller
                 ->values();
 
             $jumlahPasienBpjsKasir = $detailPasienBpjsKasir->count();
+
+            $detailPasienUmumKasir = $transaksiBpjsBulananKasir
+                ->filter(function ($transaksi) {
+                    return !$this->isBpjsTransaction($transaksi);
+                })
+                ->filter(function ($transaksi) {
+                    return !empty($transaksi->pasien);
+                })
+                ->groupBy('pasien_id')
+                ->map(function ($items) {
+                    $first = $items->first();
+                    $lastTransaction = $items->sortByDesc('created_at')->first();
+
+                    return (object) [
+                        'id_pasien' => $first->pasien->id_pasien,
+                        'nama_pasien' => $first->pasien->nama_pasien,
+                        'service_type' => $this->resolveServiceType($lastTransaction),
+                        'no_hp' => $first->pasien->no_hp ?? '-',
+                        'status_pengerjaan_terakhir' => $lastTransaction->status_pengerjaan,
+                        'jenis_transaksi_terakhir' => $lastTransaction->jenis_transaksi,
+                        'transaksi_terakhir' => $lastTransaction->created_at,
+                    ];
+                })
+                ->sortByDesc('transaksi_terakhir')
+                ->values();
+
+            $jumlahPasienUmumKasir = $detailPasienUmumKasir->count();
             
             // Conditional debug: Log data transaksi untuk troubleshooting
             if (config('app.debug')) {
@@ -554,7 +583,7 @@ class DashboardController extends Controller
             'lowStockLensa', 'lowStockFrame', 'lowStockAksesoris', 'batasStok',
             'transaksiMenungguPengerjaan', 'transaksiSelesaiBulanIni',
             'selectedOmsetDate', 'isOmsetToday', 'omsetPeriodeLabel',
-            'isKasirOptikMelati1', 'isKasirOptikMelati2', 'jumlahPasienBpjsKasir', 'detailPasienBpjsKasir', 'periodeBpjsBulananLabel', 'selectedBpjsMonth',
+            'isKasirOptikMelati1', 'isKasirOptikMelati2', 'jumlahPasienBpjsKasir', 'detailPasienBpjsKasir', 'jumlahPasienUmumKasir', 'detailPasienUmumKasir', 'periodeBpjsBulananLabel', 'selectedBpjsMonth',
             'jumlahPiutangKasir', 'totalPiutangKasir', 'detailPiutangKasir', 'jumlahPasienSelesaiTransaksiBulanIni', 'detailPasienSelesaiTransaksiBulanIni'
         ));
     }

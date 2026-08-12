@@ -637,7 +637,7 @@
 
     @if(!empty($isKasirOptikMelati1) && $isKasirOptikMelati1)
     <div class="row" style="margin-bottom: 24px;">
-        <div class="col-md-12">
+        <div class="col-md-6">
             <div class="small-box bg-teal" style="cursor:pointer" onclick="$('#modalKasirPasienBpjs').modal('show')">
                 <div class="inner">
                     <h3>{{ $jumlahPasienBpjsKasir ?? 0 }}</h3>
@@ -646,6 +646,18 @@
                 <div class="icon"><i class="fa fa-id-card"></i></div>
                 <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
                     Klik untuk lihat detail pasien BPJS
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="small-box bg-olive" style="cursor:pointer" onclick="$('#modalKasirPasienUmum').modal('show')">
+                <div class="inner">
+                    <h3>{{ $jumlahPasienUmumKasir ?? 0 }}</h3>
+                    <p>Jumlah Pasien Umum Bulanan ({{ $periodeBpjsBulananLabel ?? 'Bulan Ini' }})</p>
+                </div>
+                <div class="icon"><i class="fa fa-users"></i></div>
+                <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
+                    Klik untuk lihat detail pasien umum
                 </div>
             </div>
         </div>
@@ -1021,6 +1033,76 @@
                                 @empty
                                 <tr>
                                     <td colspan="7" class="text-center text-muted">Belum ada pasien BPJS pada periode bulanan ini.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalKasirPasienUmum" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-olive">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title"><i class="fa fa-users"></i> Detail Pasien Umum Bulanan ({{ $periodeBpjsBulananLabel ?? 'Bulan Ini' }})</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped" id="tableKasirPasienUmum">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Pasien</th>
+                                    <th>Layanan</th>
+                                    <th>No HP</th>
+                                    <th>Status Pengerjaan</th>
+                                    <th>Jenis Transaksi</th>
+                                    <th>Transaksi Terakhir</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($detailPasienUmumKasir ?? collect()) as $index => $pasienUmum)
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>{{ $pasienUmum->nama_pasien ?? '-' }}</td>
+                                    <td><span class="label label-default">{{ $pasienUmum->service_type ?? 'UMUM' }}</span></td>
+                                    <td>{{ $pasienUmum->no_hp ?? '-' }}</td>
+                                    <td>
+                                        @php
+                                            $statusPengerjaanUmum = $pasienUmum->status_pengerjaan_terakhir ?? '-';
+                                            $statusClassUmum = [
+                                                'Sedang Mengerjakan' => 'label-info',
+                                                'Lensa Di Pesan' => 'label-warning',
+                                                'Lensa Datang' => 'label-primary',
+                                                'Sudah Di Kerjakan' => 'label-success',
+                                                'Kirim WA' => 'label-default',
+                                                'Sudah Di Ambil' => 'label-success',
+                                            ];
+                                        @endphp
+                                        <span class="label {{ $statusClassUmum[$statusPengerjaanUmum] ?? 'label-default' }}">{{ $statusPengerjaanUmum }}</span>
+                                    </td>
+                                    <td>
+                                        @php
+                                            $jenisTransaksiUmum = $pasienUmum->jenis_transaksi_terakhir ?? '-';
+                                            $jenisClassUmum = [
+                                                'Stock' => 'label-info',
+                                                'Gosok' => 'label-warning',
+                                            ];
+                                        @endphp
+                                        <span class="label {{ $jenisClassUmum[$jenisTransaksiUmum] ?? 'label-default' }}">{{ $jenisTransaksiUmum }}</span>
+                                    </td>
+                                    <td>{{ !empty($pasienUmum->transaksi_terakhir) ? \Carbon\Carbon::parse($pasienUmum->transaksi_terakhir)->format('d/m/Y H:i') : '-' }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">Belum ada pasien umum pada periode bulanan ini.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
@@ -1930,6 +2012,36 @@ $(document).ready(function() {
         });
     }
 
+    function initKasirUmumMonthlyTable() {
+        var selector = '#tableKasirPasienUmum';
+        var $table = $(selector);
+
+        if (!$table.length) {
+            return;
+        }
+
+        if ($.fn.DataTable.isDataTable(selector)) {
+            var existing = $table.DataTable();
+            existing.columns.adjust();
+            if (existing.responsive && typeof existing.responsive.recalc === 'function') {
+                existing.responsive.recalc();
+            }
+            return;
+        }
+
+        $table.DataTable({
+            responsive: true,
+            pageLength: 10,
+            order: [[6, 'desc']],
+            language: {
+                url: '{{ asset('js/datatables-id.json') }}'
+            },
+            columnDefs: [
+                { targets: '_all', defaultContent: '-' }
+            ]
+        });
+    }
+
     function initKasirPiutangTable() {
         var selector = '#tableKasirPiutang';
         var $table = $(selector);
@@ -2035,6 +2147,12 @@ $(document).ready(function() {
     $(document).on('shown.bs.modal', '#modalKasirPasienBpjs', function() {
         setTimeout(function() {
             initKasirBpjsMonthlyTable();
+        }, 100);
+    });
+
+    $(document).on('shown.bs.modal', '#modalKasirPasienUmum', function() {
+        setTimeout(function() {
+            initKasirUmumMonthlyTable();
         }, 100);
     });
 

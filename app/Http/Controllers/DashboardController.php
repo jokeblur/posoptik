@@ -144,6 +144,8 @@ class DashboardController extends Controller
         $jumlahPiutangKasir = 0;
         $totalPiutangKasir = 0;
         $detailPiutangKasir = collect();
+        $jumlahPasienSelesaiTransaksiBulanIni = 0;
+        $detailPasienSelesaiTransaksiBulanIni = collect();
 
         if ($user->isKasir()) {
             $branchName = Str::lower((string) optional($user->branch)->name);
@@ -312,6 +314,50 @@ class DashboardController extends Controller
 
             $jumlahPiutangKasir = $detailPiutangKasir->count();
             $totalPiutangKasir = (float) $detailPiutangKasir->sum('kekurangan');
+
+            $awalBulan = now()->startOfMonth();
+            $akhirBulan = now()->endOfMonth();
+
+            // Jumlah pasien unik yang transaksinya sudah selesai diambil pada bulan berjalan.
+            $jumlahPasienSelesaiTransaksiBulanIni = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
+                ->where('user_id', $user->id)
+                ->where('status_pengerjaan', 'Sudah Di Ambil')
+                ->whereBetween('created_at', [$awalBulan, $akhirBulan])
+                ->whereNotNull('pasien_id')
+                ->distinct('pasien_id')
+                ->count('pasien_id');
+
+            $transaksiSelesaiBulanIniKasir = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
+                ->where('user_id', $user->id)
+                ->where('status_pengerjaan', 'Sudah Di Ambil')
+                ->whereBetween('created_at', [$awalBulan, $akhirBulan])
+                ->whereNotNull('pasien_id')
+                ->with('pasien')
+                ->orderBy('created_at', 'desc')
+                ->limit(5000)
+                ->get();
+
+            $detailPasienSelesaiTransaksiBulanIni = $transaksiSelesaiBulanIniKasir
+                ->filter(function ($transaksi) {
+                    return !empty($transaksi->pasien);
+                })
+                ->groupBy('pasien_id')
+                ->map(function ($items) {
+                    $latest = $items->sortByDesc('created_at')->first();
+                    $pasien = $latest->pasien;
+
+                    return (object) [
+                        'id_pasien' => $pasien->id_pasien ?? '-',
+                        'nama_pasien' => $pasien->nama_pasien ?? '-',
+                        'service_type' => $latest->pasien_service_type ?? ($pasien->service_type ?? 'UMUM'),
+                        'no_hp' => $pasien->no_hp ?? '-',
+                        'jumlah_transaksi' => $items->count(),
+                        'kode_penjualan_terakhir' => $latest->kode_penjualan ?? '-',
+                        'transaksi_terakhir' => $latest->created_at,
+                    ];
+                })
+                ->sortByDesc('transaksi_terakhir')
+                ->values();
 
             try {
                 $bpjsMonthDate = Carbon::createFromFormat('Y-m', $selectedBpjsMonth)->startOfMonth();
@@ -511,7 +557,7 @@ class DashboardController extends Controller
             'transaksiMenungguPengerjaan', 'transaksiSelesaiBulanIni',
             'selectedOmsetDate', 'isOmsetToday', 'omsetPeriodeLabel',
             'isKasirOptikMelati1', 'isKasirOptikMelati2', 'jumlahPasienBpjsKasir', 'detailPasienBpjsKasir', 'periodeBpjsBulananLabel', 'selectedBpjsMonth',
-            'jumlahPiutangKasir', 'totalPiutangKasir', 'detailPiutangKasir'
+            'jumlahPiutangKasir', 'totalPiutangKasir', 'detailPiutangKasir', 'jumlahPasienSelesaiTransaksiBulanIni', 'detailPasienSelesaiTransaksiBulanIni'
         ));
     }
 

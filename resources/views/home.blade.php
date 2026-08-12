@@ -576,7 +576,7 @@
 
     {{-- Box Omset untuk Kasir --}}
     <div class="row" style="margin-bottom: 32px;">
-        <div class="col-md-4">
+        <div class="{{ (!empty($isKasirOptikMelati2) && $isKasirOptikMelati2) ? 'col-md-6' : 'col-md-4' }}">
             <div class="small-box bg-success omset-total" style="cursor:pointer" onclick="$('#modalKasirOmset').modal('show')">
                 <div class="inner">
                     <h3>Rp {{ number_format($omsetKasir ?? 0, 0, ',', '.') }}</h3>
@@ -588,6 +588,7 @@
                 </div>
             </div>
         </div>
+        @if(empty($isKasirOptikMelati2) || !$isKasirOptikMelati2)
         <div class="col-md-4">
             <div class="small-box bg-info omset-bpjs" style="cursor:pointer" onclick="$('#modalKasirBpjs').modal('show')">
                 <div class="inner">
@@ -600,7 +601,8 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        @endif
+        <div class="{{ (!empty($isKasirOptikMelati2) && $isKasirOptikMelati2) ? 'col-md-6' : 'col-md-4' }}">
             <div class="small-box bg-warning omset-umum" style="cursor:pointer" onclick="$('#modalKasirUmum').modal('show')">
                 <div class="inner">
                     <h3>Rp {{ number_format($omsetUmum ?? 0, 0, ',', '.') }}</h3>
@@ -613,6 +615,23 @@
             </div>
         </div>
     </div>
+
+    @if(!empty($isKasirOptikMelati2) && $isKasirOptikMelati2)
+    <div class="row" style="margin-bottom: 24px;">
+        <div class="col-md-12">
+            <div class="small-box bg-purple" style="cursor:pointer" onclick="$('#modalKasirPasienSelesaiBulanIni').modal('show')">
+                <div class="inner">
+                    <h3>{{ $jumlahPasienSelesaiTransaksiBulanIni ?? 0 }}</h3>
+                    <p>Jumlah Pasien Selesai Transaksi Bulan Ini</p>
+                </div>
+                <div class="icon"><i class="fa fa-check-circle"></i></div>
+                <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
+                    Klik untuk audit detail pasien selesai transaksi
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     @if(!empty($isKasirOptikMelati1) && $isKasirOptikMelati1)
     <div class="row" style="margin-bottom: 24px;">
@@ -1000,6 +1019,62 @@
                                 @empty
                                 <tr>
                                     <td colspan="7" class="text-center text-muted">Belum ada pasien BPJS pada periode bulanan ini.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @if(!empty($isKasirOptikMelati2) && $isKasirOptikMelati2)
+    <div class="modal fade" id="modalKasirPasienSelesaiBulanIni" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-purple">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title"><i class="fa fa-check-circle"></i> Detail Pasien Selesai Transaksi Bulan Ini</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped" id="tableKasirPasienSelesaiBulanIni">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Pasien</th>
+                                    <th>Layanan</th>
+                                    <th>No HP</th>
+                                    <th>Jumlah Transaksi</th>
+                                    <th>No. Transaksi Terakhir</th>
+                                    <th>Waktu Transaksi Terakhir</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($detailPasienSelesaiTransaksiBulanIni ?? collect()) as $index => $pasienSelesai)
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>{{ $pasienSelesai->nama_pasien ?? '-' }}</td>
+                                    <td>
+                                        @php
+                                            $serviceSelesai = strtoupper((string) ($pasienSelesai->service_type ?? 'UMUM'));
+                                            $serviceSelesaiClass = in_array($serviceSelesai, ['BPJS I', 'BPJS II', 'BPJS III'], true) ? 'label-info' : 'label-default';
+                                        @endphp
+                                        <span class="label {{ $serviceSelesaiClass }}">{{ $pasienSelesai->service_type ?? 'UMUM' }}</span>
+                                    </td>
+                                    <td>{{ $pasienSelesai->no_hp ?? '-' }}</td>
+                                    <td class="text-right">{{ number_format((int) ($pasienSelesai->jumlah_transaksi ?? 0)) }}</td>
+                                    <td>{{ $pasienSelesai->kode_penjualan_terakhir ?? '-' }}</td>
+                                    <td>{{ !empty($pasienSelesai->transaksi_terakhir) ? \Carbon\Carbon::parse($pasienSelesai->transaksi_terakhir)->format('d/m/Y H:i') : '-' }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">Belum ada pasien selesai transaksi pada bulan ini.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
@@ -1882,6 +1957,36 @@ $(document).ready(function() {
             ]
         });
     }
+
+    function initKasirPasienSelesaiBulanIniTable() {
+        var selector = '#tableKasirPasienSelesaiBulanIni';
+        var $table = $(selector);
+
+        if (!$table.length) {
+            return;
+        }
+
+        if ($.fn.DataTable.isDataTable(selector)) {
+            var existing = $table.DataTable();
+            existing.columns.adjust();
+            if (existing.responsive && typeof existing.responsive.recalc === 'function') {
+                existing.responsive.recalc();
+            }
+            return;
+        }
+
+        $table.DataTable({
+            responsive: true,
+            pageLength: 10,
+            order: [[6, 'desc']],
+            language: {
+                url: '{{ asset('js/datatables-id.json') }}'
+            },
+            columnDefs: [
+                { targets: '_all', defaultContent: '-' }
+            ]
+        });
+    }
     
 
     
@@ -1934,6 +2039,12 @@ $(document).ready(function() {
     $(document).on('shown.bs.modal', '#modalKasirPiutang', function() {
         setTimeout(function() {
             initKasirPiutangTable();
+        }, 100);
+    });
+
+    $(document).on('shown.bs.modal', '#modalKasirPasienSelesaiBulanIni', function() {
+        setTimeout(function() {
+            initKasirPasienSelesaiBulanIniTable();
         }, 100);
     });
     

@@ -49,7 +49,7 @@
             </div>
             <div class="box-body">
                 <div class="row" style="margin-bottom: 15px;">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="small-box bg-aqua" style="margin-bottom: 0; min-height: 120px;">
                             <div class="inner">
                                 <h3>{{ number_format($frameAnalysisBpjsSummary->total_qty ?? 0) }}</h3>
@@ -57,11 +57,24 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="small-box bg-blue" style="margin-bottom: 0; min-height: 120px;">
                             <div class="inner">
                                 <h3>{{ number_format($frameAnalysisBpjsSummary->total_transaksi ?? 0) }}</h3>
                                 <p>Total Transaksi</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small-box bg-teal" style="margin-bottom: 0; min-height: 120px; cursor: pointer;"
+                             data-toggle="modal"
+                             data-target="#modal-bpjs-unique-patients">
+                            <div class="inner">
+                                <h3>{{ number_format($frameAnalysisBpjsSummary->total_pasien_unik ?? 0) }}</h3>
+                                <p>Pasien BPJS Unik Beli Frame</p>
+                            </div>
+                            <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
+                                Klik untuk lihat detail pasien dan frame
                             </div>
                         </div>
                     </div>
@@ -299,6 +312,53 @@
     </div>
 </div>
 
+<div class="modal fade" id="modal-bpjs-unique-patients" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document" style="width: 95%; max-width: 1200px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Detail Pasien BPJS Unik Beli Frame ({{ $frameAnalysisPeriodLabel ?? 'Periode Aktif' }})</h4>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table id="table-bpjs-unique-patients" class="table table-bordered table-striped" style="margin-bottom: 0;">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">No</th>
+                                <th>ID Pasien</th>
+                                <th>Nama Pasien</th>
+                                <th>Tipe Layanan</th>
+                                <th class="text-right">Transaksi Frame</th>
+                                <th class="text-right">Qty Frame</th>
+                                <th>Merk Frame</th>
+                                <th>Kode Frame</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse(($bpjsUniquePatientsFrameDetails ?? collect()) as $item)
+                                <tr>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td>{{ $item->pasien_id ?? '-' }}</td>
+                                    <td>{{ $item->nama_pasien ?? '-' }}</td>
+                                    <td>{{ $item->service_type ?? '-' }}</td>
+                                    <td class="text-right">{{ number_format((int) ($item->total_transaksi_frame ?? 0)) }}</td>
+                                    <td class="text-right">{{ number_format((int) ($item->total_qty_frame ?? 0)) }}</td>
+                                    <td>{{ $item->merk_frames ?? '-' }}</td>
+                                    <td>{{ $item->kode_frames ?? '-' }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted">Tidak ada data pasien BPJS unik yang membeli frame pada periode ini.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="modal-frame-codes" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document" style="width: 90%; max-width: 980px;">
         <div class="modal-content">
@@ -392,6 +452,7 @@
     initAnalysisTable('#table-frame-analysis-bpjs', 2);
     initAnalysisTable('#table-frame-analysis-umum-om1', 2);
     initAnalysisTable('#table-frame-analysis-umum-om2', 2);
+    initAnalysisTable('#table-bpjs-unique-patients', 2);
 
     const escapeHtml = (value) => String(value ?? '')
         .replace(/&/g, '&amp;')

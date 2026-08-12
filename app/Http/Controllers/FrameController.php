@@ -14,6 +14,28 @@ use Carbon\Carbon;
 
 class FrameController extends Controller
 {
+    private function bpjsServiceTypes(): array
+    {
+        return ['BPJS I', 'BPJS II', 'BPJS III'];
+    }
+
+    private function normalizedServiceTypeSql(string $penjualanAlias = 'p'): string
+    {
+        $patientServiceTypeSql = "(SELECT service_type FROM pasien WHERE pasien.id_pasien = {$penjualanAlias}.pasien_id LIMIT 1)";
+
+        return "UPPER(TRIM(COALESCE(NULLIF({$penjualanAlias}.pasien_service_type, ''), NULLIF($patientServiceTypeSql, ''), 'UMUM')))";
+    }
+
+    private function applyBpjsFilter($query, string $penjualanAlias = 'p')
+    {
+        return $query->whereRaw($this->normalizedServiceTypeSql($penjualanAlias) . ' IN (?, ?, ?)', $this->bpjsServiceTypes());
+    }
+
+    private function applyNonBpjsFilter($query, string $penjualanAlias = 'p')
+    {
+        return $query->whereRaw($this->normalizedServiceTypeSql($penjualanAlias) . ' NOT IN (?, ?, ?)', $this->bpjsServiceTypes());
+    }
+
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
@@ -71,8 +93,6 @@ class FrameController extends Controller
             ->where('pd.itemable_type', Frame::class)
             ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd]);
 
-        $patientServiceTypeSql = "(SELECT service_type FROM pasien WHERE pasien.id_pasien = p.pasien_id LIMIT 1)";
-        $bpjsServiceTypeSql = "LOWER(TRIM(COALESCE(NULLIF(p.pasien_service_type, ''), NULLIF($patientServiceTypeSql, ''), '')))";
         $jenisFrameNormalizedSql = "CASE
             WHEN LOWER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), ''))) = 'umum' THEN 'Umum'
             WHEN LOWER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), ''))) LIKE 'bpjs%' THEN UPPER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), '-')))
@@ -83,16 +103,34 @@ class FrameController extends Controller
             $frameAnalysisBaseQuery->where('p.branch_id', $user->branch_id);
         }
 
-        $frameAnalysisBpjsSummary = (clone $frameAnalysisBaseQuery)
-            ->whereRaw($bpjsServiceTypeSql . ' LIKE ?', ['%bpjs%'])
+        $frameAnalysisBpjsSummaryQuery = clone $frameAnalysisBaseQuery;
+        $this->applyBpjsFilter($frameAnalysisBpjsSummaryQuery);
+        $frameAnalysisBpjsSummary = $frameAnalysisBpjsSummaryQuery
             ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
             ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+            ->selectRaw('COUNT(DISTINCT p.pasien_id) as total_pasien_unik')
             ->first();
 
-        $frameAnalysisUmumSummary = (clone $frameAnalysisBaseQuery)
-            ->where(function ($query) {
-                $query->whereRaw("LOWER(TRIM(COALESCE(NULLIF(p.pasien_service_type, ''), NULLIF((SELECT service_type FROM pasien WHERE pasien.id_pasien = p.pasien_id LIMIT 1), ''), ''))) NOT LIKE ?", ['%bpjs%']);
-            })
+        $bpjsUniquePatientsFrameDetails = (clone $frameAnalysisBaseQuery)
+            ->join('pasien as pa', 'pa.id_pasien', '=', 'p.pasien_id')
+            ->whereNotNull('p.pasien_id')
+            ->whereRaw($this->normalizedServiceTypeSql('p') . ' IN (?, ?, ?)', $this->bpjsServiceTypes())
+            ->selectRaw('p.pasien_id as pasien_id')
+            ->selectRaw('COALESCE(NULLIF(TRIM(pa.nama_pasien), ""), "-") as nama_pasien')
+            ->selectRaw('MAX(' . $this->normalizedServiceTypeSql('p') . ') as service_type')
+            ->selectRaw('COUNT(DISTINCT p.id) as total_transaksi_frame')
+            ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty_frame')
+            ->selectRaw("GROUP_CONCAT(DISTINCT COALESCE(NULLIF(TRIM(f.kode_frame), ''), '-') ORDER BY f.kode_frame SEPARATOR ', ') as kode_frames")
+            ->selectRaw("GROUP_CONCAT(DISTINCT COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') ORDER BY f.merk_frame SEPARATOR ', ') as merk_frames")
+            ->groupBy('p.pasien_id', 'pa.nama_pasien')
+            ->orderByDesc('total_qty_frame')
+            ->orderBy('nama_pasien')
+            ->limit(200)
+            ->get();
+
+        $frameAnalysisUmumSummaryQuery = clone $frameAnalysisBaseQuery;
+        $this->applyNonBpjsFilter($frameAnalysisUmumSummaryQuery);
+        $frameAnalysisUmumSummary = $frameAnalysisUmumSummaryQuery
             ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
             ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
             ->first();
@@ -115,9 +153,7 @@ class FrameController extends Controller
                         $query->orWhereRaw('LOWER(TRIM(COALESCE(b.name, ""))) LIKE ?', ['%' . strtolower($keyword) . '%']);
                     }
                 })
-                ->where(function ($query) {
-                    $query->whereRaw("LOWER(TRIM(COALESCE(NULLIF(p.pasien_service_type, ''), NULLIF((SELECT service_type FROM pasien WHERE pasien.id_pasien = p.pasien_id LIMIT 1), ''), ''))) NOT LIKE ?", ['%bpjs%']);
-                })
+                ->whereRaw($this->normalizedServiceTypeSql('p') . ' NOT IN (?, ?, ?)', $this->bpjsServiceTypes())
                 ->whereRaw("LOWER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), '-'))) = ?", ['umum'])
                 ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
                 ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
@@ -132,27 +168,26 @@ class FrameController extends Controller
             $frameAnalysisUmumByBranch->push($branchSummary);
         }
 
-        $frameAnalysisBpjs = (clone $frameAnalysisBaseQuery)
-            ->whereRaw($bpjsServiceTypeSql . ' LIKE ?', ['%bpjs%'])
+        $frameAnalysisBpjsQuery = clone $frameAnalysisBaseQuery;
+        $this->applyBpjsFilter($frameAnalysisBpjsQuery);
+        $frameAnalysisBpjs = $frameAnalysisBpjsQuery
             ->selectRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') as merk_frame")
             ->selectRaw($jenisFrameNormalizedSql . ' as jenis_frame')
             ->selectRaw("COALESCE(NULLIF(TRIM(s.nama_sales), ''), '-') as sales_name")
             ->selectRaw('SUM(COALESCE(pd.quantity, 0)) as total_qty')
             ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
             ->groupBy('merk_frame', 'jenis_frame', 'sales_name')
-            ->havingRaw('SUM(COALESCE(pd.quantity, 0)) > 2')
             ->orderByDesc('total_qty')
             ->limit(10)
             ->get();
 
-        $frameAnalysisBpjs = $frameAnalysisBpjs->map(function ($item) use ($frameAnalysisStart, $frameAnalysisEnd, $selectedSalesId, $bpjsServiceTypeSql) {
+        $frameAnalysisBpjs = $frameAnalysisBpjs->map(function ($item) use ($frameAnalysisStart, $frameAnalysisEnd, $selectedSalesId) {
             $item->kode_frame_details = DB::table('penjualan_detail as pd')
                 ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
                 ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
                 ->where('pd.itemable_type', Frame::class)
                 ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd])
-                ->whereNotNull('p.pasien_service_type')
-                ->whereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) LIKE ?', ['%bpjs%'])
+            ->whereRaw($this->normalizedServiceTypeSql('p') . ' IN (?, ?, ?)', $this->bpjsServiceTypes())
                 ->whereRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') = ?", [$item->merk_frame])
                 ->whereRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') = ?", [$item->jenis_frame])
                 ->whereNotNull('f.kode_frame')
@@ -179,8 +214,7 @@ class FrameController extends Controller
                 ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
                 ->where('pd.itemable_type', Frame::class)
                 ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd])
-                ->whereNotNull('p.pasien_service_type')
-                ->whereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) LIKE ?', ['%bpjs%'])
+                ->whereRaw($this->normalizedServiceTypeSql('p') . ' IN (?, ?, ?)', $this->bpjsServiceTypes())
                 ->whereRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') = ?", [$item->merk_frame])
                 ->whereRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') = ?", [$item->jenis_frame])
                 ->whereNotNull('f.kode_frame')
@@ -202,10 +236,7 @@ class FrameController extends Controller
                         $query->orWhereRaw('LOWER(TRIM(COALESCE(b.name, ""))) LIKE ?', ['%' . strtolower($keyword) . '%']);
                     }
                 })
-                ->where(function ($query) {
-                    $query->whereNull('p.pasien_service_type')
-                        ->orWhereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) NOT LIKE ?', ['%bpjs%']);
-                })
+                ->whereRaw($this->normalizedServiceTypeSql('p') . ' NOT IN (?, ?, ?)', $this->bpjsServiceTypes())
                 ->selectRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') as merk_frame")
                 ->selectRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') as jenis_frame")
                 ->selectRaw("COALESCE(NULLIF(TRIM(s.nama_sales), ''), '-') as sales_name")
@@ -229,10 +260,7 @@ class FrameController extends Controller
                                 $query->orWhereRaw('LOWER(TRIM(COALESCE(b.name, ""))) LIKE ?', ['%' . strtolower($keyword) . '%']);
                             }
                         })
-                        ->where(function ($query) {
-                            $query->whereNull('p.pasien_service_type')
-                                ->orWhereRaw('LOWER(TRIM(COALESCE(p.pasien_service_type, ""))) NOT LIKE ?', ['%bpjs%']);
-                        })
+                        ->whereRaw($this->normalizedServiceTypeSql('p') . ' NOT IN (?, ?, ?)', $this->bpjsServiceTypes())
                         ->whereRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') = ?", [$item->merk_frame])
                         ->whereRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') = ?", [$item->jenis_frame])
                         ->whereNotNull('f.kode_frame')
@@ -290,8 +318,6 @@ class FrameController extends Controller
             ->where('pd.itemable_type', Frame::class)
             ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd]);
 
-        $patientServiceTypeSql = "(SELECT service_type FROM pasien WHERE pasien.id_pasien = p.pasien_id LIMIT 1)";
-        $bpjsServiceTypeSql = "LOWER(TRIM(COALESCE(NULLIF(p.pasien_service_type, ''), NULLIF($patientServiceTypeSql, ''), '')))";
         $jenisFrameNormalizedSql = "CASE
             WHEN LOWER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), ''))) = 'umum' THEN 'Umum'
             WHEN LOWER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), ''))) LIKE 'bpjs%' THEN UPPER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), '-')))
@@ -324,9 +350,7 @@ class FrameController extends Controller
                         $query->orWhereRaw('LOWER(TRIM(COALESCE(b.name, ""))) LIKE ?', ['%' . strtolower($keyword) . '%']);
                     }
                 })
-                ->where(function ($query) {
-                    $query->whereRaw("LOWER(TRIM(COALESCE(NULLIF(p.pasien_service_type, ''), NULLIF((SELECT service_type FROM pasien WHERE pasien.id_pasien = p.pasien_id LIMIT 1), ''), ''))) NOT LIKE ?", ['%bpjs%']);
-                })
+                ->whereRaw($this->normalizedServiceTypeSql('p') . ' NOT IN (?, ?, ?)', $this->bpjsServiceTypes())
                 ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
                 ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
                 ->first();
@@ -338,27 +362,52 @@ class FrameController extends Controller
             ]);
         }
 
-        $frameAnalysisBpjs = (clone $frameAnalysisBaseQuery)
-            ->whereRaw($bpjsServiceTypeSql . ' LIKE ?', ['%bpjs%'])
+        $frameAnalysisBpjsSummaryQuery = clone $frameAnalysisBaseQuery;
+        $this->applyBpjsFilter($frameAnalysisBpjsSummaryQuery);
+        $frameAnalysisBpjsSummary = $frameAnalysisBpjsSummaryQuery
+            ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty')
+            ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+            ->selectRaw('COUNT(DISTINCT p.pasien_id) as total_pasien_unik')
+            ->first();
+
+        $bpjsUniquePatientsFrameDetails = (clone $frameAnalysisBaseQuery)
+            ->join('pasien as pa', 'pa.id_pasien', '=', 'p.pasien_id')
+            ->whereNotNull('p.pasien_id')
+            ->whereRaw($this->normalizedServiceTypeSql('p') . ' IN (?, ?, ?)', $this->bpjsServiceTypes())
+            ->selectRaw('p.pasien_id as pasien_id')
+            ->selectRaw('COALESCE(NULLIF(TRIM(pa.nama_pasien), ""), "-") as nama_pasien')
+            ->selectRaw('MAX(' . $this->normalizedServiceTypeSql('p') . ') as service_type')
+            ->selectRaw('COUNT(DISTINCT p.id) as total_transaksi_frame')
+            ->selectRaw('COALESCE(SUM(pd.quantity), 0) as total_qty_frame')
+            ->selectRaw("GROUP_CONCAT(DISTINCT COALESCE(NULLIF(TRIM(f.kode_frame), ''), '-') ORDER BY f.kode_frame SEPARATOR ', ') as kode_frames")
+            ->selectRaw("GROUP_CONCAT(DISTINCT COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') ORDER BY f.merk_frame SEPARATOR ', ') as merk_frames")
+            ->groupBy('p.pasien_id', 'pa.nama_pasien')
+            ->orderByDesc('total_qty_frame')
+            ->orderBy('nama_pasien')
+            ->limit(200)
+            ->get();
+
+        $frameAnalysisBpjsQuery = clone $frameAnalysisBaseQuery;
+        $this->applyBpjsFilter($frameAnalysisBpjsQuery);
+        $frameAnalysisBpjs = $frameAnalysisBpjsQuery
             ->selectRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') as merk_frame")
             ->selectRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') as jenis_frame")
             ->selectRaw("COALESCE(NULLIF(TRIM(s.nama_sales), ''), '-') as sales_name")
             ->selectRaw('SUM(COALESCE(pd.quantity, 0)) as total_qty')
             ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
             ->groupBy('merk_frame', 'jenis_frame', 'sales_name')
-            ->havingRaw('SUM(COALESCE(pd.quantity, 0)) > 2')
             ->orderByDesc('total_qty')
             ->limit(10)
             ->get();
 
-        $frameAnalysisBpjs = $frameAnalysisBpjs->map(function ($item) use ($frameAnalysisStart, $frameAnalysisEnd, $selectedSalesId, $bpjsServiceTypeSql, $jenisFrameNormalizedSql) {
+        $frameAnalysisBpjs = $frameAnalysisBpjs->map(function ($item) use ($frameAnalysisStart, $frameAnalysisEnd, $selectedSalesId, $jenisFrameNormalizedSql) {
             $item->kode_frame_details = DB::table('penjualan_detail as pd')
                 ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
                 ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
                 ->leftJoin('sales as s', 'f.id_sales', '=', 's.id_sales')
                 ->where('pd.itemable_type', Frame::class)
                 ->whereBetween('p.created_at', [$frameAnalysisStart, $frameAnalysisEnd])
-                ->whereRaw($bpjsServiceTypeSql . ' LIKE ?', ['%bpjs%'])
+                ->whereRaw($this->normalizedServiceTypeSql('p') . ' IN (?, ?, ?)', $this->bpjsServiceTypes())
                 ->when(!empty($selectedSalesId), function ($query) use ($selectedSalesId) {
                     $query->where('f.id_sales', $selectedSalesId);
                 })
@@ -395,9 +444,7 @@ class FrameController extends Controller
                         $query->orWhereRaw('LOWER(TRIM(COALESCE(b.name, ""))) LIKE ?', ['%' . strtolower($keyword) . '%']);
                     }
                 })
-                ->where(function ($query) {
-                    $query->whereRaw("LOWER(TRIM(COALESCE(NULLIF(p.pasien_service_type, ''), NULLIF((SELECT service_type FROM pasien WHERE pasien.id_pasien = p.pasien_id LIMIT 1), ''), ''))) NOT LIKE ?", ['%bpjs%']);
-                })
+                ->whereRaw($this->normalizedServiceTypeSql('p') . ' NOT IN (?, ?, ?)', $this->bpjsServiceTypes())
                 ->whereRaw("LOWER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), '-'))) = ?", ['umum'])
                 ->selectRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') as merk_frame")
                 ->selectRaw($jenisFrameNormalizedSql . ' as jenis_frame')
@@ -423,9 +470,7 @@ class FrameController extends Controller
                                 $query->orWhereRaw('LOWER(TRIM(COALESCE(b.name, ""))) LIKE ?', ['%' . strtolower($keyword) . '%']);
                             }
                         })
-                        ->where(function ($query) {
-                            $query->whereRaw("LOWER(TRIM(COALESCE(NULLIF(p.pasien_service_type, ''), NULLIF((SELECT service_type FROM pasien WHERE pasien.id_pasien = p.pasien_id LIMIT 1), ''), ''))) NOT LIKE ?", ['%bpjs%']);
-                        })
+                        ->whereRaw($this->normalizedServiceTypeSql('p') . ' NOT IN (?, ?, ?)', $this->bpjsServiceTypes())
                         ->whereRaw("LOWER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), '-'))) = ?", ['umum'])
                         ->when(!empty($selectedSalesId), function ($query) use ($selectedSalesId) {
                             $query->where('f.id_sales', $selectedSalesId);
@@ -457,11 +502,6 @@ class FrameController extends Controller
             $frameAnalysisUmum = $frameAnalysisUmum->merge($branchItems);
         }
 
-        $frameAnalysisBpjsSummary = (object) [
-            'total_qty' => (int) $frameAnalysisBpjs->sum('total_qty'),
-            'total_transaksi' => (int) $frameAnalysisBpjs->sum('total_transaksi'),
-        ];
-
         $frameAnalysisUmumSummary = (object) [
             'total_qty' => (int) $frameAnalysisUmum->sum('total_qty'),
             'total_transaksi' => (int) $frameAnalysisUmum->sum('total_transaksi'),
@@ -490,6 +530,7 @@ class FrameController extends Controller
             'frameAnalysisUmum',
             'frameAnalysisUmumByBranch',
             'frameAnalysisUmumSummaryByBranch',
+            'bpjsUniquePatientsFrameDetails',
             'frameAnalysisPeriodLabel',
             'selectedMonth',
             'selectedSalesId'

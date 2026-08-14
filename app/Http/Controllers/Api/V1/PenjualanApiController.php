@@ -15,10 +15,10 @@ class PenjualanApiController extends Controller
         if ($request->filled('q')) {
             $q = trim($request->q);
             $query->where(function ($builder) use ($q) {
-                $builder->where('kode_penjualan', 'like', '%' . $q . '%')
-                    ->orWhere('barcode', 'like', '%' . $q . '%')
+                $builder->where('kode_penjualan', 'like', $q . '%')
+                    ->orWhere('barcode', 'like', $q . '%')
                     ->orWhereHas('pasien', function ($pasienQuery) use ($q) {
-                        $pasienQuery->where('nama_pasien', 'like', '%' . $q . '%');
+                        $pasienQuery->where('nama_pasien', 'like', $q . '%');
                     });
             });
         }

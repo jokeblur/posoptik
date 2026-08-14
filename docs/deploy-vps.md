@@ -113,6 +113,75 @@ Checklist cepat:
 - Pastikan route cache sudah di-refresh setelah perubahan route
 - Pastikan token Sanctum dikirim lewat header `Authorization`
 
+## 8a. Kalau muncul error DB user `forge`
+
+Error yang sering muncul:
+
+```text
+SQLSTATE[HY000] [1045] Access denied for user 'forge'@'localhost' (using password: NO)
+```
+
+Artinya Laravel tidak membaca konfigurasi database dari `.env`, lalu fallback ke default bawaan di `config/database.php`:
+
+- database: `forge`
+- username: `forge`
+- password: kosong
+
+Checklist perbaikan:
+
+1. Pastikan file `.env` benar-benar ada di server.
+2. Pastikan isi database di `.env` sesuai server:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=nama_database_kamu
+DB_USERNAME=user_database_kamu
+DB_PASSWORD=password_database_kamu
+```
+
+3. Bersihkan semua cache config Laravel:
+
+```bash
+php artisan optimize:clear
+php artisan config:clear
+php artisan cache:clear
+php artisan config:cache
+```
+
+4. Verifikasi config yang sedang dipakai Laravel:
+
+```bash
+php artisan tinker --execute="dump(config('database.connections.mysql.host')); dump(config('database.connections.mysql.database')); dump(config('database.connections.mysql.username'));"
+```
+
+Kalau output masih menunjuk ke `forge`, berarti salah satu dari ini terjadi:
+
+- `.env` belum ter-upload
+- `.env` salah isi
+- permission `.env` tidak bisa dibaca user web server
+- config cache lama belum dibersihkan
+
+5. Tes login manual ke MySQL dari server:
+
+```bash
+mysql -u user_database_kamu -p
+```
+
+Kalau login MySQL gagal, berarti problemnya memang di credential database, bukan di Laravel.
+
+6. Setelah `.env` diubah, restart service PHP/web server bila perlu.
+
+Contoh:
+
+```bash
+sudo systemctl restart php8.1-fpm
+sudo systemctl restart nginx
+```
+
+Sesuaikan nama servicenya dengan environment VPS.
+
 ## 9. Struktur deploy yang aman
 
 Urutan paling aman:

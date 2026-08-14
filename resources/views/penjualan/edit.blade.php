@@ -395,10 +395,14 @@ $(document).ready(function() {
         }
     });
 
+    let lensaSearchDebounceTimer;
     $('#search-lensa-stok').on('keyup', function() {
-        if (lensaStokTable) {
-            lensaStokTable.ajax.reload();
-        }
+        clearTimeout(lensaSearchDebounceTimer);
+        lensaSearchDebounceTimer = setTimeout(function() {
+            if (lensaStokTable) {
+                lensaStokTable.ajax.reload();
+            }
+        }, 400);
     });
 
     $('#toggle-show-outofstock-lensa').on('change', function() {

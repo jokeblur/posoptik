@@ -164,7 +164,7 @@ class LaporanBpjsController extends Controller
             })
             ->filterColumn('nama_pasien', function($query, $keyword) {
                 $query->whereHas('pasien', function($q) use ($keyword) {
-                    $q->where('nama_pasien', 'like', "%{$keyword}%");
+                    $q->where('nama_pasien', 'like', "{$keyword}%");
                 });
             })
             ->rawColumns(['kode_penjualan', 'jenis_layanan', 'status_transaksi', 'biaya_tambahan', 'aksi'])

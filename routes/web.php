@@ -12,6 +12,7 @@ use App\Http\Controllers\AksesorisController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OpenDayController;
+use App\Http\Controllers\DatabaseBackupController;
 use App\Http\Controllers\LaporanPosController;
 use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\KwitansiController;
@@ -111,6 +112,8 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/database-backup', [DatabaseBackupController::class, 'index'])->name('database-backup.index')->middleware('role:super admin');
+    Route::post('/database-backup/download', [DatabaseBackupController::class, 'download'])->name('database-backup.download')->middleware('role:super admin');
     
     // Custom profile routes (used by resources/views/profile/show.blade.php)
     Route::get('/profile', [ProfileController::class, 'show'])->name('custom.profile.show');

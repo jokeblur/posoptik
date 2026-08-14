@@ -599,7 +599,7 @@ class FrameController extends Controller
             })
             ->rawColumns(['aksi', 'checkbox'])
             ->filterColumn('branch_name', function ($query, $keyword) {
-                $query->where('branches.name', 'like', "%{$keyword}%");
+                $query->where('branches.name', 'like', "{$keyword}%");
             })
             ->orderColumn('branch_name', 'branches.name $1')
             ->make(true);

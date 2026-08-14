@@ -2172,6 +2172,7 @@ $(function() {
     
     // Initialize DataTable for lensa stok
     let lensaStokTable;
+    let lensaSearchDebounceTimer;
     
     function initLensaStokTable() {
         if ($.fn.DataTable.isDataTable('#table-lenses-stok')) {
@@ -2262,7 +2263,12 @@ $(function() {
     
     // Search functionality
     $('#search-lensa-stok').on('keyup', function() {
-        lensaStokTable.ajax.reload();
+        clearTimeout(lensaSearchDebounceTimer);
+        lensaSearchDebounceTimer = setTimeout(function() {
+            if (lensaStokTable) {
+                lensaStokTable.ajax.reload();
+            }
+        }, 400);
     });
     
     // Refresh functionality

@@ -93,13 +93,13 @@ class LensaController extends Controller
         $lensa = $query;
         return datatables()->of($lensa)
             ->filterColumn('branch_name', function ($query, $keyword) {
-                $query->where('branches.name', 'like', '%' . $keyword . '%');
+                $query->where('branches.name', 'like', $keyword . '%');
             })
             ->filterColumn('sales_name', function ($query, $keyword) {
-                $query->where('sales.nama_sales', 'like', '%' . $keyword . '%');
+                $query->where('sales.nama_sales', 'like', $keyword . '%');
             })
             ->filterColumn('lens_index', function ($query, $keyword) {
-                $query->where('lensa.index', 'like', '%' . $keyword . '%');
+                $query->where('lensa.index', 'like', $keyword . '%');
             })
             ->orderColumn('branch_name', function ($query, $order) {
                 $query->orderBy('branches.name', $order);

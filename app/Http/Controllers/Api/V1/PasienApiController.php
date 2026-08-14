@@ -15,9 +15,9 @@ class PasienApiController extends Controller
         if ($request->filled('q')) {
             $q = trim($request->q);
             $query->where(function ($builder) use ($q) {
-                $builder->where('nama_pasien', 'like', '%' . $q . '%')
-                    ->orWhere('nohp', 'like', '%' . $q . '%')
-                    ->orWhere('no_bpjs', 'like', '%' . $q . '%');
+                $builder->where('nama_pasien', 'like', $q . '%')
+                    ->orWhere('nohp', 'like', $q . '%')
+                    ->orWhere('no_bpjs', 'like', $q . '%');
             });
         }
 

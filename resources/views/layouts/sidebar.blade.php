@@ -133,6 +133,9 @@
                           <li class="header" style="padding: 8px 15px; margin: 8px 0 0 0; background-color: #a4193d; color: #fff; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">SETTINGS</li>
                           <li style="margin: 0;"><a href="{{ route('sales.index') }}" style="padding: 8px 15px;"><i class="fa fa-user"></i> <span>Data Sales</span></a></li>
                           <li style="margin: 0;"><a href="{{ route('barcode.index') }}" style="padding: 8px 15px;"><i class="fa fa-barcode"></i> <span>Barcode</span></a></li>
+                          @if(auth()->user()->isSuperAdmin())
+                          <li style="margin: 0;"><a href="{{ route('database-backup.index') }}" style="padding: 8px 15px;"><i class="fa fa-database"></i> <span>Download Database</span></a></li>
+                          @endif
                           @endif
                       </ul>
                   </section>

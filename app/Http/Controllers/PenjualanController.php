@@ -548,7 +548,7 @@ class PenjualanController extends Controller
     }
     public function searchProduct(Request $request)
     {
-        $query = $request->get('q');
+        $query = trim((string) $request->get('q', ''));
         $user = auth()->user();
 
         if ($user && ($user->isSuperAdmin() || $user->isAdmin())) {
@@ -556,13 +556,17 @@ class PenjualanController extends Controller
         } else {
             $branchId = $user->branch_id ?? null;
         }
+
+        if ($query === '') {
+            return response()->json([]);
+        }
         
         $frames = \App\Models\Frame::when($branchId, function ($q) use ($branchId) {
                 return $q->where('branch_id', $branchId);
             })
             ->where(function ($q) use ($query) {
-                $q->where('merk_frame', 'LIKE', "%{$query}%")
-                  ->orWhere('kode_frame', 'LIKE', "%{$query}%");
+                $q->where('merk_frame', 'LIKE', "{$query}%")
+                  ->orWhere('kode_frame', 'LIKE', "{$query}%");
             })
             ->select('id', 'merk_frame as name', 'harga_jual_frame as price', \DB::raw("'frame' as type"))
             ->limit(5)
@@ -572,8 +576,8 @@ class PenjualanController extends Controller
                 return $q->where('branch_id', $branchId);
             })
             ->where(function ($q) use ($query) {
-                $q->where('merk_lensa', 'LIKE', "%{$query}%")
-                  ->orWhere('kode_lensa', 'LIKE', "%{$query}%");
+                $q->where('merk_lensa', 'LIKE', "{$query}%")
+                  ->orWhere('kode_lensa', 'LIKE', "{$query}%");
             })
             ->select('id', 'merk_lensa as name', 'harga_jual_lensa as price', 'index', 'cly', 'add', \DB::raw("'lensa' as type"))
             ->limit(5)
@@ -582,7 +586,7 @@ class PenjualanController extends Controller
         $aksesoris = Aksesoris::when($branchId, function ($q) use ($branchId) {
                 return $q->where('branch_id', $branchId);
             })
-            ->where('nama_produk', 'LIKE', "%{$query}%")
+            ->where('nama_produk', 'LIKE', "{$query}%")
             ->select('id', 'nama_produk as name', 'harga_jual as price', \DB::raw("'aksesoris' as type"))
             ->limit(5)
             ->get();
@@ -619,19 +623,19 @@ class PenjualanController extends Controller
                 $query->where('branch_id', $user->branch_id);
             }
 
-            // Apply search filter
+            // Apply search filter. Prefix LIKE can use indexes and is much faster than %term% scans.
             if ($request->has('search') && !empty($request->search)) {
-                $search = $request->search;
+                $search = trim($request->search);
                 $query->where(function($q) use ($search) {
-                    $q->where('kode_lensa', 'LIKE', "%{$search}%")
-                      ->orWhere('merk_lensa', 'LIKE', "%{$search}%")
-                      ->orWhere('type', 'LIKE', "%{$search}%")
-                      ->orWhere('index', 'LIKE', "%{$search}%")
-                      ->orWhere('coating', 'LIKE', "%{$search}%");
+                    $q->where('kode_lensa', 'LIKE', "{$search}%")
+                      ->orWhere('merk_lensa', 'LIKE', "{$search}%")
+                      ->orWhere('type', 'LIKE', "{$search}%")
+                      ->orWhere('index', 'LIKE', "{$search}%")
+                      ->orWhere('coating', 'LIKE', "{$search}%");
                 });
             }
 
-            $lensas = $query->orderBy('merk_lensa', 'asc')->get();
+            $lensas = $query->orderBy('merk_lensa', 'asc')->limit(200)->get();
 
             $data = $lensas->map(function($lensa) {
                 return [
@@ -1202,13 +1206,13 @@ class PenjualanController extends Controller
         if ($request->filled('q')) {
             $keyword = trim((string) $request->q);
             $query->where(function ($subQuery) use ($keyword) {
-                $subQuery->where('kode_penjualan', 'like', "%{$keyword}%")
-                    ->orWhere('nama_pasien_manual', 'like', "%{$keyword}%")
-                    ->orWhere('pasien_id', 'like', "%{$keyword}%")
+                $subQuery->where('kode_penjualan', 'like', "{$keyword}%")
+                    ->orWhere('nama_pasien_manual', 'like', "{$keyword}%")
+                    ->orWhere('pasien_id', 'like', "{$keyword}%")
                     ->orWhereHas('pasien', function ($pasienQuery) use ($keyword) {
-                        $pasienQuery->where('nama_pasien', 'like', "%{$keyword}%")
-                            ->orWhere('id_pasien', 'like', "%{$keyword}%")
-                            ->orWhere('no_bpjs', 'like', "%{$keyword}%");
+                        $pasienQuery->where('nama_pasien', 'like', "{$keyword}%")
+                            ->orWhere('id_pasien', 'like', "{$keyword}%")
+                            ->orWhere('no_bpjs', 'like', "{$keyword}%");
                     });
             });
         }

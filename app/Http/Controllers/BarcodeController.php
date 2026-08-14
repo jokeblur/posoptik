@@ -78,7 +78,7 @@ class BarcodeController extends Controller
         $transaksi = Penjualan::with('user', 'branch', 'pasien.prescriptions', 'dokter', 'details.itemable')
             ->where(function($query) use ($barcode) {
                 $query->where('barcode', $barcode)
-                      ->orWhere('kode_penjualan', 'LIKE', '%' . $barcode . '%');
+                      ->orWhere('kode_penjualan', 'LIKE', $barcode . '%');
             })
             ->first();
 

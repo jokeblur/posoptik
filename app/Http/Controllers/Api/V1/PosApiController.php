@@ -23,11 +23,11 @@ class PosApiController extends Controller
 
         $transactions = Penjualan::with(['user', 'branch', 'pasien'])
             ->where(function ($query) use ($queryText) {
-                $query->where('kode_penjualan', 'like', '%' . $queryText . '%')
-                    ->orWhere('barcode', 'like', '%' . $queryText . '%')
-                    ->orWhere('nama_pasien_manual', 'like', '%' . $queryText . '%')
+                $query->where('kode_penjualan', 'like', $queryText . '%')
+                    ->orWhere('barcode', 'like', $queryText . '%')
+                    ->orWhere('nama_pasien_manual', 'like', $queryText . '%')
                     ->orWhereHas('pasien', function ($pasienQuery) use ($queryText) {
-                        $pasienQuery->where('nama_pasien', 'like', '%' . $queryText . '%');
+                        $pasienQuery->where('nama_pasien', 'like', $queryText . '%');
                     });
             })
             ->orderByDesc('tanggal')

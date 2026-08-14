@@ -15,9 +15,9 @@ class FrameApiController extends Controller
         if ($request->filled('q')) {
             $q = trim($request->q);
             $query->where(function ($builder) use ($q) {
-                $builder->where('kode_frame', 'like', '%' . $q . '%')
-                    ->orWhere('merk_frame', 'like', '%' . $q . '%')
-                    ->orWhere('jenis_frame', 'like', '%' . $q . '%');
+                $builder->where('kode_frame', 'like', $q . '%')
+                    ->orWhere('merk_frame', 'like', $q . '%')
+                    ->orWhere('jenis_frame', 'like', $q . '%');
             });
         }
 

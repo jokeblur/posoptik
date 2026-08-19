@@ -140,6 +140,7 @@ Route::middleware([
     Route::get('/pasien/{pasien}/cetak-resep', [PasienController::class, 'cetakResep'])->name('pasien.cetak-resep');
     Route::get('/pasien/{pasien}/cetak-resep-a4', [PasienController::class, 'cetakResepA4'])->name('pasien.cetak-resep-a4');
     Route::get('/pasien/{pasien}/cetak-resep-kartu', [PasienController::class, 'cetakResepKartu'])->name('pasien.cetak-resep-kartu');
+    Route::get('/pasien/{pasien}/cetak-status-refraksi', [PasienController::class, 'cetakStatusRefraksi'])->name('pasien.cetak-status-refraksi');
     Route::post('/penjualan/{penjualan}/lunas', [PenjualanController::class, 'lunas'])->name('penjualan.lunas');
     Route::post('/penjualan/{id}/diambil', [PenjualanController::class, 'diambil'])->name('penjualan.diambil');
     Route::get('/penjualan/bpjs-photo-update', [PenjualanController::class, 'bpjsPhotoUpdateIndex'])

@@ -306,6 +306,8 @@
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('post');
+        $('#group-mode-resep-baru').show();
+        $('#mode_resep_baru').prop('checked', false).trigger('change');
         $('#modal-form [name=nama_pasien]').focus();
     }
 
@@ -315,12 +317,17 @@
         $('#modal-form form')[0].reset();
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('put');
+        $('#group-mode-resep-baru').hide();
+        $('#mode_resep_baru').prop('checked', false).trigger('change');
         $('#modal-form [name=nama_pasien]').focus();
         $.get(url)
             .done((response) => {
                 $('#modal-form [name=nama_pasien]').val(response.nama_pasien);
+                $('#modal-form [name=umur]').val(response.umur);
                 $('#modal-form [name=alamat]').val(response.alamat);
                 $('#modal-form [name=nohp]').val(response.nohp);
+                $('#modal-form [name=anamnesa]').val(response.anamnesa);
+                $('#modal-form [name=tanggal_periksa]').val(response.tanggal_periksa);
                 $('#modal-form [name=service_type]').val(response.service_type);
                 $('#modal-form [name=no_bpjs]').val(response.no_bpjs || '');
                 if(response.service_type === 'BPJS I' || response.service_type === 'BPJS II' || response.service_type === 'BPJS III') {

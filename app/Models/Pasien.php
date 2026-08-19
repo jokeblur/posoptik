@@ -12,7 +12,7 @@ class Pasien extends Model
     protected $table = 'pasien';
     protected $primaryKey = 'id_pasien';
     protected $guarded = [];
-    protected $fillable = ['nama_pasien', 'alamat', 'nohp', 'service_type', 'no_bpjs'];
+    protected $fillable = ['nama_pasien', 'umur', 'alamat', 'nohp', 'anamnesa', 'tanggal_periksa', 'service_type', 'no_bpjs'];
 
     public function getRouteKeyName()
     {

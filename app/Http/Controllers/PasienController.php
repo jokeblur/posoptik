@@ -96,7 +96,8 @@ class PasienController extends Controller
                 return '
             <div class="btn-group">
                 <button onclick="showDetail(`' . route('pasien.show', $pasien->id_pasien) . '`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-eye"></i></button>
-                <a href="' . route('pasien.cetak-resep-kartu', $pasien->id_pasien) . '" target="_blank" class="btn btn-xs btn-warning btn-flat"><i class="fa fa-print"></i></a>
+                <a href="' . route('pasien.cetak-resep-kartu', $pasien->id_pasien) . '" target="_blank" class="btn btn-xs btn-warning btn-flat" title="Cetak Kartu Resep"><i class="fa fa-print"></i></a>
+                <a href="' . route('pasien.cetak-status-refraksi', $pasien->id_pasien) . '" target="_blank" class="btn btn-xs btn-primary btn-flat" title="Cetak Kartu Status Refraksi"><i class="fa fa-id-card-o"></i></a>
                 <button onclick="editform(`' . route('pasien.update', $pasien->id_pasien) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-pencil"></i></button>
                 <button onclick="deleteData(`' . route('pasien.destroy', $pasien->id_pasien) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
             </div>
@@ -130,23 +131,29 @@ class PasienController extends Controller
     {
         DB::beginTransaction();
         try {
-            $pasienData = $request->only(['nama_pasien', 'alamat', 'nohp', 'service_type', 'no_bpjs']);
+            $pasienData = $request->only(['nama_pasien', 'umur', 'alamat', 'nohp', 'anamnesa', 'tanggal_periksa', 'service_type', 'no_bpjs']);
             $pasien = Pasien::create($pasienData);
 
             $prescriptionData = $request->only(['od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis', 'add', 'add_kanan', 'add_kiri', 'pd', 'pd_kanan', 'pd_kiri', 'catatan', 'dokter_id']);
-            $prescriptionData = $this->normalizePrescriptionData($prescriptionData);
-            $prescriptionData['id_pasien'] = $pasien->id_pasien;
-            $prescriptionData['tanggal'] = now();
-            if ($request->input('dokter_id') === 'manual') {
-                $prescriptionData['dokter_id'] = null;
-                $prescriptionData['dokter_manual'] = $request->input('dokter_manual');
-            } else {
-                $prescriptionData['dokter_manual'] = null;
+            $hasPrescriptionInput = collect($prescriptionData)->filter(function ($value, $key) {
+                return $key !== 'dokter_id' && $value !== null && $value !== '';
+            })->isNotEmpty() || $request->filled('dokter_id');
+
+            if ($hasPrescriptionInput) {
+                $prescriptionData = $this->normalizePrescriptionData($prescriptionData);
+                $prescriptionData['id_pasien'] = $pasien->id_pasien;
+                $prescriptionData['tanggal'] = now();
+                if ($request->input('dokter_id') === 'manual') {
+                    $prescriptionData['dokter_id'] = null;
+                    $prescriptionData['dokter_manual'] = $request->input('dokter_manual');
+                } else {
+                    $prescriptionData['dokter_manual'] = null;
+                }
+                Prescription::create($prescriptionData);
             }
-            Prescription::create($prescriptionData);
 
             DB::commit();
-            return response()->json(['message' => 'Data pasien berhasil disimpan'], 200);
+            return response()->json(['message' => 'Data pasien berhasil disimpan', 'id_pasien' => $pasien->id_pasien], 200);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Gagal menyimpan data: ' . $e->getMessage()], 500);
@@ -157,7 +164,7 @@ class PasienController extends Controller
     {
         DB::beginTransaction();
         try {
-            $pasienData = $request->only(['nama_pasien', 'alamat', 'nohp', 'service_type', 'no_bpjs']);
+            $pasienData = $request->only(['nama_pasien', 'umur', 'alamat', 'nohp', 'anamnesa', 'tanggal_periksa', 'service_type', 'no_bpjs']);
             $pasien = Pasien::create($pasienData);
 
             $prescriptionData = $request->only(['od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis', 'add', 'add_kanan', 'add_kiri', 'pd', 'pd_kanan', 'pd_kiri', 'catatan', 'dokter_id']);
@@ -227,7 +234,7 @@ class PasienController extends Controller
         DB::beginTransaction();
         try {
             $pasien = Pasien::findOrFail($id);
-            $pasienData = $request->only(['nama_pasien', 'alamat', 'nohp', 'service_type', 'no_bpjs']);
+            $pasienData = $request->only(['nama_pasien', 'umur', 'alamat', 'nohp', 'anamnesa', 'tanggal_periksa', 'service_type', 'no_bpjs']);
             $pasien->update($pasienData);
 
             $hasPrescriptionInput = collect([
@@ -426,5 +433,17 @@ class PasienController extends Controller
             ->first();
         
         return view('pasien.cetak-resep-kartu', compact('pasien', 'latestPrescription', 'latestTransaction'));
+    }
+
+    /**
+     * Cetak kartu status refraksi (resep kosong diisi manual oleh RO) ukuran kertas nota.
+     */
+    public function cetakStatusRefraksi($id)
+    {
+        $pasien = Pasien::with(['prescriptions.dokter'])->findOrFail($id);
+
+        $latestPrescription = $pasien->prescriptions->sortByDesc('tanggal')->first();
+
+        return view('pasien.cetak-status-refraksi', compact('pasien', 'latestPrescription'));
     }
 }

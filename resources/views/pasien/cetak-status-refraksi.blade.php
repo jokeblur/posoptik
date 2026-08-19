@@ -18,7 +18,7 @@
         body {
             font-family: 'Poppins', sans-serif;
             margin: 0;
-            padding: 3mm;
+            padding: 1mm 3mm 3mm;
             background: white;
             font-size: 12px;
             line-height: 1.3;
@@ -55,7 +55,10 @@
             text-align: center;
             border-bottom: 1px solid #000;
             padding-bottom: 6px;
+            padding-top: 0;
+            margin-top: 0;
             margin-bottom: 10px;
+            line-height: 0;
         }
 
         .logo {
@@ -68,6 +71,7 @@
 
         .header-info {
             text-align: center;
+            line-height: 1.3;
         }
 
         .company-name {
@@ -181,7 +185,7 @@
         @media print {
             html, body {
                 margin: 0 !important;
-                padding: 3mm !important;
+                padding: 1mm 3mm 3mm !important;
             }
             body {
                 -webkit-print-color-adjust: exact;
@@ -209,7 +213,7 @@
         <div class="header">
             <img src="{{ asset('image/optik-melati.png') }}" alt="Logo Optik Melati" class="logo">
             <div class="header-info">
-                <div class="company-name">OPTIK MELATI</div>
+               
                 <div class="address">
                     Jalan H. Halim Komp. Waterpark Pelangi, Teluk Kuantan<br>
                     No.Hp : 0812 6761 7701

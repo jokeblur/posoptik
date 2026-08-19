@@ -4,18 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kartu Status Refraksi - {{ $pasien->nama_pasien }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @media print {
-            @page {
-                margin: 0;
-                size: 100mm 160mm; /* Ukuran nota 10 x 16 cm */
-            }
-            body {
-                margin: 0;
-            }
-            .no-print {
-                display: none !important;
-            }
+        @page {
+            size: 100mm 160mm; /* Ukuran nota 10 x 16 cm, sama seperti nota half page penjualan */
+            margin: 0;
         }
 
         * {
@@ -23,193 +16,239 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
-            font-size: 10pt;
-            color: #000;
-            width: 100mm;
-            height: 160mm;
-            margin: 0 auto;
-            padding: 6mm 7mm;
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 3mm;
             background: white;
+            font-size: 12px;
+            line-height: 1.3;
+            position: relative;
+            min-height: 160mm;
+            width: 100mm;
         }
 
-        .container {
+        /* Background logo dengan efek watermark, sama seperti nota half page */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
+            height: 100%;
+            background-image: url('{{ asset("image/optik-melati.png") }}');
+            background-size: 80mm 80mm;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.05;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .print-container {
+            width: 100mm;
+            min-height: 160mm;
+            margin: 0;
+            position: relative;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 4mm;
+            border-bottom: 1px solid #000;
+            padding-bottom: 6px;
+            margin-bottom: 10px;
         }
 
         .logo {
-            width: 16mm;
-            height: 16mm;
+            width: 60px;
+            height: 60px;
             display: block;
-            margin: 0 auto 2mm;
+            margin: 0 auto 4px;
             object-fit: contain;
         }
 
+        .header-info {
+            text-align: center;
+        }
+
         .company-name {
-            margin: 0;
-            font-size: 15pt;
-            font-weight: bold;
-            letter-spacing: 1px;
-            color: #a4193d;
+            font-size: 15px;
+            font-weight: 600;
+            margin: 2px 0;
         }
 
-        .company-address {
-            margin: 1mm 0 0;
-            font-size: 7.5pt;
-            font-style: italic;
-            color: #555;
-        }
-
-        hr.divider {
-            border: 0;
-            border-top: 1.5px solid #a4193d;
-            margin: 3mm 0 4mm;
+        .address {
+            font-size: 9.5px;
+            margin: 2px 0;
         }
 
         .title {
             text-align: center;
-            font-weight: bold;
-            font-size: 12pt;
+            font-weight: 600;
+            font-size: 13px;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 0 0 6mm;
+            letter-spacing: 0.5px;
+            margin: 6px 0 10px;
         }
 
-        .form-row {
-            display: flex;
-            margin: 3mm 0;
-            align-items: flex-end;
-        }
-
-        .form-label {
-            width: 30mm;
-            flex-shrink: 0;
-            font-size: 10pt;
-        }
-
-        .form-colon {
-            width: 3mm;
-            flex-shrink: 0;
-        }
-
-        .form-value {
-            flex: 1;
-            border-bottom: 1px dotted #666;
-            min-height: 13px;
-            padding-bottom: 1px;
-            word-break: break-word;
-            font-size: 10pt;
-        }
-
-        .resep-badge {
-            text-align: center;
-            background: #a4193d;
-            color: #fff;
-            font-weight: bold;
-            font-size: 10pt;
-            padding: 2mm 0;
+        .pasien-info {
+            background: #f8f9fa;
+            padding: 10px 10px;
+            margin: 8px 0;
+            border-left: 3px solid #007bff;
             border-radius: 4px;
-            margin: 6mm 0 3mm;
+        }
+
+        .info-row {
+            display: flex;
+            margin: 8px 0;
+            font-size: 12.5px;
+        }
+
+        .info-label {
+            font-weight: 600;
+            min-width: 92px;
+            flex-shrink: 0;
+        }
+
+        .info-value {
+            flex: 1;
+            border-bottom: 1px dotted #999;
+            min-height: 15px;
+            word-break: break-word;
+        }
+
+        .section-title {
+            font-weight: 600;
+            text-align: center;
+            margin: 10px 0 6px;
+            font-size: 11px;
+            background: rgba(164, 25, 61, 0.85);
+            padding: 5px;
+            border-radius: 3px;
+            color: #fff;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
         }
 
         .resep-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 10pt;
-            margin-bottom: 6mm;
+            margin: 6px 0;
+            font-size: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            border-radius: 4px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.9);
         }
 
         .resep-table th,
         .resep-table td {
-            border: 1px solid #333;
-            padding: 3mm 1mm;
+            padding: 8px 4px;
+            border: 1px solid #6c757d;
             text-align: center;
+            font-weight: 500;
         }
 
         .resep-table th {
-            background: #e9e2e5;
-            font-weight: bold;
+            background: rgba(108, 117, 125, 0.8);
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
         }
 
-        .resep-table td:first-child {
-            background: #f5f2f3;
-            font-weight: bold;
+        .resep-table .eye-label {
+            font-weight: 700;
+            background: rgba(73, 80, 87, 0.85);
+            color: #fff;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
         }
 
         .footer-signature {
-            margin-top: 14mm;
+            margin-top: 30px;
             text-align: right;
-            font-size: 10pt;
-            padding-right: 4mm;
+            font-size: 12px;
+            padding-right: 6px;
         }
 
         .print-button {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            background: #a4193d;
+            padding: 10px 20px;
+            background: #007bff;
             color: white;
             border: none;
-            padding: 8px 16px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+        }
+
+        @media print {
+            html, body {
+                margin: 0 !important;
+                padding: 3mm !important;
+            }
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .no-print,
+            .no-print * {
+                display: none !important;
+                visibility: hidden !important;
+            }
+            body::before {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
     </style>
 </head>
 <body>
-    <button class="print-button no-print" onclick="window.print()">Cetak</button>
+    <div class="print-button-container no-print" style="text-align: left; margin-bottom: 20px; display: flex; gap: 10px; justify-content: flex-start;">
+        <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Cetak Sekarang</button>
+    </div>
 
-    <div class="container">
+    <div class="print-container">
+        <!-- Header -->
         <div class="header">
             <img src="{{ asset('image/optik-melati.png') }}" alt="Logo Optik Melati" class="logo">
-            <p class="company-name">OPTIK MELATI</p>
-            <p class="company-address">Jalan H. Hakim, Teluk Kuantan</p>
-            <p class="company-address">No.Hp : 0812 5678 703</p>
+            <div class="header-info">
+                <div class="company-name">OPTIK MELATI</div>
+                <div class="address">
+                    Jalan H. Halim Komp. Waterpark Pelangi, Teluk Kuantan<br>
+                    No.Hp : 0812 6761 7701
+                </div>
+            </div>
         </div>
-
-        <hr class="divider">
 
         <div class="title">Kartu Status Refraksi</div>
 
-        <div class="form-row">
-            <span class="form-label">Nama Pasien</span>
-            <span class="form-colon">:</span>
-            <span class="form-value">{{ $pasien->nama_pasien }}</span>
-        </div>
-        <div class="form-row">
-            <span class="form-label">Umur</span>
-            <span class="form-colon">:</span>
-            <span class="form-value">{{ $pasien->umur }}</span>
-        </div>
-        <div class="form-row">
-            <span class="form-label">Alamat</span>
-            <span class="form-colon">:</span>
-            <span class="form-value">{{ $pasien->alamat }}</span>
-        </div>
-        <div class="form-row">
-            <span class="form-label">No. Hp</span>
-            <span class="form-colon">:</span>
-            <span class="form-value">{{ $pasien->nohp }}</span>
-        </div>
-        <div class="form-row">
-            <span class="form-label">Anamnesa</span>
-            <span class="form-colon">:</span>
-            <span class="form-value">{{ $pasien->anamnesa }}</span>
-        </div>
-        <div class="form-row">
-            <span class="form-label">Tanggal Periksa</span>
-            <span class="form-colon">:</span>
-            <span class="form-value">{{ optional($pasien->tanggal_periksa)->format('d/m/Y') ?? $pasien->tanggal_periksa }}</span>
+        <!-- Data Pasien -->
+        <div class="pasien-info">
+            <div class="info-row">
+                <span class="info-label">Nama Pasien</span>
+                <span class="info-value">{{ $pasien->nama_pasien }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Umur</span>
+                <span class="info-value">{{ $pasien->umur }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Alamat</span>
+                <span class="info-value">{{ $pasien->alamat }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">No. Hp</span>
+                <span class="info-value">{{ $pasien->nohp }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Anamnesa</span>
+                <span class="info-value">{{ $pasien->anamnesa }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Tgl Periksa</span>
+                <span class="info-value">{{ optional($pasien->tanggal_periksa)->format('d/m/Y') ?? $pasien->tanggal_periksa }}</span>
+            </div>
         </div>
 
-        <div class="resep-badge">Resep Lensa Pasien</div>
-
+        <!-- Resep Lensa -->
+        <div class="section-title">Resep Lensa Pasien</div>
         <table class="resep-table">
             <thead>
                 <tr>
@@ -223,7 +262,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>R</td>
+                    <td class="eye-label">R</td>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
@@ -231,7 +270,7 @@
                     <td>&nbsp;</td>
                 </tr>
                 <tr>
-                    <td>L</td>
+                    <td class="eye-label">L</td>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>

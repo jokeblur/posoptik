@@ -753,7 +753,7 @@
                                     <td>{{ $no++ }}</td>
                                     <td>{{ $trx->created_at->format('d/m/Y H:i') }}</td>
                                     <td>{{ $trx->kode_penjualan }}</td>
-                                    <td>{{ $trx->pasien->nama_pasien ?? '-' }}</td>
+                                    <td>{{ $trx->pasien->nama_pasien ?? $trx->nama_pasien_manual ?? '-' }}</td>
                                     <td>
                                         <span class="label label-{{ $isBpjsOmset ? 'info' : 'default' }}">{{ $serviceTypeOmset }}</span>
                                     </td>
@@ -873,8 +873,8 @@
                                     <td>{{ $no++ }}</td>
                                     <td>{{ $trx->created_at->format('d/m/Y H:i') }}</td>
                                     <td>{{ $trx->kode_penjualan }}</td>
-                                    <td>{{ $trx->pasien->nama_pasien ?? '-' }}</td>
-                                    <td><span class="label label-default">{{ $trx->pasien->service_type ?? 'UMUM' }}</span></td>
+                                    <td>{{ $trx->pasien->nama_pasien ?? $trx->nama_pasien_manual ?? '-' }}</td>
+                                    <td><span class="label label-default">{{ $trx->pasien_service_type ?? $trx->pasien->service_type ?? 'UMUM' }}</span></td>
                                     <td>Rp {{ number_format($trx->total, 0, ',', '.') }}</td>
                                     <td>
                                         @if($trx->status_pengerjaan == 'Sudah Di Ambil')

@@ -61,7 +61,11 @@ class PenjualanController extends Controller
 
     private function calculateBpjsPatientPayableTotal(float $bpjsAdditionalCost, float $aksesoriTotal, float $diskon = 0): float
     {
-        return max(0, ($bpjsAdditionalCost + $aksesoriTotal) - max(0, $diskon));
+        $discount = max(0, $diskon);
+        $netAdditionalCost = max(0, $bpjsAdditionalCost - $discount);
+        $remainingDiscount = max(0, $discount - $bpjsAdditionalCost);
+
+        return max(0, $netAdditionalCost + $aksesoriTotal - $remainingDiscount);
     }
 
     private function storeBase64ImageToPublicDisk(string $base64Image, string $directory = 'photos_bpjs'): ?string
@@ -332,7 +336,9 @@ class PenjualanController extends Controller
     public function data(Request $request)
     {
         $user = auth()->user();
-        $query = Penjualan::with('user', 'branch', 'passetByUser', 'dokter', 'pasien')->latest();
+        $query = Penjualan::query()
+            ->with(['user', 'branch', 'passetByUser', 'dokter', 'pasien'])
+            ->latest();
         $hasJenisTransaksiColumn = $this->hasTableColumn('penjualan', 'jenis_transaksi');
         $bulan = (int) $request->input('bulan', now()->format('m'));
         $tahun = (int) $request->input('tahun', now()->format('Y'));
@@ -362,17 +368,41 @@ class PenjualanController extends Controller
         // Filter berdasarkan jenis transaksi jika ada
         $this->applyJenisTransaksiFilter($query, $request->jenis_transaksi, $hasJenisTransaksiColumn);
 
-        // Filter default per bulan
-        $query->whereMonth('created_at', $bulan)->whereYear('created_at', $tahun);
-
-        // Add eager loading to prevent N+1 queries
-        $penjualan = $query
-            ->with('pasien', 'user', 'branch', 'dokter', 'passetByUser', 'details.itemable')
-            ->get();
+        // Gunakan rentang tanggal agar index created_at dapat dipakai database.
+        $awalBulan = Carbon::create($tahun, $bulan, 1)->startOfMonth();
+        $akhirBulan = $awalBulan->copy()->endOfMonth();
+        $query->whereBetween('created_at', [$awalBulan, $akhirBulan]);
 
         return datatables()
-            ->of($penjualan)
+            ->eloquent($query)
             ->addIndexColumn()
+            ->filterColumn('nama_pasien', function ($query, $keyword) {
+                $query->where(function ($searchQuery) use ($keyword) {
+                    $searchQuery->whereHas('pasien', function ($pasienQuery) use ($keyword) {
+                        $pasienQuery->where('nama_pasien', 'like', "%{$keyword}%");
+                    })->orWhere('nama_pasien_manual', 'like', "%{$keyword}%");
+                });
+            })
+            ->filterColumn('nama_dokter', function ($query, $keyword) {
+                $query->where(function ($searchQuery) use ($keyword) {
+                    $searchQuery->whereHas('dokter', function ($dokterQuery) use ($keyword) {
+                        $dokterQuery->where('nama_dokter', 'like', "%{$keyword}%");
+                    })->orWhere('dokter_manual', 'like', "%{$keyword}%");
+                });
+            })
+            ->filterColumn('jenis_layanan', function ($query, $keyword) {
+                $query->where(function ($searchQuery) use ($keyword) {
+                    $searchQuery->where('pasien_service_type', 'like', "%{$keyword}%")
+                        ->orWhereHas('pasien', function ($pasienQuery) use ($keyword) {
+                            $pasienQuery->where('service_type', 'like', "%{$keyword}%");
+                        });
+                });
+            })
+            ->filterColumn('passet_by', function ($query, $keyword) {
+                $query->whereHas('passetByUser', function ($userQuery) use ($keyword) {
+                    $userQuery->where('name', 'like', "%{$keyword}%");
+                });
+            })
             ->addColumn('tanggal', function ($penjualan) {
                 return tanggal_indonesia($penjualan->created_at, false);
             })
@@ -512,9 +542,14 @@ class PenjualanController extends Controller
                 $user = auth()->user();
                 $detailButton = '<a href="'. route('penjualan.show', $penjualan->id) .'" class="btn btn-xs btn-info btn-flat" title="Detail"><i class="fa fa-eye"></i></a>';
                 $editButton = '<a href="'. route('penjualan.edit', $penjualan->id) .'" class="btn btn-xs btn-warning btn-flat" title="Edit"><i class="fa fa-edit"></i></a>';
+                $lunasButton = '';
                 $statusButton = '';
                 $ambilButton = '';
                 $deleteButton = '';
+
+                if (($penjualan->status ?? '') !== 'Lunas') {
+                    $lunasButton = '<button onclick="lunasTransaksi(`'. route('penjualan.lunas', $penjualan->id) .'`)" class="btn btn-xs btn-success btn-flat" title="Pelunasan"><i class="fa fa-money"></i></button>';
+                }
                 
                 // Tombol update status pengerjaan
                 if ($penjualan->status_pengerjaan != self::WORK_STATUS_SUDAH_DI_AMBIL) {
@@ -534,6 +569,7 @@ class PenjualanController extends Controller
                 <div class="btn-group">
                     '. $detailButton .'
                     '. $editButton .'
+                    '. $lunasButton .'
                     '. $statusButton .'
                     '. $ambilButton .'
                     '. $deleteButton .'
@@ -1099,8 +1135,21 @@ class PenjualanController extends Controller
             }
 
             $diskon = max(0, (float) $request->diskon);
+            $discountOnAdditionalCost = min($diskon, $totalAdditionalCost);
+            $totalAdditionalCost = max(0, $totalAdditionalCost - $discountOnAdditionalCost);
+            $remainingDiscount = max(0, $diskon - $discountOnAdditionalCost);
+            $discountOnManualCost = min($remainingDiscount, $bpjsManualAdditionalCost);
+            $bpjsManualAdditionalCost = max(0, $bpjsManualAdditionalCost - $discountOnManualCost);
+            $remainingDiscount = max(0, $remainingDiscount - $discountOnManualCost);
+            if ($pasien && $this->isBpjsServiceType($pasien->service_type ?? null)) {
+                $penjualan->details()->update(['additional_cost' => 0]);
+                if ($firstFrameDetailId && $totalAdditionalCost > 0) {
+                    $penjualan->details()->where('id', $firstFrameDetailId)->update(['additional_cost' => $totalAdditionalCost]);
+                }
+            }
+            $transactionStatus = $this->resolveBpjsTransactionStatus($totalAdditionalCost, $bpjsManualAdditionalCost);
             $finalTotal = ($pasien && $this->isBpjsServiceType($pasien->service_type ?? null))
-                ? $this->calculateBpjsPatientPayableTotal($totalAdditionalCost + $bpjsManualAdditionalCost, $bpjsAksesorisSaleTotal, $diskon)
+                ? $this->calculateBpjsPatientPayableTotal($totalAdditionalCost + $bpjsManualAdditionalCost, $bpjsAksesorisSaleTotal)
                 : max(0, $calculatedTotal - $diskon);
             $bayar = max(0, (float) $request->bayar);
             $kekurangan = $finalTotal - $bayar;
@@ -1558,8 +1607,21 @@ class PenjualanController extends Controller
                 }
             }
 
+            $discountOnAdditionalCost = min($diskon, $totalAdditionalCost);
+            $totalAdditionalCost = max(0, $totalAdditionalCost - $discountOnAdditionalCost);
+            $remainingDiscount = max(0, $diskon - $discountOnAdditionalCost);
+            $discountOnManualCost = min($remainingDiscount, $bpjsManualAdditionalCost);
+            $bpjsManualAdditionalCost = max(0, $bpjsManualAdditionalCost - $discountOnManualCost);
+            $remainingDiscount = max(0, $remainingDiscount - $discountOnManualCost);
+            if ($isBpjs) {
+                $penjualan->details()->update(['additional_cost' => 0]);
+                if ($firstFrameDetailId && $totalAdditionalCost > 0) {
+                    $penjualan->details()->where('id', $firstFrameDetailId)->update(['additional_cost' => $totalAdditionalCost]);
+                }
+            }
+
             $finalTotal = $isBpjs
-                ? $this->calculateBpjsPatientPayableTotal($totalAdditionalCost + $bpjsManualAdditionalCost, $bpjsAksesorisSaleTotal, $diskon)
+                ? $this->calculateBpjsPatientPayableTotal($totalAdditionalCost + $bpjsManualAdditionalCost, $bpjsAksesorisSaleTotal)
                 : max(0, $calculatedTotal - $diskon);
             $bayar = (float) $request->bayar;
             $kekurangan = $finalTotal - $bayar;

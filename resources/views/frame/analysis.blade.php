@@ -11,11 +11,84 @@
 @endsection
 
 @section('content')
-<div class="row mb-3">
+<style>
+    .print-only {
+        display: none;
+    }
+
+    @media print {
+        @page {
+            size: portrait;
+            margin: 10mm;
+        }
+
+        .main-header,
+        .main-sidebar,
+        .content-header,
+        .control-sidebar,
+        .content-wrapper > .content > .row.mb-3:first-of-type form,
+        .no-print {
+            display: none !important;
+        }
+
+        .content-wrapper {
+            margin-left: 0 !important;
+        }
+
+        .print-only {
+            display: block !important;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .print-only h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .print-only p {
+            margin: 2px 0 0;
+            font-size: 12px;
+        }
+
+        body, .box {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .box {
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+            page-break-inside: avoid;
+        }
+
+        .row.mb-3 {
+            page-break-inside: avoid;
+        }
+
+        canvas {
+            max-width: 100% !important;
+        }
+
+        .table-responsive {
+            overflow: visible !important;
+        }
+    }
+</style>
+
+<div class="print-only">
+    <h2>Analisa Frame - Optik Melati</h2>
+    <p>Periode: {{ $frameAnalysisPeriodLabel ?? '30 Hari Terakhir' }}</p>
+</div>
+
+<div class="row mb-3 no-print">
     <div class="col-md-12">
         <a href="{{ route('frame.index') }}" class="btn btn-default">
             <i class="fa fa-arrow-left"></i> Kembali ke Data Frame
         </a>
+        <button type="button" onclick="window.print()" class="btn btn-success" style="margin-left:10px;">
+            <i class="fa fa-print"></i> Cetak Analisa
+        </button>
         <form method="GET" action="{{ route('frame.analysis') }}" class="form-inline" style="display:inline-block; margin-left:10px;">
             <div class="form-group">
                 <label for="month" style="margin-right:8px;">Pilih Bulan</label>

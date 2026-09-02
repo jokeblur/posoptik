@@ -328,6 +328,33 @@
         });
     }
 
+    function lunasTransaksi(url) {
+        Swal.fire({
+            title: 'Konfirmasi Pelunasan',
+            text: 'Tandai transaksi ini sebagai sudah lunas?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, lunasi',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            $.post(url, { '_token': '{{ csrf_token() }}' })
+                .done(response => {
+                    Swal.fire('Berhasil!', response.message, 'success')
+                        .then(() => table.ajax.reload(null, false));
+                })
+                .fail(xhr => {
+                    const message = xhr.responseJSON?.message || 'Tidak dapat melunasi transaksi.';
+                    Swal.fire('Gagal!', message, 'error');
+                });
+        });
+    }
+
     function hapusTransaksi(url) {
         Swal.fire({
             title: 'Konfirmasi Penghapusan',

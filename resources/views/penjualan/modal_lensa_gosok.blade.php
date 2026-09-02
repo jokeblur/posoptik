@@ -10,6 +10,10 @@
                 </button>
             </div>
             <div class="modal-body" style="padding: 20px;">
+                <div id="gosok-resep-info" class="alert alert-info" style="display: none; margin-bottom: 15px; font-size: 12px;">
+                    <i class="fa fa-magic"></i>
+                    Index, CLY, Axis, dan ADD otomatis diambil dari resep terakhir pasien yang dipilih.
+                </div>
                 <form id="form-lensa-gosok-modal">
                     <!-- Row 1: Merk & Type -->
                     <div class="row">
@@ -43,20 +47,83 @@
                         </div>
                     </div>
                     
-                    <!-- Row 2: Index, Coating, CLY -->
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
+                            <label class="checkbox-inline" style="font-weight: bold; color: #2c3e50;">
+                                <input type="checkbox" id="gosok_pakai_kanan" checked>
+                                Ukuran Kanan (OD)
+                            </label>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="checkbox-inline" style="font-weight: bold; color: #2c3e50;">
+                                <input type="checkbox" id="gosok_pakai_kiri" checked>
+                                Ukuran Kiri (OS)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Ukuran kanan dan kiri diisi terpisah -->
+                    <div class="row">
+                        <div class="col-md-6" id="gosok-ukuran-kanan">
                             <div class="form-group" style="margin-bottom: 12px;">
-                                <label for="gosok_index_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
-                                    Index
+                                <label for="gosok_index_kanan_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
+                                    Index Kanan (OD)
                                 </label>
-                                <input type="text" class="form-control" id="gosok_index_modal" name="index" 
-                                       placeholder="Contoh: 1.50, 1.56, 1.67" 
+                                <input type="text" class="form-control" id="gosok_index_kanan_modal" 
+                                       placeholder="SPH kanan" 
                                        style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
-                                <small class="help-block text-muted" style="font-size: 11px; margin-top: 2px;">Index refraksi lensa</small>
+                                <small class="help-block text-muted" style="font-size: 11px; margin-top: 2px;">Diambil dari SPH resep kanan</small>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 12px;">
+                                <label for="gosok_cly_kanan_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
+                                    CLY Kanan (OD)
+                                </label>
+                                <input type="text" class="form-control" id="gosok_cly_kanan_modal" placeholder="CYL kanan" style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 12px;">
+                                <label for="gosok_axis_kanan_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
+                                    Axis Kanan (OD)
+                                </label>
+                                <input type="text" class="form-control" id="gosok_axis_kanan_modal" placeholder="Axis kanan" style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 12px;">
+                                <label for="gosok_add_kanan_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
+                                    ADD Kanan (OD)
+                                </label>
+                                <input type="text" class="form-control" id="gosok_add_kanan_modal" placeholder="ADD kanan" style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6" id="gosok-ukuran-kiri">
+                            <div class="form-group" style="margin-bottom: 12px;">
+                                <label for="gosok_index_kiri_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
+                                    Index Kiri (OS)
+                                </label>
+                                <input type="text" class="form-control" id="gosok_index_kiri_modal" placeholder="SPH kiri" style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
+                                <small class="help-block text-muted" style="font-size: 11px; margin-top: 2px;">Diambil dari SPH resep kiri</small>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 12px;">
+                                <label for="gosok_cly_kiri_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
+                                    CLY Kiri (OS)
+                                </label>
+                                <input type="text" class="form-control" id="gosok_cly_kiri_modal" placeholder="CYL kiri" style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 12px;">
+                                <label for="gosok_axis_kiri_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
+                                    Axis Kiri (OS)
+                                </label>
+                                <input type="text" class="form-control" id="gosok_axis_kiri_modal" placeholder="Axis kiri" style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 12px;">
+                                <label for="gosok_add_kiri_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
+                                    ADD Kiri (OS)
+                                </label>
+                                <input type="text" class="form-control" id="gosok_add_kiri_modal" placeholder="ADD kiri" style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
                             <div class="form-group" style="margin-bottom: 12px;">
                                 <label for="gosok_coating_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
                                     Coating
@@ -70,44 +137,6 @@
                                     <option value="Photochromic">Photochromic</option>
                                     <option value="Polarized">Polarized</option>
                                 </select>
-                                <small class="help-block text-muted" style="font-size: 11px; margin-top: 2px;">Jenis coating lensa</small>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group" style="margin-bottom: 12px;">
-                                <label for="gosok_cly_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
-                                    CLY (Diameter)
-                                </label>
-                                <input type="text" class="form-control" id="gosok_cly_modal" name="cly" 
-                                       placeholder="Contoh: 300, 275" 
-                                       style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
-                                <small class="help-block text-muted" style="font-size: 11px; margin-top: 2px;">Diameter lensa dalam mm</small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Row 3: Axis & ADD -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group" style="margin-bottom: 12px;">
-                                <label for="gosok_axis_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
-                                    Axis
-                                </label>
-                                <input type="number" class="form-control" id="gosok_axis_modal" name="axis" 
-                                       placeholder="Contoh: 90, 180" min="0" max="180"
-                                       style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
-                                <small class="help-block text-muted" style="font-size: 11px; margin-top: 2px;">Ukuran axis lensa (0-180)</small>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group" style="margin-bottom: 12px;">
-                                <label for="gosok_add_modal" style="font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px;">
-                                    ADD
-                                </label>
-                                <input type="text" class="form-control" id="gosok_add_modal" name="add" 
-                                       placeholder="Contoh: +1.00, +2.00" 
-                                       style="border-radius: 4px; border: 1px solid #ddd; padding: 8px; font-size: 13px;">
-                                <small class="help-block text-muted" style="font-size: 11px; margin-top: 2px;">Ukuran ADD lensa</small>
                             </div>
                         </div>
                     </div>

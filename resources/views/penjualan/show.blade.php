@@ -309,6 +309,11 @@
                                     $statusPembayaranTambahan = $sisaTambahan <= 0 ? 'Lunas' : 'Belum Lunas';
                                 @endphp
 
+                                <tr>
+                                    <th style="width:50%">Diskon:</th>
+                                    <td class="text-right">Rp {{ format_uang($penjualan->diskon ?? 0) }}</td>
+                                </tr>
+
                                 @if($isNaikKelas && $totalBiayaPenambahan > 0)
                                 <tr>
                                     <th style="width:50%">Total Biaya Penambahan:</th>

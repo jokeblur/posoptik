@@ -521,6 +521,7 @@ $(document).ready(function() {
         if (form) {
             form.reset();
         }
+        $('#gosok_pakai_kanan, #gosok_pakai_kiri').prop('checked', true).trigger('change');
         $('#gosok_quantity_modal').val(1);
     });
 
@@ -537,11 +538,17 @@ $(document).ready(function() {
 
         const merk = $('#gosok_merk_modal').val();
         const lensaType = $('#gosok_type_modal').val() || '-';
-        const indexValue = $('#gosok_index_modal').val() || '-';
+        const pakaiKanan = $('#gosok_pakai_kanan').is(':checked');
+        const pakaiKiri = $('#gosok_pakai_kiri').is(':checked');
+        if (!pakaiKanan && !pakaiKiri) {
+            alert('Pilih ukuran kanan atau kiri terlebih dahulu.');
+            return;
+        }
+        const indexValue = (pakaiKanan ? 'OD: ' + ($('#gosok_index_kanan_modal').val() || '-') : '') + (pakaiKiri ? ' OS: ' + ($('#gosok_index_kiri_modal').val() || '-') : '');
         const coating = $('#gosok_coating_modal').val() || '-';
-        const cly = $('#gosok_cly_modal').val() || '-';
-        const axis = $('#gosok_axis_modal').val() || '-';
-        const add = $('#gosok_add_modal').val() || '-';
+        const cly = (pakaiKanan ? 'OD: ' + ($('#gosok_cly_kanan_modal').val() || '-') : '') + (pakaiKiri ? ' OS: ' + ($('#gosok_cly_kiri_modal').val() || '-') : '');
+        const axis = (pakaiKanan ? 'OD: ' + ($('#gosok_axis_kanan_modal').val() || '-') : '') + (pakaiKiri ? ' OS: ' + ($('#gosok_axis_kiri_modal').val() || '-') : '');
+        const add = (pakaiKanan ? 'OD: ' + ($('#gosok_add_kanan_modal').val() || '-') : '') + (pakaiKiri ? ' OS: ' + ($('#gosok_add_kiri_modal').val() || '-') : '');
         const harga = parseInt($('#gosok_harga_modal').val(), 10) || 0;
         const quantity = parseInt($('#gosok_quantity_modal').val(), 10) || 1;
         const catatan = $('#gosok_catatan_modal').val() || '';

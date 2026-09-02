@@ -47,7 +47,7 @@
             background: #ffffff;
             border: 0.35mm solid #202020;
             display: grid;
-            grid-template-columns: 66mm 1fr;
+            grid-template-columns: 1fr;
             box-shadow: 0 5px 14px rgba(0, 0, 0, 0.12);
             overflow: hidden;
         }
@@ -327,8 +327,6 @@
 
             .kwitansi,
             .value-line,
-            .stub-row .value,
-            .stub-amount .value,
             .logo {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
@@ -356,25 +354,6 @@
     </div>
 
     <div class="kwitansi">
-        <div class="stub-left">
-            <div class="stub-brand">OPTIK MELATI</div>
-
-            <div class="stub-row">
-                <div class="label">No.</div>
-                <div class="value">{{ $no }}</div>
-            </div>
-
-            <div class="stub-row">
-                <div class="label">Penerima</div>
-                <div class="value multi">{{ $penerima }}</div>
-            </div>
-
-            <div class="stub-amount">
-                <div class="label">Uang Sejumlah Rp</div>
-                <div class="value">{{ $jumlahView }}</div>
-            </div>
-        </div>
-
         <div class="main-right">
             <div class="header">
                 <div class="company">

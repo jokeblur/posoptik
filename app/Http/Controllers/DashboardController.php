@@ -409,19 +409,24 @@ class DashboardController extends Controller
                 ->filter(function ($transaksi) {
                     return !$this->isBpjsTransaction($transaksi);
                 })
-                ->filter(function ($transaksi) {
-                    return !empty($transaksi->pasien);
+                ->groupBy(function ($transaksi) {
+                    if (!empty($transaksi->pasien_id)) {
+                        return 'pasien:' . $transaksi->pasien_id;
+                    }
+
+                    $namaManual = trim((string) ($transaksi->nama_pasien_manual ?? ''));
+                    return 'manual:' . ($namaManual !== '' ? strtolower($namaManual) : 'transaksi:' . $transaksi->id);
                 })
-                ->groupBy('pasien_id')
                 ->map(function ($items) {
                     $first = $items->first();
                     $lastTransaction = $items->sortByDesc('created_at')->first();
+                    $pasien = $first->pasien;
 
                     return (object) [
-                        'id_pasien' => $first->pasien->id_pasien,
-                        'nama_pasien' => $first->pasien->nama_pasien,
+                        'id_pasien' => $pasien->id_pasien ?? 'Manual',
+                        'nama_pasien' => $pasien->nama_pasien ?? ($first->nama_pasien_manual ?: 'Pasien Manual'),
                         'service_type' => $this->resolveServiceType($lastTransaction),
-                        'no_hp' => $first->pasien->no_hp ?? '-',
+                        'no_hp' => $pasien->no_hp ?? '-',
                         'status_pengerjaan_terakhir' => $lastTransaction->status_pengerjaan,
                         'jenis_transaksi_terakhir' => $lastTransaction->jenis_transaksi,
                         'transaksi_terakhir' => $lastTransaction->created_at,

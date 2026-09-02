@@ -595,6 +595,7 @@ $(function() {
             @php
                 $latestPrescription = $selected_pasien->prescriptions->last();
             @endphp
+            window.resepPasienTerpilih = @json($latestPrescription);
             @if($latestPrescription->dokter_id)
                 $('#dokter_id').val('{{ $latestPrescription->dokter_id }}');
                 $('#dokter_manual').val('');
@@ -636,6 +637,7 @@ $(function() {
             $('#resep-dokter').text('{{ $latestPrescription->dokter_manual ?? ($latestPrescription->dokter->nama_dokter ?? "-") }}');
             $('#detail-dokter').text('{{ $latestPrescription->dokter_manual ?? ($latestPrescription->dokter->nama_dokter ?? "-") }}');
         @else
+            window.resepPasienTerpilih = null;
             $('#resep-tanggal').text('N/A');
             $('#resep-od-sph, #resep-od-cyl, #resep-od-axis, #resep-os-sph, #resep-os-cyl, #resep-os-axis, #resep-add-kanan, #resep-add-kiri, #resep-pd-kanan, #resep-pd-kiri, #resep-dokter').text('-');
             $('#detail-dokter').text('-');
@@ -715,6 +717,7 @@ $(function() {
                 // Tampilkan resep dengan format baru
                 if (response.prescriptions && response.prescriptions.length > 0) {
                     let resep = response.prescriptions[response.prescriptions.length - 1]; // Ambil resep terakhir
+                    window.resepPasienTerpilih = resep;
                     const addKanan = resep.add_kanan || resep.add || '-';
                     const addKiri = resep.add_kiri || resep.add || '-';
                     const pdKanan = resep.pd_kanan || resep.pd || '-';
@@ -734,6 +737,7 @@ $(function() {
                     $('#resep-dokter').text(response.prescriptions?.[response.prescriptions.length-1]?.dokter_nama || '-');
 
                 } else {
+                    window.resepPasienTerpilih = null;
                     // Jika tidak ada resep, kosongkan semua field
                     $('#resep-tanggal').text('N/A');
                     $('#resep-od-sph, #resep-od-cyl, #resep-od-axis, #resep-os-sph, #resep-os-cyl, #resep-os-axis, #resep-add-kanan, #resep-add-kiri, #resep-pd-kanan, #resep-pd-kiri, #resep-dokter').text('-');
@@ -971,6 +975,8 @@ $(function() {
     function showBPJSSummary(summaryData) {
         const pasienBayar = Number(summaryData.pasienBayar ?? ((summaryData.showUpgradeFormula ? summaryData.totalWithoutAksesoris : 0) + (summaryData.aksesorisTotal || 0))) || 0;
         const klaimBpjs = Number(summaryData.klaimBpjs ?? (summaryData.defaultPrice || 0)) || 0;
+        const diskon = Math.max(0, parseFloat($('#diskon').val()) || 0);
+        const totalSetelahDiskon = Math.max(0, pasienBayar - diskon);
 
         let summary = `<p><strong>Jenis Layanan:</strong> ${summaryData.pasienServiceType || '-'}</p>`;
         summary += `<p><strong>Status Transaksi:</strong> ${summaryData.status || 'Normal'}</p>`;
@@ -989,6 +995,9 @@ $(function() {
         if ((summaryData.manualAdditionalCost || 0) > 0) {
             summary += `<p><strong>+ Tambahan BPJS Manual:</strong> ${formatCurrency(summaryData.manualAdditionalCost)}</p>`;
         }
+
+        summary += `<p><strong>Diskon:</strong> ${formatCurrency(diskon)}</p>`;
+        summary += `<p><strong>Total setelah diskon:</strong> ${formatCurrency(totalSetelahDiskon)}</p>`;
 
         $('#bpjs-summary-details').html(summary);
         $('#bpjs-summary').show();
@@ -2297,7 +2306,53 @@ $(function() {
         if (form) {
             form.reset();
         }
+        $('#gosok_catatan_modal').data('resep-auto', false);
+        $('#gosok-resep-info').hide();
+        $('#gosok_pakai_kanan, #gosok_pakai_kiri').prop('checked', true).trigger('change');
         $('#gosok_quantity_modal').val(1);
+    });
+
+    function isiUkuranResepLensaGosok() {
+        const resep = window.resepPasienTerpilih;
+        const info = $('#gosok-resep-info');
+
+        if (!resep) {
+            info.hide();
+            return;
+        }
+
+        const nilai = (value) => value || '-';
+        const kanan = {
+            index: nilai(resep.od_sph),
+            cly: nilai(resep.od_cyl),
+            axis: nilai(resep.od_axis),
+            add: nilai(resep.add_kanan || resep.add)
+        };
+        const kiri = {
+            index: nilai(resep.os_sph),
+            cly: nilai(resep.os_cyl),
+            axis: nilai(resep.os_axis),
+            add: nilai(resep.add_kiri || resep.add)
+        };
+
+        $('#gosok_index_kanan_modal').val(kanan.index);
+        $('#gosok_cly_kanan_modal').val(kanan.cly);
+        $('#gosok_axis_kanan_modal').val(kanan.axis);
+        $('#gosok_add_kanan_modal').val(kanan.add);
+        $('#gosok_index_kiri_modal').val(kiri.index);
+        $('#gosok_cly_kiri_modal').val(kiri.cly);
+        $('#gosok_axis_kiri_modal').val(kiri.axis);
+        $('#gosok_add_kiri_modal').val(kiri.add);
+        info.show();
+    }
+
+    $('#modal-lenses-gosok').on('show.bs.modal', isiUkuranResepLensaGosok);
+    $(document).on('change', '#gosok_pakai_kanan, #gosok_pakai_kiri', function() {
+        $('#gosok-ukuran-kanan').toggle($('#gosok_pakai_kanan').is(':checked'));
+        $('#gosok-ukuran-kiri').toggle($('#gosok_pakai_kiri').is(':checked'));
+    });
+    $('#gosok_catatan_modal').on('input', function() {
+        $(this).data('resep-auto', false);
     });
 
     // Tambah lensa gosok manual ke keranjang
@@ -2316,11 +2371,17 @@ $(function() {
 
         const merk = $('#gosok_merk_modal').val();
         const lensaType = $('#gosok_type_modal').val() || '-';
-        const indexValue = $('#gosok_index_modal').val() || '-';
+        const pakaiKanan = $('#gosok_pakai_kanan').is(':checked');
+        const pakaiKiri = $('#gosok_pakai_kiri').is(':checked');
+        if (!pakaiKanan && !pakaiKiri) {
+            Swal.fire({ icon: 'warning', title: 'Sisi belum dipilih', text: 'Pilih ukuran kanan atau kiri terlebih dahulu.' });
+            return;
+        }
+        const indexValue = (pakaiKanan ? 'OD: ' + ($('#gosok_index_kanan_modal').val() || '-') : '') + (pakaiKiri ? ' OS: ' + ($('#gosok_index_kiri_modal').val() || '-') : '');
         const coating = $('#gosok_coating_modal').val() || '-';
-        const cly = $('#gosok_cly_modal').val() || '-';
-        const axis = $('#gosok_axis_modal').val() || '-';
-        const add = $('#gosok_add_modal').val() || '-';
+        const cly = (pakaiKanan ? 'OD: ' + ($('#gosok_cly_kanan_modal').val() || '-') : '') + (pakaiKiri ? ' OS: ' + ($('#gosok_cly_kiri_modal').val() || '-') : '');
+        const axis = (pakaiKanan ? 'OD: ' + ($('#gosok_axis_kanan_modal').val() || '-') : '') + (pakaiKiri ? ' OS: ' + ($('#gosok_axis_kiri_modal').val() || '-') : '');
+        const add = (pakaiKanan ? 'OD: ' + ($('#gosok_add_kanan_modal').val() || '-') : '') + (pakaiKiri ? ' OS: ' + ($('#gosok_add_kiri_modal').val() || '-') : '');
         const harga = parseInt($('#gosok_harga_modal').val(), 10) || 0;
         const quantity = parseInt($('#gosok_quantity_modal').val(), 10) || 1;
         const catatan = $('#gosok_catatan_modal').val() || '';

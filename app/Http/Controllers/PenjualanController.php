@@ -368,10 +368,10 @@ class PenjualanController extends Controller
         // Filter berdasarkan jenis transaksi jika ada
         $this->applyJenisTransaksiFilter($query, $request->jenis_transaksi, $hasJenisTransaksiColumn);
 
-        // Gunakan rentang tanggal agar index created_at dapat dipakai database.
+        // DataTables memakai tanggal transaksi yang dapat diubah admin, bukan waktu record dibuat.
         $awalBulan = Carbon::create($tahun, $bulan, 1)->startOfMonth();
         $akhirBulan = $awalBulan->copy()->endOfMonth();
-        $query->whereBetween('created_at', [$awalBulan, $akhirBulan]);
+        $query->whereBetween('tanggal', [$awalBulan->toDateString(), $akhirBulan->toDateString()]);
 
         return datatables()
             ->eloquent($query)
@@ -404,7 +404,7 @@ class PenjualanController extends Controller
                 });
             })
             ->addColumn('tanggal', function ($penjualan) {
-                return tanggal_indonesia($penjualan->created_at, false);
+                return tanggal_indonesia($penjualan->tanggal ?? $penjualan->created_at, false);
             })
             ->editColumn('kode_penjualan', function ($penjualan) {
                 return '<span class="label label-success">'. $penjualan->kode_penjualan .'</span>';
@@ -1957,6 +1957,16 @@ class PenjualanController extends Controller
         // Validate filename format
         if (!preg_match('/^barcode-\d+-\d{14}\.png$/', $filename)) {
             abort(404, 'Invalid filename.');
+        }
+
+        preg_match('/^barcode-(\d+)-/', $filename, $matches);
+        $penjualan = Penjualan::select('id', 'status_pengerjaan')->find((int) ($matches[1] ?? 0));
+        if (!$penjualan) {
+            abort(404, 'Transaksi tidak ditemukan.');
+        }
+
+        if ($penjualan->status_pengerjaan === self::WORK_STATUS_SUDAH_DI_AMBIL) {
+            abort(410, 'QR code sudah tidak berlaku karena transaksi telah diambil.');
         }
 
         $path = storage_path('app/wa_barcode/' . $filename);

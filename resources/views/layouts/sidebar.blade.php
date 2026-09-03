@@ -31,6 +31,10 @@
                       <ul class="sidebar-menu" data-widget="tree" style="margin-top: 0; padding-top: 0;">
                           <li class="header" style="padding: 8px 15px; margin: 0; background-color: #a4193d; color: #fff; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">NAVIGASI</li>
                           <li style="margin: 0;"><a href="{{ route('dashboard') }}" style="padding: 8px 15px;"><i class="fa fa-dashboard"></i> <span>Dashboard</span></a></li>
+                          <li style="margin: 0;"><a href="{{ route('display.kacamata') }}" target="_blank" style="padding: 8px 15px;"><i class="fa fa-television"></i> <span>Display Monitor Pasien</span></a></li>
+                          @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                          <li style="margin: 0;"><a href="{{ route('display.media.index') }}" style="padding: 8px 15px;"><i class="fa fa-picture-o"></i> <span>Media Promosi Display</span></a></li>
+                          @endif
                           
                           @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
                           <li class="header" style="padding: 8px 15px; margin: 8px 0 0 0; background-color: #a4193d; color: #fff; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">ADMINISTRASI</li>

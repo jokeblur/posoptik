@@ -16,6 +16,8 @@ use App\Http\Controllers\DatabaseBackupController;
 use App\Http\Controllers\LaporanPosController;
 use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\KwitansiController;
+use App\Http\Controllers\DisplayKacamataController;
+use App\Http\Controllers\DisplayMediaController;
 
 use Illuminate\Routing\Console\MiddlewareMakeCommand;
 use Illuminate\Support\Facades\Route;
@@ -117,6 +119,14 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/display-kacamata', [DisplayKacamataController::class, 'index'])->name('display.kacamata');
+    Route::get('/display-kacamata/data', [DisplayKacamataController::class, 'data'])->name('display.kacamata.data');
+    Route::get('/display-kacamata/media', [DisplayKacamataController::class, 'media'])->name('display.kacamata.media');
+    Route::get('/display-kacamata/media/{displayMedia}/file', [DisplayKacamataController::class, 'mediaFile'])->name('display.kacamata.media.file');
+    Route::get('/display-media', [DisplayMediaController::class, 'index'])->name('display.media.index')->middleware('role:admin,super admin');
+    Route::post('/display-media', [DisplayMediaController::class, 'store'])->name('display.media.store')->middleware('role:admin,super admin');
+    Route::patch('/display-media/{displayMedia}/toggle', [DisplayMediaController::class, 'toggle'])->name('display.media.toggle')->middleware('role:admin,super admin');
+    Route::delete('/display-media/{displayMedia}', [DisplayMediaController::class, 'destroy'])->name('display.media.destroy')->middleware('role:admin,super admin');
     Route::get('/database-backup', [DatabaseBackupController::class, 'index'])->name('database-backup.index')->middleware('role:super admin');
     Route::post('/database-backup/download', [DatabaseBackupController::class, 'download'])->name('database-backup.download')->middleware('role:super admin');
     

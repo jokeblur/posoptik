@@ -697,7 +697,7 @@ class DashboardController extends Controller
         // Data penjualan per cabang (jika tidak ada filter cabang)
         $branchSales = null;
         if (!$branchId) {
-            $branchSales = \App\Models\Penjualan::whereBetween('created_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()])
+            $branchSales = \App\Models\Penjualan::whereBetween('penjualan.created_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()])
                 ->join('branches', 'penjualan.branch_id', '=', 'branches.id')
                 ->selectRaw('branches.name as branch_name, SUM(penjualan.total) as total_sales, COUNT(*) as total_transactions')
                 ->groupBy('branches.id', 'branches.name')

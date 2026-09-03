@@ -611,6 +611,7 @@ class PenjualanController extends Controller
         $lenses = \App\Models\Lensa::when($branchId, function ($q) use ($branchId) {
                 return $q->where('branch_id', $branchId);
             })
+            ->where('is_custom_order', false)
             ->where(function ($q) use ($query) {
                 $q->where('merk_lensa', 'LIKE', "{$query}%")
                   ->orWhere('kode_lensa', 'LIKE', "{$query}%");
@@ -649,7 +650,8 @@ class PenjualanController extends Controller
                 $includeOutOfStock = true;
             }
 
-            $query = \App\Models\Lensa::with(['branch', 'sales']);
+            $query = \App\Models\Lensa::with(['branch', 'sales'])
+                ->where('is_custom_order', false);
             if (!$includeOutOfStock) {
                 $query->where('stok', '>', 0);
             }

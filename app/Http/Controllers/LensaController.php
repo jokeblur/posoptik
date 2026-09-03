@@ -75,7 +75,8 @@ class LensaController extends Controller
             ])
             ->leftJoin('branches', 'branches.id', '=', 'lensa.branch_id')
             ->leftJoin('sales', 'sales.id_sales', '=', 'lensa.sales_id')
-            ->accessibleByUser($user);
+            ->accessibleByUser($user)
+            ->where('lensa.is_custom_order', false);
         if ($request->filled('branch_id')) {
             $query->where('lensa.branch_id', $request->branch_id);
         }

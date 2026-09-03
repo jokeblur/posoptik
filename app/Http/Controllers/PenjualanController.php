@@ -671,7 +671,78 @@ class PenjualanController extends Controller
                 });
             }
 
-            $lensas = $query->orderBy('merk_lensa', 'asc')->limit(200)->get();
+            $lensas = $query->orderBy('merk_lensa', 'asc')->limit(1000)->get();
+
+            $normalizePrescriptionValue = static function ($value, $field = null) {
+                $value = strtoupper(trim((string) $value));
+                if ($value === '' || $value === '-') {
+                    return $field === 'cyl' ? '0' : '';
+                }
+
+                if (in_array($value, ['PLANO', 'PL'], true)) {
+                    return '0';
+                }
+
+                $value = str_replace(',', '.', $value);
+
+                if (is_numeric($value)) {
+                    $numericValue = (float) $value;
+                    // Ukuran resep sering ditulis +050 atau -050 untuk 0.50.
+                    if (in_array($field, ['sph', 'cyl'], true)
+                        && preg_match('/^[+-]?\d{3}$/', trim((string) $value))) {
+                        $numericValue /= 100;
+                    }
+
+                    // ADD stok sering tersimpan sebagai 300, sedangkan resep menulis 3.00.
+                    if ($field === 'add' && abs($numericValue) >= 100) {
+                        $numericValue /= 100;
+                    }
+
+                    return rtrim(rtrim(number_format($numericValue, 2, '.', ''), '0'), '.');
+                }
+
+                return preg_replace('/\s+/', '', $value);
+            };
+
+            $rightPrescription = [
+                'sph' => $normalizePrescriptionValue($request->input('od_sph'), 'sph'),
+                'cyl' => $normalizePrescriptionValue($request->input('od_cyl'), 'cyl'),
+                'axis' => $normalizePrescriptionValue($request->input('od_axis'), 'axis'),
+                'add' => $normalizePrescriptionValue($request->input('add_kanan', $request->input('add')), 'add'),
+            ];
+            $leftPrescription = [
+                'sph' => $normalizePrescriptionValue($request->input('os_sph'), 'sph'),
+                'cyl' => $normalizePrescriptionValue($request->input('os_cyl'), 'cyl'),
+                'axis' => $normalizePrescriptionValue($request->input('os_axis'), 'axis'),
+                'add' => $normalizePrescriptionValue($request->input('add_kiri', $request->input('add')), 'add'),
+            ];
+            $hasPrescription = collect($rightPrescription)->some(fn ($value) => $value !== '')
+                || collect($leftPrescription)->some(fn ($value) => $value !== '');
+
+            if ($hasPrescription && !$request->boolean('show_all_lens_sizes')) {
+                $lensas = $lensas->filter(function ($lensa) use ($rightPrescription, $leftPrescription, $normalizePrescriptionValue) {
+                    $lensValues = [
+                        'sph' => $normalizePrescriptionValue($lensa->index, 'sph'),
+                        'cyl' => $normalizePrescriptionValue($lensa->cly, 'cyl'),
+                        'axis' => $normalizePrescriptionValue($lensa->axis, 'axis'),
+                        'add' => $normalizePrescriptionValue($lensa->add, 'add'),
+                    ];
+
+                    $matchesPrescription = static function (array $prescription) use ($lensValues) {
+                        foreach (['sph', 'cyl', 'add'] as $field) {
+                            if ($lensValues[$field] !== $prescription[$field]) {
+                                return false;
+                            }
+                        }
+
+                        return $prescription['sph'] !== ''
+                            || $prescription['cyl'] !== ''
+                            || $prescription['add'] !== '';
+                    };
+
+                    return $matchesPrescription($rightPrescription) || $matchesPrescription($leftPrescription);
+                })->values();
+            }
 
             $data = $lensas->map(function($lensa) {
                 return [
@@ -1794,14 +1865,9 @@ class PenjualanController extends Controller
                 throw new \Exception('Failed to write barcode file to disk');
             }
 
-            // Generate signed URL berbasis filename agar tetap valid walau cache dibersihkan.
-            $signedRelativePath = URL::signedRoute(
-                'penjualan.share-barcode-image',
-                ['token' => $filename],
-                false
-            );
-
-            $imageUrl = url($signedRelativePath);
+            // Gunakan URL token berbasis filename agar tidak bergantung pada
+            // APP_URL/proxy/APP_KEY VPS dan tidak kadaluarsa sebelum diambil.
+            $imageUrl = route('penjualan.share-barcode-image', ['token' => $filename]);
 
             Log::info('Barcode generated successfully', [
                 'penjualan_id' => $penjualan->id,
@@ -1946,11 +2012,8 @@ class PenjualanController extends Controller
                 abort(404, 'Link telah expired atau tidak ditemukan.');
             }
         } else {
-            // Link baru: wajib signed URL, tidak bergantung cache.
-            if (!URL::hasValidSignature($request, false)) {
-                abort(403, 'Invalid signature.');
-            }
-
+            // Link baru berbasis filename: divalidasi di bawah dan tidak memakai
+            // signature agar tetap dapat dibuka dari WhatsApp di VPS.
             $filename = (string) $token;
         }
 

@@ -59,7 +59,7 @@ Route::get('/company-profile', function () {
 
 Route::get('/company-profile/{barcode}', function ($barcode) {
     $penjualan = \App\Models\Penjualan::where('barcode', $barcode)->first();
-    if ($penjualan && $penjualan->status_pengerjaan === \App\Http\Controllers\PenjualanController::WORK_STATUS_SUDAH_DI_AMBIL) {
+    if ($penjualan && $penjualan->status_pengerjaan === 'Sudah Di Ambil') {
         abort(410, 'QR code sudah tidak berlaku karena transaksi telah diambil.');
     }
 

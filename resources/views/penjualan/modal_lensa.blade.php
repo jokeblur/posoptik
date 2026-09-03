@@ -21,6 +21,12 @@
                                         Tampilkan stok habis
                                     </label>
                                 </div>
+                                <div class="checkbox pull-right" style="margin: 0 0 8px 0; clear: both;">
+                                    <label style="font-weight: 600;">
+                                        <input type="checkbox" id="toggle-show-all-lens-sizes">
+                                        Tampilkan semua ukuran lensa
+                                    </label>
+                                </div>
                             </div>
                             <div class="col-md-12">
                                 <div class="btn-group pull-right">
@@ -32,6 +38,9 @@
                         </div>
                         
                         <div class="table-responsive">
+                            <div id="lens-prescription-empty-message" class="alert alert-warning" style="display: none; margin: 0 0 12px;">
+                                Tidak ada lensa stok yang sesuai dengan resep kanan/kiri. Silakan pilih <strong>lensa gosok</strong>.
+                            </div>
                             <table class="table table-bordered table-striped" id="table-lenses-stok" style="width: 100%;">
                         <thead>
                             <tr>

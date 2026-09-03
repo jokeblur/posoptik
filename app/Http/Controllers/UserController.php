@@ -29,17 +29,26 @@ class UserController extends Controller
     public function data()
     {
         $user = auth()->user();
-        
-        // Super admin bisa lihat semua user, admin hanya bisa lihat yang bukan super admin
-        if ($user->isSuperAdmin()) {
-            $users = User::with('branch')->latest()->get();
-        } else {
-            $users = User::with('branch')->where('role', '!=', 'super admin')->latest()->get();
+
+        $users = User::query()
+            ->with('branch')
+            ->leftJoin('branches', 'users.branch_id', '=', 'branches.id')
+            ->select('users.*');
+
+        // Admin tidak boleh melihat atau mengelola akun super admin.
+        if (!$user->isSuperAdmin()) {
+            $users->where('users.role', '!=', 'super admin');
         }
 
         return datatables()
-            ->of($users)
+            ->eloquent($users)
             ->addIndexColumn()
+            ->filterColumn('branch_name', function ($query, $keyword) {
+                $query->where('branches.name', 'like', "%{$keyword}%");
+            })
+            ->orderColumn('branch_name', function ($query, $order) {
+                $query->orderBy('branches.name', $order);
+            })
             ->addColumn('branch_name', function ($user) {
                 return $user->branch->name ?? 'N/A';
             })
@@ -72,6 +81,11 @@ class UserController extends Controller
 
     public function show(User $user)
     {
+        $currentUser = auth()->user();
+        if (!$currentUser->isSuperAdmin() && $user->role === 'super admin') {
+            abort(403, 'Anda tidak memiliki akses ke user ini.');
+        }
+
         return response()->json($user);
     }
 
@@ -112,6 +126,10 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $currentUser = auth()->user();
+
+        if (!$currentUser->isSuperAdmin() && $user->role === 'super admin') {
+            return response()->json(['message' => 'Anda tidak memiliki akses mengubah Super Admin.'], 403);
+        }
         
         // Validasi role berdasarkan user yang login
         $allowedRoles = ['admin', 'kasir', 'passet bantu'];
@@ -144,6 +162,12 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        $currentUser = auth()->user();
+
+        if (!$currentUser->isSuperAdmin() && $user->role === 'super admin') {
+            return response()->json(['message' => 'Anda tidak memiliki akses menghapus user ini.'], 403);
+        }
+
         // Prevent deleting super admin
         if ($user->role === 'super admin') {
             return response()->json(['message' => 'Super Admin tidak dapat dihapus.'], 403);

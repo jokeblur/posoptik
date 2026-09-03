@@ -745,6 +745,9 @@ $(function() {
 
                 // Tampilkan kontainer detail
                 $('#pasien-details-container').slideDown();
+                if (lensaStokTable) {
+                    lensaStokTable.ajax.reload();
+                }
                 
                 // Simpan level BPJS ke variabel global jika ada
                 if (response.service_type && response.service_type.toLowerCase().includes('bpjs')) {
@@ -2197,6 +2200,22 @@ $(function() {
                 data: function(d) {
                     d.search = $('#search-lensa-stok').val();
                     d.include_out_of_stock = $('#toggle-show-outofstock-lensa').is(':checked') ? 1 : 0;
+                    d.show_all_lens_sizes = $('#toggle-show-all-lens-sizes').is(':checked') ? 1 : 0;
+                    const resep = window.resepPasienTerpilih || {};
+                    d.od_sph = resep.od_sph || '';
+                    d.od_cyl = resep.od_cyl || '';
+                    d.od_axis = resep.od_axis || '';
+                    d.os_sph = resep.os_sph || '';
+                    d.os_cyl = resep.os_cyl || '';
+                    d.os_axis = resep.os_axis || '';
+                    d.add_kanan = resep.add_kanan || resep.add || '';
+                    d.add_kiri = resep.add_kiri || resep.add || '';
+                },
+                dataSrc: function(response) {
+                    $('#lens-prescription-empty-message').toggle(
+                        Boolean(window.resepPasienTerpilih) && response.data.length === 0 && !$('#toggle-show-all-lens-sizes').is(':checked')
+                    );
+                    return response.data;
                 }
             },
             columns: [
@@ -2287,6 +2306,12 @@ $(function() {
     });
 
     $('#toggle-show-outofstock-lensa').on('change', function() {
+        if (lensaStokTable) {
+            lensaStokTable.ajax.reload();
+        }
+    });
+
+    $('#toggle-show-all-lens-sizes').on('change', function() {
         if (lensaStokTable) {
             lensaStokTable.ajax.reload();
         }

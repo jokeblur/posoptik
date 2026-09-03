@@ -548,7 +548,7 @@ class PenjualanController extends Controller
                 $deleteButton = '';
 
                 if (($penjualan->status ?? '') !== 'Lunas') {
-                    $lunasButton = '<button onclick="lunasTransaksi(`'. route('penjualan.lunas', $penjualan->id) .'`)" class="btn btn-xs btn-success btn-flat" title="Pelunasan"><i class="fa fa-money"></i></button>';
+                    $lunasButton = '<button onclick="lunasTransaksi(`'. route('penjualan.lunas', $penjualan->id) .'`, '. (float) ($penjualan->total ?? 0) .', '. (float) ($penjualan->bayar ?? 0) .', '. (float) ($penjualan->kekurangan ?? 0) .')" class="btn btn-xs btn-success btn-flat" title="Pelunasan"><i class="fa fa-money"></i></button>';
                 }
                 
                 // Tombol update status pengerjaan

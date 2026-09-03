@@ -328,10 +328,20 @@
         });
     }
 
-    function lunasTransaksi(url) {
+    function lunasTransaksi(url, total, bayar, kekurangan) {
+        const formatRupiah = value => 'Rp ' + Number(value || 0).toLocaleString('id-ID');
+        const totalTransaksi = Math.max(0, Number(total) || 0);
+        const pembayaranSebelumnya = Math.max(0, Number(bayar) || 0);
+        const sisaPelunasan = Math.max(0, Number(kekurangan) || (totalTransaksi - pembayaranSebelumnya));
+
         Swal.fire({
             title: 'Konfirmasi Pelunasan',
-            text: 'Tandai transaksi ini sebagai sudah lunas?',
+            html: `
+                <p style="margin-bottom: 8px;">Pasien harus melunasi:</p>
+                <h3 style="margin: 0 0 12px; color: #28a745;">${formatRupiah(sisaPelunasan)}</h3>
+                <small>Total transaksi: ${formatRupiah(totalTransaksi)}<br>
+                Pembayaran sebelumnya: ${formatRupiah(pembayaranSebelumnya)}</small>
+            `,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#28a745',

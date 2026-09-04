@@ -175,19 +175,29 @@
     document.getElementById('zoom-out').addEventListener('click', () => { displayZoom -= .1; applyDisplayZoom(); });
     document.getElementById('zoom-in').addEventListener('click', () => { displayZoom += .1; applyDisplayZoom(); });
     applyDisplayZoom();
+    let fullscreenTimer;
     function showFullscreenMedia() {
         if (!mediaItems.length) return;
+        clearTimeout(fullscreenTimer);
         const item = mediaItems[mediaIndex % mediaItems.length];
         const stage = document.getElementById('media-stage');
         stage.innerHTML = item.tipe === 'video'
-            ? '<video src="' + escapeHtml(item.url) + '" autoplay loop playsinline></video>'
+            ? '<video src="' + escapeHtml(item.url) + '" autoplay playsinline></video>'
             : '<img src="' + escapeHtml(item.url) + '" alt="' + escapeHtml(item.judul) + '">';
         document.getElementById('media-title').textContent = item.judul;
         document.getElementById('media-fullscreen').classList.add('active');
         enableVideoSound(stage.querySelectorAll('video'));
         mediaIndex = (mediaIndex + 1) % mediaItems.length;
+
+        const video = stage.querySelector('video');
+        if (video) {
+            video.addEventListener('ended', showFullscreenMedia, { once: true });
+        } else {
+            fullscreenTimer = setTimeout(showFullscreenMedia, 8000);
+        }
     }
     function hideFullscreenMedia() {
+        clearTimeout(fullscreenTimer);
         document.getElementById('media-fullscreen').classList.remove('active');
         document.getElementById('media-stage').innerHTML = '';
         resetIdleTimer();

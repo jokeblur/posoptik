@@ -293,6 +293,7 @@ class DashboardController extends Controller
             $piutangKasirTransactions = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
                 ->where('status', 'Belum Lunas')
+                ->where('status_pengerjaan', 'Sudah Di Ambil')
                 ->with('pasien')
                 ->orderBy('created_at', 'desc')
                 ->limit(5000)
@@ -301,6 +302,7 @@ class DashboardController extends Controller
             $detailPiutangKasir = $piutangKasirTransactions
                 ->map(function ($transaksi) {
                     return (object) [
+                        'id' => $transaksi->id,
                         'tanggal' => $transaksi->created_at,
                         'kode_penjualan' => $transaksi->kode_penjualan,
                         'nama_pasien' => optional($transaksi->pasien)->nama_pasien ?? '-',

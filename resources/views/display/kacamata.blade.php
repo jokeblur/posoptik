@@ -145,13 +145,30 @@
             mediaItems = await response.json();
             const slides = document.getElementById('promo-slides');
             if (mediaItems.length) {
-                slides.innerHTML = mediaItems.map((item, index) => '<div class="promo-slide ' + (index === 0 ? 'active' : '') + '">' + (item.tipe === 'video' ? '<video class="promo-media video" src="' + escapeHtml(item.url) + '" autoplay muted loop playsinline></video>' : '<img class="promo-media" src="' + escapeHtml(item.url) + '" alt="' + escapeHtml(item.judul) + '">') + '<div class="promo-content"><div class="promo-copy"><span class="eyebrow">Promosi Optik Melati</span><h1>' + escapeHtml(item.judul) + '</h1></div></div></div>').join('');
+                slides.innerHTML = mediaItems.map((item, index) => '<div class="promo-slide ' + (index === 0 ? 'active' : '') + '">' + (item.tipe === 'video' ? '<video class="promo-media video" src="' + escapeHtml(item.url) + '" autoplay loop playsinline></video>' : '<img class="promo-media" src="' + escapeHtml(item.url) + '" alt="' + escapeHtml(item.judul) + '">') + '<div class="promo-content"><div class="promo-copy"><span class="eyebrow">Promosi Optik Melati</span><h1>' + escapeHtml(item.judul) + '</h1></div></div></div>').join('');
                 document.getElementById('dots').textContent = '01 / ' + String(mediaItems.length).padStart(2, '0');
+                enableVideoSound(slides.querySelectorAll('video'));
             }
         } catch (error) {
             mediaItems = [];
         }
     }
+    function enableVideoSound(videos) {
+        videos.forEach(video => {
+            video.muted = false;
+            video.play().catch(() => {
+                video.muted = true;
+                video.play().catch(() => {});
+                soundBlocked = true;
+            });
+        });
+    }
+    let soundBlocked = false;
+    document.addEventListener('click', () => {
+        if (!soundBlocked) return;
+        soundBlocked = false;
+        document.querySelectorAll('video').forEach(video => { video.muted = false; video.play().catch(() => {}); });
+    });
     function escapeHtml(value) {
         return String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
     }
@@ -163,10 +180,11 @@
         const item = mediaItems[mediaIndex % mediaItems.length];
         const stage = document.getElementById('media-stage');
         stage.innerHTML = item.tipe === 'video'
-            ? '<video src="' + escapeHtml(item.url) + '" autoplay muted loop playsinline></video>'
+            ? '<video src="' + escapeHtml(item.url) + '" autoplay loop playsinline></video>'
             : '<img src="' + escapeHtml(item.url) + '" alt="' + escapeHtml(item.judul) + '">';
         document.getElementById('media-title').textContent = item.judul;
         document.getElementById('media-fullscreen').classList.add('active');
+        enableVideoSound(stage.querySelectorAll('video'));
         mediaIndex = (mediaIndex + 1) % mediaItems.length;
     }
     function hideFullscreenMedia() {

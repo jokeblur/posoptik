@@ -20,6 +20,7 @@ class DisplayMediaController extends Controller
             'urutan' => ['nullable', 'integer', 'min:0', 'max:999'],
             'media' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,mp4,webm,ogg', 'max:51200'],
         ], [
+            'media.required' => 'File wajib dipilih.',
             'media.mimes' => 'File harus berupa gambar (JPG, PNG, WEBP) atau video (MP4, WEBM, OGG).',
             'media.max' => 'Ukuran file maksimal 50 MB.',
         ]);
@@ -27,13 +28,20 @@ class DisplayMediaController extends Controller
         $file = $request->file('media');
         $type = str_starts_with((string) $file->getMimeType(), 'video/') ? 'video' : 'image';
 
-        DisplayMedia::create([
+        $item = DisplayMedia::create([
             'judul' => $validated['judul'],
             'tipe' => $type,
             'path' => $file->store('display-media', 'public'),
             'is_active' => true,
             'urutan' => $validated['urutan'] ?? 0,
         ]);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Media promosi berhasil diupload.',
+                'media' => $item,
+            ]);
+        }
 
         return back()->with('success', 'Media promosi berhasil diupload.');
     }

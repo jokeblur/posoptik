@@ -696,11 +696,11 @@
             <div class="small-box bg-maroon" style="cursor:pointer" onclick="$('#modalKasirPiutang').modal('show')">
                 <div class="inner">
                     <h3>Rp {{ number_format($totalPiutangKasir ?? 0, 0, ',', '.') }}</h3>
-                    <p>Total Piutang Keseluruhan</p>
+                    <p>Piutang Pengambilan Belum Lunas</p>
                 </div>
                 <div class="icon"><i class="fa fa-credit-card"></i></div>
                 <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
-                    {{ $jumlahPiutangKasir ?? 0 }} transaksi belum lunas sepanjang waktu, klik untuk detail
+                    {{ $jumlahPiutangKasir ?? 0 }} transaksi diambil belum lunas, klik untuk pelunasan
                 </div>
             </div>
         </div>
@@ -918,6 +918,7 @@
                                     <th>Sisa Piutang</th>
                                     <th>Status</th>
                                     <th>Status Pengerjaan</th>
+                                    <th>Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -958,10 +959,16 @@
                                         @endphp
                                         <span class="label {{ $statusKerjaClass[$statusKerjaPiutang] ?? 'label-default' }}">{{ $statusKerjaPiutang }}</span>
                                     </td>
+                                    <td>
+                                        <button type="button" class="btn btn-xs btn-success btn-flat" title="Lunasi Piutang"
+                                            onclick="lunasPiutangKasir('{{ route('penjualan.lunas', $piutang->id) }}', {{ (float) ($piutang->total ?? 0) }}, {{ (float) ($piutang->bayar ?? 0) }}, {{ (float) ($piutang->kekurangan ?? 0) }})">
+                                            <i class="fa fa-money"></i> Lunasi
+                                        </button>
+                                    </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="10" class="text-center text-muted">Tidak ada piutang pada periode ini.</td>
+                                    <td colspan="11" class="text-center text-muted">Tidak ada piutang pengambilan yang belum lunas.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
@@ -2183,6 +2190,40 @@ $(document).ready(function() {
 function showLowStockModal(type) {
     var modalId = '#modal-low-stock-' + type;
     $(modalId).modal('show');
+}
+
+function lunasPiutangKasir(url, total, bayar, kekurangan) {
+    const formatRupiah = value => 'Rp ' + Number(value || 0).toLocaleString('id-ID');
+    const sisaPelunasan = Math.max(0, Number(kekurangan) || 0);
+
+    Swal.fire({
+        title: 'Pelunasan Piutang',
+        html: '<p>Pasien membayar:</p><h3 style="color: #28a745;">' + formatRupiah(sisaPelunasan) + '</h3>'
+            + '<small>Total transaksi: ' + formatRupiah(total) + '<br>Sudah bayar: ' + formatRupiah(bayar) + '</small>',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, lunasi',
+        cancelButtonText: 'Batal'
+    }).then(function (result) {
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        $.post(url, { _token: '{{ csrf_token() }}' })
+            .done(function (response) {
+                Swal.fire('Berhasil!', response.message, 'success').then(function () {
+                    window.location.reload();
+                });
+            })
+            .fail(function (xhr) {
+                const message = xhr.responseJSON && xhr.responseJSON.message
+                    ? xhr.responseJSON.message
+                    : 'Tidak dapat melunasi piutang.';
+                Swal.fire('Gagal!', message, 'error');
+            });
+    });
 }
 
 // Passet: show menunggu modal

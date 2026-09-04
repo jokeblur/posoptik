@@ -182,6 +182,56 @@ sudo systemctl restart nginx
 
 Sesuaikan nama servicenya dengan environment VPS.
 
+## 8b. Kalau muncul `413 Request Entity Too Large`
+
+Error `413` biasanya dikirim oleh Nginx sebelum request sampai ke Laravel. Untuk upload media aplikasi (maksimal 50 MB), naikkan limit Nginx dan PHP-FPM. Jalankan sebagai user yang punya akses `sudo`:
+
+1. Edit konfigurasi virtual host aplikasi, biasanya di `/etc/nginx/sites-available/nama-domain`:
+
+```nginx
+server {
+  client_max_body_size 64M;
+  # konfigurasi server lain tetap dipertahankan
+}
+```
+
+2. Cari file `php.ini` yang dipakai PHP-FPM, lalu set kedua nilai ini. Contoh untuk PHP 8.1:
+
+```bash
+sudo nano /etc/php/8.1/fpm/php.ini
+```
+
+```ini
+upload_max_filesize = 64M
+post_max_size = 64M
+```
+
+`post_max_size` harus sama atau lebih besar daripada `upload_max_filesize`. Nilai 64 MB memberi ruang untuk multipart form-data, sementara validasi aplikasi tetap membatasi media display sampai 50 MB.
+
+3. Uji konfigurasi Nginx sebelum reload, lalu restart PHP-FPM dan reload Nginx:
+
+```bash
+sudo nginx -t
+sudo systemctl restart php8.1-fpm
+sudo systemctl reload nginx
+```
+
+Sesuaikan `8.1` dengan versi PHP-FPM yang terpasang. Untuk melihat versi dan file konfigurasi CLI:
+
+```bash
+php -v
+php --ini
+```
+
+Jika masih mendapat 413, cek log Nginx dan pastikan tidak ada reverse proxy/CDN di depan VPS yang memiliki limit upload sendiri:
+
+```bash
+sudo tail -n 100 /var/log/nginx/error.log
+sudo nginx -T | grep -n client_max_body_size
+```
+
+Setelah konfigurasi berubah, ulangi upload dari browser. Jangan hanya mengubah validasi `max` di controller, karena validasi Laravel tidak dapat berjalan bila Nginx atau PHP sudah menolak request terlebih dahulu.
+
 ## 9. Struktur deploy yang aman
 
 Urutan paling aman:

@@ -333,11 +333,12 @@ class DashboardController extends Controller
                         'service_type' => optional($transaksi->pasien)->service_type ?? 'UMUM',
                         'total' => (float) ($transaksi->total ?? 0),
                         'bayar' => (float) ($transaksi->bayar ?? 0),
-                        'kekurangan' => max(0, (float) ($transaksi->kekurangan ?? 0)),
+                        'kekurangan' => max(0, (float) ($transaksi->total ?? 0) - (float) ($transaksi->bayar ?? 0)),
                         'status' => $transaksi->status ?? 'Belum Lunas',
                         'status_pengerjaan' => $transaksi->status_pengerjaan ?? '-',
                     ];
                 })
+                ->filter(fn ($transaksi) => $transaksi->kekurangan > 0)
                 ->values();
 
             $jumlahPiutangKasir = $detailPiutangKasir->count();

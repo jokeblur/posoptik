@@ -72,7 +72,7 @@
         #media-stage { position: absolute; inset: 0; }
         .media-fullscreen img, .media-fullscreen video { display: block; width: 100%; height: 100%; object-fit: cover; }
         .media-title { position: absolute; left: 4vw; bottom: 4vh; max-width: 70%; color: white; font: 600 clamp(26px, 3.2vw, 52px) 'Poppins', sans-serif; line-height: 1.15; text-shadow: 0 2px 5px rgba(0,0,0,.7); }
-        .media-fullscreen .media-logo { position: absolute; top: 4px; right: clamp(20px, 3vw, 56px); width: clamp(180px, 19vw, 340px); height: auto; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.7)) drop-shadow(0 0 2px rgba(255,255,255,.35)); }
+        .media-fullscreen .media-logo { position: absolute; top: 0; right: clamp(20px, 3vw, 56px); width: clamp(180px, 19vw, 340px); height: auto; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.7)) drop-shadow(0 0 2px rgba(255,255,255,.35)); }
         @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
         @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
         @media (max-width: 1100px) { main { grid-template-columns: 1fr; height: auto; } .promo { height: clamp(300px, 58vh, 460px); } .monitor { height: clamp(420px, 64vh, 620px); } .orders { max-height: none; } }

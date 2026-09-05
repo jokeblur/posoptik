@@ -75,7 +75,6 @@
         .media-fullscreen.active { display: flex; animation: appear .35s ease both; }
         #media-stage { position: absolute; inset: 0; }
         .media-fullscreen img, .media-fullscreen video { display: block; width: 100%; height: 100%; object-fit: cover; }
-        .media-title { position: absolute; left: 4vw; bottom: 4vh; max-width: 70%; color: #f5c84c; font: 600 clamp(26px, 3.2vw, 52px) 'Poppins', sans-serif; line-height: 1.15; text-shadow: 0 2px 5px rgba(0,0,0,.7); }
         .media-fullscreen .media-logo { position: absolute; top: 0; right: clamp(20px, 3vw, 56px); width: clamp(180px, 19vw, 340px); height: auto; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.7)) drop-shadow(0 0 2px rgba(255,255,255,.35)); }
         @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
         @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
@@ -103,7 +102,7 @@
     <footer><span>Informasi diperbarui otomatis</span><span id="last-update">Menghubungkan...</span></footer>
 </div>
 <div class="media-fullscreen" id="media-fullscreen" role="button" tabindex="0" aria-label="Tutup media promosi">
-    <div id="media-stage"></div><span class="media-title" id="media-title"></span><img class="media-logo" src="{{ asset('image/Final Logo Optik Melati-22.png') }}" alt="Optik Melati">
+    <div id="media-stage"></div><img class="media-logo" src="{{ asset('image/Final Logo Optik Melati-22.png') }}" alt="Optik Melati">
 </div>
 <script>
     const dataUrl = @json(route('display.kacamata.data'));
@@ -227,7 +226,6 @@
         stage.innerHTML = item.tipe === 'video'
             ? '<video src="' + escapeHtml(item.url) + '" autoplay playsinline></video>'
             : '<img src="' + escapeHtml(item.url) + '" alt="' + escapeHtml(item.judul) + '">';
-        document.getElementById('media-title').textContent = item.judul;
         document.getElementById('media-fullscreen').classList.add('active');
         enableVideoSound(stage.querySelectorAll('video'));
         mediaIndex = (mediaIndex + 1) % mediaItems.length;

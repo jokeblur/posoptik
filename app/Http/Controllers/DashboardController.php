@@ -146,6 +146,8 @@ class DashboardController extends Controller
         $jumlahPiutangKasir = 0;
         $totalPiutangKasir = 0;
         $detailPiutangKasir = collect();
+        $jumlahPelunasanKasir = 0;
+        $totalPelunasanKasir = 0;
         $jumlahPasienSelesaiTransaksiBulanIni = 0;
         $detailPasienSelesaiTransaksiBulanIni = collect();
 
@@ -254,19 +256,42 @@ class DashboardController extends Controller
                 return $metode === '' || $metode === 'cash';
             });
 
-            $uangCashDiterima = (float) $cashTransactionsForReceipt->sum(function ($transaksi) {
+            $penerimaanTransaksiBaru = function ($transaksi) use ($selectedOmsetDate) {
+                $jumlahPenerimaan = (float) ($transaksi->bayar ?? 0);
+                $tanggalPelunasan = optional($transaksi->waktu_pelunasan)->toDateString();
+
+                if ($tanggalPelunasan === $selectedOmsetDate) {
+                    $jumlahPenerimaan -= (float) ($transaksi->jumlah_pelunasan ?? 0);
+                }
+
+                return max(0, $jumlahPenerimaan);
+            };
+
+            $uangCashDiterima = (float) $cashTransactionsForReceipt->sum(function ($transaksi) use ($penerimaanTransaksiBaru) {
                 if ($this->isBpjsTransaction($transaksi)) {
                     return $this->getBpjsAdditionalReceiptValue($transaksi);
                 }
 
-                return (float) ($transaksi->bayar ?? 0);
+                return $penerimaanTransaksiBaru($transaksi);
             });
 
-            $uangTransferDiterima = (float) $transferTransactionsForReceipt->sum(function ($transaksi) {
-                return (float) ($transaksi->bayar ?? 0);
+            $uangTransferDiterima = (float) $transferTransactionsForReceipt->sum(function ($transaksi) use ($penerimaanTransaksiBaru) {
+                return $penerimaanTransaksiBaru($transaksi);
             });
             $jumlahTransaksiCash = $cashTransactionsForReceipt->count();
             $jumlahTransaksiTransfer = $transferTransactionsForReceipt->count();
+
+            $pelunasanKasir = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
+                ->where('pelunasan_by_user_id', $user->id)
+                ->whereBetween('waktu_pelunasan', [
+                    Carbon::parse($selectedOmsetDate)->startOfDay(),
+                    Carbon::parse($selectedOmsetDate)->endOfDay(),
+                ])
+                ->where('jumlah_pelunasan', '>', 0)
+                ->get(['id', 'jumlah_pelunasan']);
+
+            $jumlahPelunasanKasir = $pelunasanKasir->count();
+            $totalPelunasanKasir = (float) $pelunasanKasir->sum('jumlah_pelunasan');
             
             // Conditional debug logging untuk membantu troubleshooting
             if (config('app.debug')) {
@@ -293,7 +318,6 @@ class DashboardController extends Controller
             $piutangKasirTransactions = \App\Models\Penjualan::where('branch_id', $selectedBranchId)
                 ->where('user_id', $user->id)
                 ->where('status', 'Belum Lunas')
-                ->where('status_pengerjaan', 'Sudah Di Ambil')
                 ->with('pasien')
                 ->orderBy('created_at', 'desc')
                 ->limit(5000)
@@ -591,7 +615,7 @@ class DashboardController extends Controller
             'transaksiMenungguPengerjaan', 'transaksiSelesaiBulanIni',
             'selectedOmsetDate', 'isOmsetToday', 'omsetPeriodeLabel',
             'isKasirOptikMelati1', 'isKasirOptikMelati2', 'jumlahPasienBpjsKasir', 'detailPasienBpjsKasir', 'jumlahPasienUmumKasir', 'detailPasienUmumKasir', 'periodeBpjsBulananLabel', 'selectedBpjsMonth',
-            'jumlahPiutangKasir', 'totalPiutangKasir', 'detailPiutangKasir', 'jumlahPasienSelesaiTransaksiBulanIni', 'detailPasienSelesaiTransaksiBulanIni'
+            'jumlahPiutangKasir', 'totalPiutangKasir', 'detailPiutangKasir', 'jumlahPelunasanKasir', 'totalPelunasanKasir', 'jumlahPasienSelesaiTransaksiBulanIni', 'detailPasienSelesaiTransaksiBulanIni'
         ));
     }
 

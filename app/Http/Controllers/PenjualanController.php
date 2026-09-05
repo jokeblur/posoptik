@@ -2153,6 +2153,9 @@ class PenjualanController extends Controller
             return response()->json(['message' => 'Transaksi ini sudah lunas.'], 422);
         }
 
+        $penjualan->jumlah_pelunasan = max(0, (float) $penjualan->total - (float) $penjualan->bayar);
+        $penjualan->waktu_pelunasan = now();
+        $penjualan->pelunasan_by_user_id = auth()->id();
         $penjualan->bayar = $penjualan->total;
         $penjualan->kekurangan = 0;
         $penjualan->status = 'Lunas';

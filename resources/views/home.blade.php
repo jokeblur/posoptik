@@ -665,7 +665,7 @@
     @endif
 
     <div class="row" style="margin-bottom: 24px;">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="small-box bg-primary">
                 <div class="inner">
                     <h3>Rp {{ number_format($uangCashDiterima ?? 0, 0, ',', '.') }}</h3>
@@ -677,7 +677,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="small-box bg-navy">
                 <div class="inner">
                     <h3>Rp {{ number_format($uangTransferDiterima ?? 0, 0, ',', '.') }}</h3>
@@ -686,6 +686,18 @@
                 <div class="icon"><i class="fa fa-university"></i></div>
                 <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
                     {{ $jumlahTransaksiTransfer ?? 0 }} transaksi transfer
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="small-box bg-teal">
+                <div class="inner">
+                    <h3>Rp {{ number_format($totalPelunasanKasir ?? 0, 0, ',', '.') }}</h3>
+                    <p>Penerimaan Pelunasan Kacamata {{ $omsetPeriodeLabel ?? 'Hari Ini' }}</p>
+                </div>
+                <div class="icon"><i class="fa fa-check-circle"></i></div>
+                <div class="small-box-footer" style="background: rgba(0,0,0,0.1); padding: 3px 10px; font-size: 12px;">
+                    {{ $jumlahPelunasanKasir ?? 0 }} transaksi pelunasan diterima
                 </div>
             </div>
         </div>

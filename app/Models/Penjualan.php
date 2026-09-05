@@ -18,7 +18,8 @@ class Penjualan extends Model
         'kekurangan', 'status', 'status_pengerjaan', 'photo_bpjs', 'signature_bpjs', 'signature_date',
         'pasien_service_type', 'bpjs_default_price', 'total_additional_cost', 'transaction_status', 'jenis_transaksi',
         'bpjs_manual_additional_cost',
-        'metode_pembayaran', 'bank_transfer', 'passet_by_user_id', 'waktu_selesai_dikerjakan', 'waktu_sudah_diambil'
+        'metode_pembayaran', 'bank_transfer', 'passet_by_user_id', 'waktu_selesai_dikerjakan', 'waktu_sudah_diambil',
+        'jumlah_pelunasan', 'waktu_pelunasan', 'pelunasan_by_user_id'
     ];
 
     protected $casts = [
@@ -28,6 +29,8 @@ class Penjualan extends Model
         'bpjs_default_price' => 'float',
         'total_additional_cost' => 'float',
         'bpjs_manual_additional_cost' => 'float',
+        'jumlah_pelunasan' => 'float',
+        'waktu_pelunasan' => 'datetime',
     ];
 
     public function user()

@@ -63,7 +63,7 @@
         .order-meta .order-service.umum { color: #a4193d; }
         .order-actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 10px; align-self: stretch; }
         .order-actions:empty { display: none; }
-        .order-actions button { min-width: 0; min-height: 96px; height: 100%; border: 0; border-radius: 8px; padding: 14px 12px; cursor: pointer; color: white; font: 700 clamp(14px, 1.25vw, 19px) 'Poppins', sans-serif; letter-spacing: .02em; box-shadow: 0 2px 4px rgba(0,0,0,.18); }
+        .order-actions button { min-width: 0; min-height: 96px; height: 100%; border: 0; border-radius: 8px; padding: 14px 12px; cursor: pointer; color: white; font: 700 clamp(24px, 2vw, 30px) 'Poppins', sans-serif; letter-spacing: .02em; box-shadow: 0 2px 4px rgba(0,0,0,.18); }
         .action-wa { background: #16856b; }
         .action-take { background: #a4193d; }
         .action-pay { background: #c17b16; }

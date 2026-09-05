@@ -59,6 +59,8 @@
         .order-meta span { white-space: nowrap; }
         .order-meta .order-date { color: var(--ink); font-size: clamp(14px, 1.25vw, 19px); font-weight: 700; }
         .order-meta .order-service { color: var(--ink); font-size: clamp(24px, 2.45vw, 38px); line-height: 1.1; font-weight: 700; }
+        .order-meta .order-service.bpjs { color: #16856b; }
+        .order-meta .order-service.umum { color: #a4193d; }
         .order-actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 10px; align-self: stretch; }
         .order-actions:empty { display: none; }
         .order-actions button { min-width: 0; min-height: 96px; height: 100%; border: 0; border-radius: 8px; padding: 14px 12px; cursor: pointer; color: white; font: 700 clamp(14px, 1.25vw, 19px) 'Poppins', sans-serif; letter-spacing: .02em; box-shadow: 0 2px 4px rgba(0,0,0,.18); }
@@ -73,7 +75,7 @@
         .media-fullscreen.active { display: flex; animation: appear .35s ease both; }
         #media-stage { position: absolute; inset: 0; }
         .media-fullscreen img, .media-fullscreen video { display: block; width: 100%; height: 100%; object-fit: cover; }
-        .media-title { position: absolute; left: 4vw; bottom: 4vh; max-width: 70%; color: white; font: 600 clamp(26px, 3.2vw, 52px) 'Poppins', sans-serif; line-height: 1.15; text-shadow: 0 2px 5px rgba(0,0,0,.7); }
+        .media-title { position: absolute; left: 4vw; bottom: 4vh; max-width: 70%; color: #f5c84c; font: 600 clamp(26px, 3.2vw, 52px) 'Poppins', sans-serif; line-height: 1.15; text-shadow: 0 2px 5px rgba(0,0,0,.7); }
         .media-fullscreen .media-logo { position: absolute; top: 0; right: clamp(20px, 3vw, 56px); width: clamp(180px, 19vw, 340px); height: auto; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.7)) drop-shadow(0 0 2px rgba(255,255,255,.35)); }
         @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
         @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
@@ -119,6 +121,7 @@
     }
     const statusClass = status => status === 'Sudah Di Kerjakan' || status === 'Kirim WA' ? 'ready' : '';
     const statusLabel = status => status === 'Sudah Di Kerjakan' ? 'Siap Diambil' : status;
+    const serviceClass = serviceType => String(serviceType).toUpperCase().startsWith('BPJS') ? 'bpjs' : 'umum';
     async function refreshDisplay() {
         try {
             const response = await fetch(dataUrl, { headers: { Accept: 'application/json' }, cache: 'no-store' });
@@ -127,7 +130,7 @@
             document.getElementById('ready-done').textContent = data.counts['Sudah Di Kerjakan'] || 0;
             document.getElementById('ready-wa').textContent = data.counts['Kirim WA'] || 0;
             document.getElementById('last-update').textContent = 'Update ' + data.updated_at;
-            document.getElementById('orders').innerHTML = data.orders.length ? data.orders.map(order => '<article class="order"><div class="order-info"><strong>' + order.patient + '</strong><div class="order-meta"><span>' + order.code + '</span><span class="order-date">Tanggal: ' + order.created_at + '</span><span class="order-service">Layanan: ' + order.service_type + '</span></div></div><span class="status ' + statusClass(order.status) + '">' + statusLabel(order.status) + '</span><div class="order-actions">' + (order.payment_status === 'Lunas' ? '<button class="action-take" onclick="sendAction(\'' + order.urls.take + '\', {}, \'Tandai kacamata sudah diambil?\')"><i class="fa fa-check"></i> Diambil</button>' : '') + (order.payment_status === 'Lunas' && order.status === 'Sudah Di Kerjakan' ? '<button class="action-wa" onclick="sendAction(\'' + order.urls.send_wa + '\', { status_pengerjaan: \'Kirim WA\' }, \'Kirim notifikasi WhatsApp untuk pasien ini?\')"><i class="fa fa-whatsapp"></i> Kirim WA</button>' : '') + (order.payment_status !== 'Lunas' ? '<button class="action-pay" onclick="sendAction(\'' + order.urls.pay + '\', {}, \'Konfirmasi pelunasan transaksi ini?\', \'PEMBAYARAN LUNAS\')"><i class="fa fa-money"></i> Pelunasan</button>' : '') + '</div></article>').join('') : '<div class="empty">Belum ada pesanan aktif.</div>';
+            document.getElementById('orders').innerHTML = data.orders.length ? data.orders.map(order => '<article class="order"><div class="order-info"><strong>' + order.patient + '</strong><div class="order-meta"><span>' + order.code + '</span><span class="order-date">Tanggal: ' + order.created_at + '</span><span class="order-service ' + serviceClass(order.service_type) + '">Layanan: ' + order.service_type + '</span></div></div><span class="status ' + statusClass(order.status) + '">' + statusLabel(order.status) + '</span><div class="order-actions">' + (order.payment_status === 'Lunas' ? '<button class="action-take" onclick="sendAction(\'' + order.urls.take + '\', {}, \'Tandai kacamata sudah diambil?\')"><i class="fa fa-check"></i> Diambil</button>' : '') + (order.payment_status === 'Lunas' && order.status === 'Sudah Di Kerjakan' ? '<button class="action-wa" onclick="sendAction(\'' + order.urls.send_wa + '\', { status_pengerjaan: \'Kirim WA\' }, \'Kirim notifikasi WhatsApp untuk pasien ini?\')"><i class="fa fa-whatsapp"></i> Kirim WA</button>' : '') + (order.payment_status !== 'Lunas' ? '<button class="action-pay" onclick="sendAction(\'' + order.urls.pay + '\', {}, \'Konfirmasi pelunasan transaksi ini?\', \'PEMBAYARAN LUNAS\')"><i class="fa fa-money"></i> Pelunasan</button>' : '') + '</div></article>').join('') : '<div class="empty">Belum ada pesanan aktif.</div>';
         } catch (error) {
             document.getElementById('last-update').textContent = 'Koneksi terputus, mencoba lagi...';
         }

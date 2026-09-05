@@ -74,6 +74,8 @@ class DisplayKacamataController extends Controller
                 'patient' => $this->maskedPatientName($order->nama_pasien),
                 'status' => $order->status_pengerjaan,
                 'payment_status' => $order->status ?: 'Belum Lunas',
+                'created_at' => optional($order->created_at)->format('d/m/Y'),
+                'service_type' => $order->pasien?->service_type ?: 'UMUM',
                 'updated_at' => optional($order->updated_at)->format('H:i'),
                 'urls' => [
                     'send_wa' => route('penjualan.update_status_pengerjaan', $order->id),

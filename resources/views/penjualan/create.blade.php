@@ -716,7 +716,7 @@ $(function() {
                 
                 // Tampilkan resep dengan format baru
                 if (response.prescriptions && response.prescriptions.length > 0) {
-                    let resep = response.prescriptions[response.prescriptions.length - 1]; // Ambil resep terakhir
+                    let resep = response.prescriptions[0]; // Ambil resep terakhir (backend sudah urutkan descending)
                     window.resepPasienTerpilih = resep;
                     const addKanan = resep.add_kanan || resep.add || '-';
                     const addKiri = resep.add_kiri || resep.add || '-';
@@ -734,7 +734,7 @@ $(function() {
                     $('#resep-add-kiri').text(addKiri);
                     $('#resep-pd-kanan').text(pdKanan);
                     $('#resep-pd-kiri').text(pdKiri);
-                    $('#resep-dokter').text(response.prescriptions?.[response.prescriptions.length-1]?.dokter_nama || '-');
+                    $('#resep-dokter').text(response.prescriptions?.[0]?.dokter_nama || '-');
 
                 } else {
                     window.resepPasienTerpilih = null;

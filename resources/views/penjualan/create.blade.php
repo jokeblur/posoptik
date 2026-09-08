@@ -451,7 +451,7 @@ $(function() {
             return true;
         }
 
-        const stokText = (data[3] || '').toString().replace(/<[^>]*>/g, '').replace(/[^0-9-]/g, '');
+        const stokText = (data[4] || '').toString().replace(/<[^>]*>/g, '').replace(/[^0-9-]/g, '');
         const stok = parseInt(stokText, 10);
         return Number.isNaN(stok) ? true : stok > 0;
     });
@@ -2226,6 +2226,13 @@ $(function() {
                 { data: 'coating', name: 'coating' },
                 { data: 'cly', name: 'cly' },
                 { data: 'add', name: 'add' },
+                {
+                    data: 'branch_name',
+                    name: 'branch_name',
+                    render: function(data) {
+                        return '<span class="label label-primary">' + (data || '-') + '</span>';
+                    }
+                },
                 { 
                     data: 'stok', 
                     name: 'stok',

@@ -89,6 +89,11 @@
         <button type="button" onclick="window.print()" class="btn btn-success" style="margin-left:10px;">
             <i class="fa fa-print"></i> Cetak Analisa
         </button>
+        <a href="{{ route('frame.analysis.export', ['month' => $selectedMonth ?? now()->format('Y-m'), 'sales_id' => $selectedSalesId ?? '']) }}"
+           class="btn btn-warning" style="margin-left:10px;"
+           title="Download data frame terjual dikelompokkan: Frame BPJS, Frame Umum Optik Melati 1, Frame Umum Optik Melati 2">
+            <i class="fa fa-download"></i> Download Excel
+        </a>
         <form method="GET" action="{{ route('frame.analysis') }}" class="form-inline" style="display:inline-block; margin-left:10px;">
             <div class="form-group">
                 <label for="month" style="margin-right:8px;">Pilih Bulan</label>

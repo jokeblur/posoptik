@@ -51,6 +51,7 @@
                                         <th>Coating</th>
                                         <th>CLY</th>
                                         <th>Catatan (ADD)</th>
+                                <th>Cabang</th>
                                 <th>Stok</th>
                                 <th>Harga</th>
                                 <th>Aksi</th>

@@ -816,7 +816,7 @@ class PenjualanController extends Controller
         
         $pasiens = \App\Models\Pasien::all();
         $dokters = \App\Models\Dokter::all();
-        $frames = \App\Models\Frame::where('branch_id', $branch_id)->get();
+        $frames = \App\Models\Frame::with('branch')->where('branch_id', $branch_id)->get();
         // Tampilkan semua lensa, termasuk yang stok 0
         $lenses = \App\Models\Lensa::where('branch_id', $branch_id)->get();
         $aksesoris = \App\Models\Aksesoris::where('branch_id', $branch_id)

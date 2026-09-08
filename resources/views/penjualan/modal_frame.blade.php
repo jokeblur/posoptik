@@ -18,6 +18,7 @@
                             <th>Kode</th>
                             <th>Nama</th>
                             <th>Jenis Frame</th>
+                            <th>Cabang</th>
                             <th>Stok</th>
                             <th>Harga</th>
                             <th>Aksi</th>
@@ -44,6 +45,9 @@
                                 @else
                                     <span class="label label-default">Umum</span>
                                 @endif
+                            </td>
+                            <td>
+                                <span class="label label-primary">{{ $frame->branch->name ?? '-' }}</span>
                             </td>
                             <td>{{ $frame->stok }}</td>
                             <td>{{ format_uang($frame->harga_jual_frame) }}</td>

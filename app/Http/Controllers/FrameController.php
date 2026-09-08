@@ -8,6 +8,7 @@ use App\Models\Sales;
 use App\Imports\FrameImport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\FrameExport;
+use App\Exports\FrameSoldAnalysisExport;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -60,7 +61,7 @@ class FrameController extends Controller
             }
 
             abort(403, 'Hanya admin dan super admin yang dapat mengakses analisa frame.');
-        })->only(['analysis']);
+        })->only(['analysis', 'exportAnalysis']);
     }
     
     /**
@@ -536,6 +537,102 @@ class FrameController extends Controller
             'selectedMonth',
             'selectedSalesId'
         ));
+    }
+
+    /**
+     * Export data frame terjual yang dikelompokkan:
+     * Frame BPJS, Frame Umum Optik Melati 1, Frame Umum Optik Melati 2
+     */
+    public function exportAnalysis(Request $request)
+    {
+        $selectedMonth = $request->get('month', now()->format('Y-m'));
+        $selectedSalesId = $request->get('sales_id');
+        $selectedYear = (int) substr($selectedMonth, 0, 4);
+        $selectedMonthNumber = (int) substr($selectedMonth, 5, 2);
+
+        try {
+            $start = Carbon::create($selectedYear, $selectedMonthNumber, 1, 0, 0, 0, 'Asia/Jakarta')->startOfMonth();
+            $end = Carbon::create($selectedYear, $selectedMonthNumber, 1, 0, 0, 0, 'Asia/Jakarta')->endOfMonth();
+        } catch (\Exception $e) {
+            return back()->with('error', 'Format bulan tidak valid.');
+        }
+
+        $periodLabel = $start->translatedFormat('F Y');
+
+        $branchNames = [
+            'Optik Melati 1' => ['optik melati cabang 1', 'optik melati 1'],
+            'Optik Melati 2' => ['optik melati cabang 2', 'optik melati 2'],
+        ];
+
+        $bpjsRows = $this->soldFrameAnalysisRows($start, $end, $selectedSalesId, true);
+        $umumMelati1Rows = $this->soldFrameAnalysisRows($start, $end, $selectedSalesId, false, $branchNames['Optik Melati 1'], 'Optik Melati 1');
+        $umumMelati2Rows = $this->soldFrameAnalysisRows($start, $end, $selectedSalesId, false, $branchNames['Optik Melati 2'], 'Optik Melati 2');
+
+        $filename = 'analisa_frame_terjual_' . $selectedMonth . '.xlsx';
+
+        return Excel::download(
+            new FrameSoldAnalysisExport($periodLabel, $bpjsRows, $umumMelati1Rows, $umumMelati2Rows),
+            $filename
+        );
+    }
+
+    /**
+     * Ambil data frame terjual per kode frame.
+     * $bpjsOnly = true  -> transaksi pasien BPJS (semua cabang)
+     * $bpjsOnly = false -> transaksi non-BPJS dengan frame jenis Umum, difilter per cabang
+     */
+    private function soldFrameAnalysisRows(Carbon $start, Carbon $end, $salesId, bool $bpjsOnly, ?array $branchKeywords = null, string $branchLabel = ''): array
+    {
+        $query = DB::table('penjualan_detail as pd')
+            ->join('penjualan as p', 'p.id', '=', 'pd.penjualan_id')
+            ->join('frames as f', 'f.id', '=', 'pd.itemable_id')
+            ->leftJoin('sales as s', 'f.id_sales', '=', 's.id_sales')
+            ->leftJoin('branches as b', 'b.id', '=', 'p.branch_id')
+            ->where('pd.itemable_type', Frame::class)
+            ->whereBetween('p.created_at', [$start, $end])
+            ->when(!empty($salesId), function ($q) use ($salesId) {
+                $q->where('f.id_sales', $salesId);
+            });
+
+        if ($bpjsOnly) {
+            $this->applyBpjsFilter($query);
+        } else {
+            $this->applyNonBpjsFilter($query);
+            $query->whereRaw("LOWER(TRIM(COALESCE(NULLIF(f.jenis_frame, ''), '-'))) = ?", ['umum']);
+
+            if (!empty($branchKeywords)) {
+                $query->where(function ($q) use ($branchKeywords) {
+                    foreach ($branchKeywords as $keyword) {
+                        $q->orWhereRaw('LOWER(TRIM(COALESCE(b.name, ""))) LIKE ?', ['%' . strtolower($keyword) . '%']);
+                    }
+                });
+            }
+        }
+
+        $rows = $query
+            ->selectRaw("COALESCE(NULLIF(TRIM(f.kode_frame), ''), '-') as kode_frame")
+            ->selectRaw("COALESCE(NULLIF(TRIM(f.merk_frame), ''), 'Tanpa Merk') as merk_frame")
+            ->selectRaw("COALESCE(NULLIF(TRIM(f.jenis_frame), ''), '-') as jenis_frame")
+            ->selectRaw("COALESCE(NULLIF(TRIM(s.nama_sales), ''), '-') as sales_name")
+            ->selectRaw("COALESCE(NULLIF(TRIM(b.name), ''), '-') as cabang")
+            ->selectRaw('SUM(COALESCE(pd.quantity, 0)) as total_qty')
+            ->selectRaw('COUNT(DISTINCT pd.penjualan_id) as total_transaksi')
+            ->groupBy('kode_frame', 'merk_frame', 'jenis_frame', 'sales_name', 'cabang')
+            ->orderByDesc('total_qty')
+            ->orderBy('kode_frame')
+            ->get();
+
+        return $rows->map(function ($row) use ($branchLabel) {
+            return [
+                'kode_frame' => $row->kode_frame,
+                'merk_frame' => $row->merk_frame,
+                'jenis_frame' => $row->jenis_frame,
+                'sales_name' => $row->sales_name,
+                'cabang' => $branchLabel !== '' ? $branchLabel : $row->cabang,
+                'total_qty' => (int) $row->total_qty,
+                'total_transaksi' => (int) $row->total_transaksi,
+            ];
+        })->values()->all();
     }
 
     public function data(Request $request)

@@ -92,17 +92,12 @@ class StockTransferController extends Controller
                 ->with('error', 'Hanya kasir yang dapat membuat permintaan transfer stok.');
         }
 
-        $branches = Branch::active()->get();
-        
-        // Get available products from user's branch
-        $frames = Frame::where('branch_id', $user->branch_id)
-            ->where('stok', '>', 0)
-            ->get();
-        $lensas = Lensa::where('branch_id', $user->branch_id)
-            ->where('stok', '>', 0)
+        // Cabang lain sebagai calon sumber stok (selain cabang kasir sendiri)
+        $branches = Branch::active()
+            ->where('id', '!=', $user->branch_id)
             ->get();
 
-        return view('stock-transfer.create', compact('branches', 'frames', 'lensas'));
+        return view('stock-transfer.create', compact('branches'));
     }
 
     /**
@@ -113,15 +108,15 @@ class StockTransferController extends Controller
         $user = Auth::user();
         
         $request->validate([
-            'to_branch_id' => 'required|exists:branches,id',
+            'from_branch_id' => 'required|exists:branches,id',
             'notes' => 'nullable|string|max:500',
             'items' => 'required|array|min:1',
             'items.*.itemable_type' => 'required|in:App\Models\Frame,App\Models\Lensa',
             'items.*.itemable_id' => 'required|integer',
             'items.*.quantity' => 'required|integer|min:1',
         ], [
-            'to_branch_id.required' => 'Cabang tujuan harus dipilih',
-            'to_branch_id.exists' => 'Cabang tujuan tidak valid',
+            'from_branch_id.required' => 'Cabang sumber harus dipilih',
+            'from_branch_id.exists' => 'Cabang sumber tidak valid',
             'items.required' => 'Minimal satu produk harus ditambahkan',
             'items.min' => 'Minimal satu produk harus ditambahkan',
             'items.*.itemable_type.required' => 'Jenis produk harus dipilih',
@@ -138,18 +133,20 @@ class StockTransferController extends Controller
             return back()->with('error', 'Hanya kasir yang dapat membuat permintaan transfer stok.');
         }
 
-        // Check if destination branch is different from source
-        if ($request->to_branch_id == $user->branch_id) {
-            return back()->with('error', 'Tidak dapat transfer ke cabang yang sama.');
+        // Kasir meminta stok DARI cabang lain KE cabangnya sendiri
+        if ($request->from_branch_id == $user->branch_id) {
+            return back()->with('error', 'Tidak dapat meminta stok dari cabang sendiri.');
         }
+
+        $sourceBranchId = (int) $request->from_branch_id;
 
         try {
             DB::beginTransaction();
 
             $transfer = StockTransfer::create([
                 'kode_transfer' => StockTransfer::generateCode(),
-                'from_branch_id' => $user->branch_id,
-                'to_branch_id' => $request->to_branch_id,
+                'from_branch_id' => $sourceBranchId,
+                'to_branch_id' => $user->branch_id,
                 'requested_by' => $user->id,
                 'status' => 'Pending',
                 'notes' => $request->notes,
@@ -159,13 +156,13 @@ class StockTransferController extends Controller
             foreach ($request->items as $item) {
                 $product = $item['itemable_type']::find($item['itemable_id']);
                 
-                if (!$product || $product->branch_id !== $user->branch_id) {
-                    throw new \Exception('Produk tidak valid atau tidak tersedia di cabang Anda.');
+                if (!$product || (int) $product->branch_id !== $sourceBranchId) {
+                    throw new \Exception('Produk tidak valid atau tidak tersedia di cabang sumber.');
                 }
 
                 if ($product->stok < $item['quantity']) {
                     $productCode = $product->kode_frame ?? $product->kode_lensa;
-                    throw new \Exception("Stok {$productCode} tidak mencukupi.");
+                    throw new \Exception("Stok {$productCode} di cabang sumber tidak mencukupi.");
                 }
 
                 $unitPrice = $this->resolveTransferUnitPrice($product);
@@ -288,8 +285,12 @@ class StockTransferController extends Controller
     public function getProducts(Request $request)
     {
         $user = Auth::user();
-        $branchId = $user->branch_id;
         $type = $request->type; // 'frame' or 'lensa'
+        $branchId = (int) $request->branch_id; // cabang sumber yang dipilih kasir
+
+        if (!$branchId || ($user->isKasir() && $branchId === (int) $user->branch_id)) {
+            return response()->json([]);
+        }
 
         if ($type === 'frame') {
             $products = Frame::where('branch_id', $branchId)
@@ -302,7 +303,7 @@ class StockTransferController extends Controller
         } else {
             $products = Lensa::where('branch_id', $branchId)
                 ->where('stok', '>', 0)
-                ->get(['id', 'kode_lensa', 'merk_lensa', 'type', 'stok', 'harga_beli_lensa', 'harga_jual_lensa'])
+                ->get(['id', 'kode_lensa', 'merk_lensa', 'type', 'index', 'coating', 'stok', 'harga_beli_lensa', 'harga_jual_lensa'])
                 ->map(function ($product) {
                     $product->transfer_price = $this->resolveTransferUnitPrice($product);
                     return $product;

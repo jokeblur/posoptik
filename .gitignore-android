@@ -1,0 +1,6 @@
+# Tambahan untuk project Android APK
+android-kasir/.gradle/
+android-kasir/local.properties
+android-kasir/.idea/
+android-kasir/app/build/
+android-kasir/build/

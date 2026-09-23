@@ -84,21 +84,23 @@
         });
 
         $('#modal-form').validator().on('submit', function (e) {
-            if (!e.preventDefault()) {
-                $.post($('#modal-form form').attr('action'), $('#modal-form form').serialize())
-                    .done((response) => {
-                        $('#modal-form').modal('hide');
-                        table.ajax.reload();
-                    })
-                    .fail((errors) => {
-                        Swal.fire(
-                            'Error!',
-                            'Tidak dapat menyimpan data',
-                            'error'
-                        );
-                        return;
-                    });
+            if (e.isDefaultPrevented()) {
+                return;
             }
+
+            e.preventDefault();
+            submitPatientWithDuplicateCheck($('#modal-form form'), false);
+        });
+
+        $('#modal-form').on('blur', '[name="nama_pasien"]', function() {
+            const form = $('#modal-form form');
+            const name = $.trim($(this).val());
+
+            if (form.find('[name="_method"]').val() === 'put' || !name) {
+                return;
+            }
+
+            checkDuplicateName(form, name, true);
         });
 
         // Handle tombol "Simpan & Lanjut ke Transaksi"
@@ -111,34 +113,7 @@
                 return;
             }
 
-            $.post('{{ route("pasien.store-and-redirect") }}', form.serialize())
-                .done((response) => {
-                    $('#modal-form').modal('hide');
-                    table.ajax.reload();
-                    
-                    // Tampilkan pesan sukses
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil!',
-                        text: response.message,
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        // Redirect ke halaman transaksi dengan data pasien
-                        window.location.href = response.redirect_url;
-                    });
-                })
-                .fail((errors) => {
-                    let message = 'Tidak dapat menyimpan data';
-                    if (errors.responseJSON && errors.responseJSON.message) {
-                        message = errors.responseJSON.message;
-                    }
-                    Swal.fire(
-                        'Error!',
-                        message,
-                        'error'
-                    );
-                });
+            submitPatientWithDuplicateCheck(form, true);
         });
 
         // Event handler untuk select all
@@ -173,6 +148,179 @@
             $('#detail-dokter').text('');
         });
     });
+
+    function escapeHtml(value) {
+        return $('<div>').text(value === null || value === undefined || value === '' ? '-' : value).html();
+    }
+
+    function duplicatePatientTable(pasien) {
+        let rows = pasien.map(function(row) {
+            const resep = row.resep || {};
+            const resepHtml = resep.od_sph || resep.od_cyl || resep.od_axis || resep.os_sph || resep.os_cyl || resep.os_axis
+                ? 'OD: ' + escapeHtml([resep.od_sph || '-', resep.od_cyl || '-', resep.od_axis || '-'].join(' / ')) + '<br>OS: ' + escapeHtml([resep.os_sph || '-', resep.os_cyl || '-', resep.os_axis || '-'].join(' / ')) + '<br>ADD: ' + escapeHtml(resep.add || resep.add_kanan || resep.add_kiri || '-') + ' | PD: ' + escapeHtml(resep.pd || resep.pd_kanan || resep.pd_kiri || '-')
+                : '-';
+
+            return '<tr>' +
+                '<td>' + escapeHtml(row.nama_pasien) + '</td>' +
+                '<td>' + escapeHtml(row.umur) + '</td>' +
+                '<td>' + escapeHtml(row.alamat) + '</td>' +
+                '<td>' + escapeHtml(row.nohp) + '</td>' +
+                '<td>' + escapeHtml(row.service_type) + '</td>' +
+                '<td>' + escapeHtml(row.no_bpjs) + '</td>' +
+                '<td>' + escapeHtml(row.tanggal_periksa || (row.created_at ? row.created_at.substring(0, 10) : '-')) + '</td>' +
+                '<td style="white-space:nowrap;">' + resepHtml + '</td>' +
+                '<td><button type="button" class="btn btn-xs btn-primary btn-pilih-pasien" data-pasien-id="' + row.id_pasien + '">Pilih</button></td>' +
+                '</tr>';
+        }).join('');
+
+        return '<div style="max-height:260px; overflow:auto; text-align:left; font-size:12px;">' +
+            '<table class="table table-bordered table-condensed" style="margin-bottom:0;">' +
+            '<thead><tr><th>Nama</th><th>Umur</th><th>Alamat</th><th>Telepon</th><th>Layanan</th><th>No. BPJS</th><th>Tanggal</th><th>Ukuran Resep (SPH/CYL/AXIS)</th><th>Aksi</th></tr></thead>' +
+            '<tbody>' + rows + '</tbody></table></div>';
+    }
+
+    function submitPatientWithDuplicateCheck(form, redirectToTransaction) {
+        const action = redirectToTransaction ? '{{ route("pasien.store-and-redirect") }}' : form.attr('action');
+        const name = $.trim(form.find('[name="nama_pasien"]').val());
+
+        if (form.data('selected-patient-id')) {
+            savePatient(form, action, redirectToTransaction);
+            return;
+        }
+
+        if (form.data('duplicate-confirmed-name') === name) {
+            savePatient(form, action, redirectToTransaction);
+            return;
+        }
+
+        checkDuplicateName(form, name, false, function() {
+            savePatient(form, action, redirectToTransaction);
+        });
+    }
+
+    function savePatient(form, action, redirectToTransaction) {
+        const selectedPatientId = form.data('selected-patient-id');
+
+        if (selectedPatientId) {
+            $('#modal-form').modal('hide');
+            table.ajax.reload();
+
+            if (redirectToTransaction) {
+                window.location.href = '{{ route("penjualan.create", ["pasien_id" => "__PASIEN_ID__"]) }}'.replace('__PASIEN_ID__', selectedPatientId);
+            } else {
+                showDetail('{{ url('/pasien') }}/' + selectedPatientId);
+            }
+            return;
+        }
+
+        $.post(action, form.serialize())
+            .done(function(result) {
+                $('#modal-form').modal('hide');
+                table.ajax.reload();
+
+                if (redirectToTransaction) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: result.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(function() {
+                        window.location.href = result.redirect_url;
+                    });
+                }
+            })
+            .fail(function(errors) {
+                const message = errors.responseJSON && errors.responseJSON.message
+                    ? errors.responseJSON.message
+                    : 'Tidak dapat menyimpan data';
+                Swal.fire('Error!', message, 'error');
+            });
+    }
+
+    function checkDuplicateName(form, name, notifyOnly, onConfirmed) {
+        if (form.data('selected-patient-name') && form.data('selected-patient-name') !== name) {
+            form.removeData('selected-patient-id').removeData('selected-patient-name');
+        }
+
+        $.get('{{ route("pasien.check-duplicate-name") }}', { nama_pasien: name })
+            .done(function(response) {
+                if (!response.exists) {
+                    if (!notifyOnly && onConfirmed) {
+                        onConfirmed();
+                    }
+                    return;
+                }
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Pasien ini sudah pernah masuk ke data pasien',
+                    html: '<p style="text-align:left;">Berikut semua data pasien dengan nama yang sama:</p>' + duplicatePatientTable(response.pasien) + '<p style="margin-top:12px;">Apakah Anda ingin menambahkan data pasien lagi?</p>',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Tambahkan Lagi',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    width: '95%'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        form.data('duplicate-confirmed-name', name);
+                        if (!notifyOnly && onConfirmed) {
+                            onConfirmed();
+                        }
+                    } else {
+                        form.removeData('duplicate-confirmed-name');
+                    }
+                });
+
+                const alertContainer = Swal.getHtmlContainer();
+                if (alertContainer) {
+                    $(alertContainer).off('click.pilihPasien').on('click.pilihPasien', '.btn-pilih-pasien', function() {
+                        const selectedId = $(this).data('pasien-id');
+                        const selectedPatient = response.pasien.find(function(row) {
+                            return String(row.id_pasien) === String(selectedId);
+                        });
+
+                        form.data('selected-patient-id', selectedId);
+                        form.data('selected-patient-name', name);
+                        form.removeData('duplicate-confirmed-name');
+                        if (selectedPatient) {
+                            form.find('[name="nama_pasien"]').val(selectedPatient.nama_pasien || '');
+                            form.find('[name="umur"]').val(selectedPatient.umur || '');
+                            form.find('[name="alamat"]').val(selectedPatient.alamat || '');
+                            form.find('[name="nohp"]').val(selectedPatient.nohp || '');
+                            form.find('[name="service_type"]').val(selectedPatient.service_type || '').trigger('change');
+                            form.find('[name="no_bpjs"]').val(selectedPatient.no_bpjs || '');
+                            form.find('[name="tanggal_periksa"]').val((selectedPatient.tanggal_periksa || '').substring(0, 10));
+
+                            const resep = selectedPatient.resep || {};
+                            form.find('[name="od_sph"]').val(resep.od_sph || '');
+                            form.find('[name="od_cyl"]').val(resep.od_cyl || '');
+                            form.find('[name="od_axis"]').val(resep.od_axis || '');
+                            form.find('[name="os_sph"]').val(resep.os_sph || '');
+                            form.find('[name="os_cyl"]').val(resep.os_cyl || '');
+                            form.find('[name="os_axis"]').val(resep.os_axis || '');
+                            form.find('[name="add_kanan"]').val(resep.add_kanan || resep.add || '');
+                            form.find('[name="add_kiri"]').val(resep.add_kiri || resep.add || '');
+                            form.find('[name="pd_kanan"]').val(resep.pd_kanan || resep.pd || '');
+                            form.find('[name="pd_kiri"]').val(resep.pd_kiri || resep.pd || '');
+                            form.find('[name="catatan"]').val(resep.catatan || '');
+                        }
+                        Swal.close();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Pasien dipilih',
+                            text: 'Pasien yang sudah ada akan digunakan. Data baru tidak dibuat.',
+                            timer: 1800,
+                            showConfirmButton: false
+                        });
+                    });
+                }
+            })
+            .fail(function() {
+                Swal.fire('Error!', 'Tidak dapat memeriksa nama pasien.', 'error');
+            });
+    }
 
     function showDetail(url) {
         // Clear modal content first to prevent duplication
@@ -304,6 +452,8 @@
         $('#modal-form').modal('show');
         $('#modal-form .modal-title').text('Tambah pasien');
         $('#modal-form form')[0].reset();
+        $('#modal-form form').removeData('duplicate-confirmed-name');
+        $('#modal-form form').removeData('selected-patient-id').removeData('selected-patient-name');
         $('#modal-form form').attr('action', url);
         $('#modal-form [name=_method]').val('post');
         $('#group-mode-resep-baru').show();

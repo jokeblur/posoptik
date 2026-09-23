@@ -121,6 +121,71 @@ class PasienController extends Controller
         return view('pasien.form', compact('dokters'));
     }
 
+    public function checkDuplicateName(Request $request)
+    {
+        $request->validate([
+            'nama_pasien' => 'required|string|max:255',
+        ]);
+
+        $namaPasien = trim($request->input('nama_pasien'));
+        $pasien = Pasien::query()
+            ->with('prescriptions')
+            ->whereRaw('LOWER(TRIM(nama_pasien)) = ?', [strtolower($namaPasien)])
+            ->orderByDesc('id_pasien')
+            ->get([
+                'id_pasien',
+                'nama_pasien',
+                'umur',
+                'alamat',
+                'nohp',
+                'service_type',
+                'no_bpjs',
+                'tanggal_periksa',
+                'created_at',
+            ]);
+
+        $pasien = $pasien->map(function ($row) {
+            $latestPrescription = $row->prescriptions
+                ->sortByDesc(function ($prescription) {
+                    return sprintf('%s|%010d', $prescription->tanggal ?? '', $prescription->id ?? 0);
+                })
+                ->first();
+
+            return array_merge($row->only([
+                'id_pasien',
+                'nama_pasien',
+                'umur',
+                'alamat',
+                'nohp',
+                'service_type',
+                'no_bpjs',
+                'tanggal_periksa',
+                'created_at',
+            ]), [
+                'resep' => $latestPrescription ? $latestPrescription->only([
+                    'od_sph',
+                    'od_cyl',
+                    'od_axis',
+                    'os_sph',
+                    'os_cyl',
+                    'os_axis',
+                    'add',
+                    'add_kanan',
+                    'add_kiri',
+                    'pd',
+                    'pd_kanan',
+                    'pd_kiri',
+                    'catatan',
+                ]) : null,
+            ]);
+        });
+
+        return response()->json([
+            'exists' => $pasien->isNotEmpty(),
+            'pasien' => $pasien,
+        ]);
+    }
+
     /**
      * Store a newly created resource in storage.
      *

@@ -91,7 +91,8 @@
                           @if(auth()->user()->isKasir() || auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
                           <li style="margin: 0;"><a href="{{ route('pasien.index') }}" style="padding: 8px 15px;"><i class="fa fa-user-plus"></i> <span>Data Pasien</span></a></li>
                           <li style="margin: 0;"><a href="{{ route('penjualan.index') }}" style="padding: 8px 15px;"><i class="fa fa-upload"></i> <span>Data Penjualan</span></a></li>
-                          <li style="margin: 0;"><a href="{{ route('kwitansi.create') }}" style="padding: 8px 15px;"><i class="fa fa-file-text-o"></i> <span>Buat Kwitansi</span></a></li>
+                          <li style="margin: 0;"><a href="{{ route('kwitansi.index') }}" style="padding: 8px 15px;"><i class="fa fa-file-text-o"></i> <span>Kwitansi</span></a></li>
+                          <li style="margin: 0;"><a href="{{ route('voucher.index') }}" style="padding: 8px 15px;"><i class="fa fa-ticket"></i> <span>Voucher</span></a></li>
                           @php
                               $sidebarBranchName = strtolower((string) optional(auth()->user()->branch)->name);
                               $hideBpjsPhotoForKasirCabang2 = auth()->user()->isKasir() && (
@@ -140,6 +141,10 @@
                           @if(auth()->user()->isSuperAdmin())
                           <li style="margin: 0;"><a href="{{ route('database-backup.index') }}" style="padding: 8px 15px;"><i class="fa fa-database"></i> <span>Download Database</span></a></li>
                           @endif
+                          @endif
+
+                          @if(auth()->user()->isKasir() || auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
+                          <li style="margin: 0;"><a href="{{ route('kasir-mobile.index') }}" style="padding: 8px 15px;"><i class="fa fa-mobile"></i> <span>Kasir Mobile (HP/Tablet)</span></a></li>
                           @endif
                       </ul>
                   </section>

@@ -16,6 +16,7 @@ use App\Http\Controllers\DatabaseBackupController;
 use App\Http\Controllers\LaporanPosController;
 use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\KwitansiController;
+use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\DisplayKacamataController;
 use App\Http\Controllers\DisplayMediaController;
 
@@ -170,8 +171,13 @@ Route::middleware([
     Route::post('/penjualan/{penjualan}/wa-image', [PenjualanController::class, 'uploadWhatsappReceiptImage'])->name('penjualan.wa-image');
     Route::get('penjualan/omset-harian', [\App\Http\Controllers\PenjualanController::class, 'omsetHarian'])->name('penjualan.omset_harian');
     Route::post('/penjualan/calculate-bpjs-price', [PenjualanController::class, 'calculateBpjsPrice'])->name('penjualan.calculate_bpjs_price');
-    Route::get('/kwitansi', [KwitansiController::class, 'create'])->name('kwitansi.create')->middleware('role:kasir,admin,super admin');
+    Route::get('/kwitansi', [KwitansiController::class, 'index'])->name('kwitansi.index')->middleware('role:kasir,admin,super admin');
+    Route::get('/kwitansi/create', [KwitansiController::class, 'create'])->name('kwitansi.create')->middleware('role:kasir,admin,super admin');
     Route::post('/kwitansi/print', [KwitansiController::class, 'print'])->name('kwitansi.print')->middleware('role:kasir,admin,super admin');
+    Route::get('/kwitansi-kacamata', [KwitansiController::class, 'createKacamata'])->name('kwitansi-kacamata.create')->middleware('role:kasir,admin,super admin');
+    Route::post('/kwitansi-kacamata/print', [KwitansiController::class, 'printKacamata'])->name('kwitansi-kacamata.print')->middleware('role:kasir,admin,super admin');
+    Route::get('/voucher/{voucher}/print', [VoucherController::class, 'print'])->name('voucher.print')->middleware('role:kasir,admin,super admin');
+    Route::resource('/voucher', VoucherController::class)->middleware('role:kasir,admin,super admin')->except(['show']);
 
     Route::post('/penjualan/test-bpjs-pricing', [PenjualanController::class, 'testBpjsPricing'])->name('penjualan.test_bpjs_pricing');
     Route::post('/penjualan/debug-frame-data', [PenjualanController::class, 'debugFrameData'])->name('penjualan.debug_frame_data');
@@ -234,6 +240,15 @@ Route::middleware([
                Route::get('/stock-transfer/branch/{branchId}/history', [StockTransferController::class, 'branchHistory'])->name('stock-transfer.branch-history');
                Route::get('/stock-transfer/export', [StockTransferController::class, 'export'])->name('stock-transfer.export')->middleware('role:admin,super admin');
                Route::resource('stock-transfer', StockTransferController::class);
+
+    // Kasir Mobile (halaman khusus HP/tablet untuk kasir)
+    Route::middleware('role:kasir,admin,super admin')->prefix('kasir-mobile')->name('kasir-mobile.')->group(function () {
+        Route::get('/', [App\Http\Controllers\KasirMobileController::class, 'index'])->name('index');
+        Route::get('/riwayat', [App\Http\Controllers\KasirMobileController::class, 'riwayat'])->name('riwayat');
+        Route::get('/stok', [App\Http\Controllers\KasirMobileController::class, 'stok'])->name('stok');
+        Route::get('/stok-data', [App\Http\Controllers\KasirMobileController::class, 'stokData'])->name('stok-data');
+        Route::get('/transfer', [App\Http\Controllers\KasirMobileController::class, 'transfer'])->name('transfer');
+    });
     
     // Test route untuk QR Code
     Route::get('/test-qrcode', function() {
@@ -282,6 +297,7 @@ Route::group(['middleware' => 'auth'], function() {
     Route::post('/pasien/import', [PasienController::class, 'import'])->name('pasien.import');
     Route::post('/pasien/bulk-delete', [PasienController::class, 'bulkDelete'])->name('pasien.bulk-delete');
     Route::get('/pasien/data', [PasienController::class, 'data'])->name('pasien.data');
+    Route::get('/pasien/check-duplicate-name', [PasienController::class, 'checkDuplicateName'])->name('pasien.check-duplicate-name');
     Route::get('/pasien/{id}/details', [PasienController::class, 'getDetails'])->name('pasien.details');
     Route::post('/pasien/store-and-redirect', [PasienController::class, 'storeAndRedirect'])->name('pasien.store-and-redirect');
     Route::resource('/pasien', PasienController::class);

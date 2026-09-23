@@ -2,13 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Kwitansi;
 use Illuminate\Http\Request;
 
 class KwitansiController extends Controller
 {
+    public function index()
+    {
+        $kwitansis = Kwitansi::with('creator')->latest()->paginate(20);
+
+        return view('kwitansi.index', compact('kwitansis'));
+    }
+
     public function create()
     {
         return view('kwitansi.create');
+    }
+
+    public function createKacamata()
+    {
+        return view('kwitansi.create-kacamata');
     }
 
     public function print(Request $request)
@@ -29,8 +42,70 @@ class KwitansiController extends Controller
             $validated['terbilang'] = ucfirst(preg_replace('/\s+/', ' ', trim($this->terbilang((int) round($jumlah))))) . ' rupiah';
         }
 
+        Kwitansi::create([
+            'jenis' => 'umum',
+            'nomor' => $validated['nomor'] ?? null,
+            'tempat_tanggal' => $validated['tempat_tanggal'] ?? null,
+            'penerima_dari' => $validated['penerima_dari'],
+            'untuk_pembayaran' => $validated['untuk_pembayaran'] ?? null,
+            'nama_pembuat' => $validated['nama_pembuat'] ?? null,
+            'jumlah' => $jumlah,
+            'terbilang' => $validated['terbilang'],
+            'created_by' => auth()->id(),
+        ]);
+
         return view('kwitansi.print', [
             'data' => $validated,
+            'jumlah' => $jumlah,
+        ]);
+    }
+
+    public function printKacamata(Request $request)
+    {
+        $validated = $request->validate([
+            'nomor' => 'nullable|string|max:100',
+            'tempat_tanggal' => 'nullable|string|max:150',
+            'penerima_dari' => 'required|string|max:255',
+            'nama_pembuat' => 'nullable|string|max:255',
+            'untuk_pembayaran' => 'required|string|max:255',
+            'harga_frame' => 'required|numeric|min:0',
+            'harga_lensa' => 'required|numeric|min:0',
+        ]);
+
+        $hargaFrame = (float) $validated['harga_frame'];
+        $jumlahFrame = 1;
+        $hargaLensa = (float) $validated['harga_lensa'];
+        $jumlahLensa = 1;
+        $totalFrame = $hargaFrame * $jumlahFrame;
+        $totalLensa = $hargaLensa * $jumlahLensa;
+        $jumlah = $totalFrame + $totalLensa;
+
+        $validated['terbilang'] = $jumlah > 0
+            ? ucfirst(preg_replace('/\s+/', ' ', trim($this->terbilang((int) round($jumlah))))) . ' rupiah'
+            : '';
+
+        Kwitansi::create([
+            'jenis' => 'kacamata',
+            'nomor' => $validated['nomor'] ?? null,
+            'tempat_tanggal' => $validated['tempat_tanggal'] ?? null,
+            'penerima_dari' => $validated['penerima_dari'],
+            'untuk_pembayaran' => $validated['untuk_pembayaran'],
+            'nama_pembuat' => $validated['nama_pembuat'] ?? null,
+            'harga_frame' => $hargaFrame,
+            'harga_lensa' => $hargaLensa,
+            'jumlah' => $jumlah,
+            'terbilang' => $validated['terbilang'],
+            'created_by' => auth()->id(),
+        ]);
+
+        return view('kwitansi.print-kacamata', [
+            'data' => $validated,
+            'hargaFrame' => $hargaFrame,
+            'jumlahFrame' => $jumlahFrame,
+            'totalFrame' => $totalFrame,
+            'hargaLensa' => $hargaLensa,
+            'jumlahLensa' => $jumlahLensa,
+            'totalLensa' => $totalLensa,
             'jumlah' => $jumlah,
         ]);
     }

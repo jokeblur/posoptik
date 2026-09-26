@@ -196,6 +196,12 @@
                     <div class="form-group col-md-4">
                         <label for="diskon">Diskon</label>
                         <input type="number" class="form-control" id="diskon" name="diskon" value="{{ (int) $penjualan->diskon }}" min="0">
+                        @if (!empty($penjualan->voucher_kode))
+                            <small class="text-success">
+                                <i class="fa fa-ticket"></i> Sudah termasuk voucher {{ $penjualan->voucher_kode }}
+                                (Rp {{ number_format((float) $penjualan->voucher_potongan, 0, ',', '.') }})
+                            </small>
+                        @endif
                     </div>
                     <div class="form-group col-md-4">
                         <label for="bayar">Jumlah Bayar</label>

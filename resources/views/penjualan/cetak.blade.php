@@ -315,6 +315,12 @@
                 <td class="label">Diskon</td>
                 <td class="value">Rp {{ format_uang($penjualan->diskon) }}</td>
             </tr>
+            @if (!empty($penjualan->voucher_kode))
+            <tr>
+                <td class="label">&nbsp;&nbsp;Voucher {{ $penjualan->voucher_kode }}</td>
+                <td class="value">Rp {{ format_uang($penjualan->voucher_potongan) }}</td>
+            </tr>
+            @endif
             <tr>
                 <td class="label"><strong>Total</strong></td>
                 <td class="value"><strong>Rp {{ format_uang($penjualan->total) }}</strong></td>

@@ -71,7 +71,13 @@
                                 <div class="voucher-label">VOUCHER PROMO</div>
                             </div>
                             <div class="code">{{ $voucher->kode }}</div>
-                            <div class="nominal">Rp {{ number_format((float) $voucher->nominal, 0, ',', '.') }}</div>
+                            <div class="nominal">
+                                @if (($voucher->jenis_nominal ?? 'uang') === 'diskon')
+                                    {{ number_format((float) $voucher->nominal, 0, ',', '.') }}% OFF
+                                @else
+                                    Rp {{ number_format((float) $voucher->nominal, 0, ',', '.') }}
+                                @endif
+                            </div>
                             <div class="validity">
                                 Masa berlaku:
                                 {{ $voucher->berlaku_mulai ? $voucher->berlaku_mulai->format('d/m/Y') : 'sekarang' }}

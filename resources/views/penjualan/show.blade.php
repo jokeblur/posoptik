@@ -313,6 +313,12 @@
                                     <th style="width:50%">Diskon:</th>
                                     <td class="text-right">Rp {{ format_uang($penjualan->diskon ?? 0) }}</td>
                                 </tr>
+                                @if (!empty($penjualan->voucher_kode))
+                                <tr>
+                                    <td style="padding-left:20px;"><small><i class="fa fa-ticket"></i> Termasuk voucher {{ $penjualan->voucher_kode }}</small></td>
+                                    <td class="text-right"><small>Rp {{ format_uang($penjualan->voucher_potongan) }}</small></td>
+                                </tr>
+                                @endif
 
                                 @if($isNaikKelas && $totalBiayaPenambahan > 0)
                                 <tr>
@@ -360,6 +366,12 @@
                                     <th>Diskon:</th>
                                     <td class="text-right">Rp {{ format_uang($penjualan->diskon) }}</td>
                                 </tr>
+                                @if (!empty($penjualan->voucher_kode))
+                                <tr>
+                                    <td style="padding-left:20px;"><small><i class="fa fa-ticket"></i> Termasuk voucher {{ $penjualan->voucher_kode }}</small></td>
+                                    <td class="text-right"><small>Rp {{ format_uang($penjualan->voucher_potongan) }}</small></td>
+                                </tr>
+                                @endif
                                 <tr>
                                     <th>Total:</th>
                                     <td class="text-right"><strong>Rp {{ format_uang($penjualan->total) }}</strong></td>

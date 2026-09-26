@@ -687,6 +687,12 @@
                 <span class="total-label">Diskon:</span>
                 <span class="total-value">Rp {{ number_format($penjualan->diskon, 0, ',', '.') }}</span>
             </div>
+            @if (!empty($penjualan->voucher_kode))
+            <div class="total-row">
+                <span class="total-label">&nbsp;&nbsp;Voucher {{ $penjualan->voucher_kode }}:</span>
+                <span class="total-value">Rp {{ number_format((float) $penjualan->voucher_potongan, 0, ',', '.') }}</span>
+            </div>
+            @endif
             <div class="total-row" style="font-size: 9px; font-weight: bold; border-top: 1px solid #000; padding-top: 2px;">
                 <span class="total-label">TOTAL:</span>
                 <span class="total-value">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</span>

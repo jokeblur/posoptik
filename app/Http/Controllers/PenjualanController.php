@@ -20,6 +20,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Schema;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Models\OpenDay;
+use App\Models\Voucher;
 use Carbon\Carbon;
 
 class PenjualanController extends Controller
@@ -410,6 +411,11 @@ class PenjualanController extends Controller
                 return '<span class="label label-success">'. $penjualan->kode_penjualan .'</span>';
             })
             ->addColumn('total_harga', function ($penjualan) {
+                $voucherInfo = !empty($penjualan->voucher_kode)
+                    ? '<br><small class="text-warning"><i class="fa fa-ticket"></i> + Voucher ' . e($penjualan->voucher_kode)
+                        . ': -Rp. ' . format_uang($penjualan->voucher_potongan) . '</small>'
+                    : '';
+
                 // Jika transaksi BPJS, tampilkan harga BPJS default
                 if ($penjualan->pasien && in_array($penjualan->pasien->service_type, ['BPJS I', 'BPJS II', 'BPJS III'])) {
                     $bpjsPrice = 0;
@@ -426,13 +432,15 @@ class PenjualanController extends Controller
 
                     if ($manualAdditional > 0) {
                         return '<span class="label label-info" title="BPJS: ' . $penjualan->pasien->service_type . '">Rp. '. format_uang($finalBpjsAmount) . '</span>'
-                            . '<br><small class="text-warning">Tambahan: Rp. ' . format_uang($manualAdditional) . '</small>';
+                            . '<br><small class="text-warning">Tambahan: Rp. ' . format_uang($manualAdditional) . '</small>'
+                            . $voucherInfo;
                     }
 
-                    return '<span class="label label-info" title="BPJS: ' . $penjualan->pasien->service_type . '">Rp. '. format_uang($finalBpjsAmount) . '</span>';
+                    return '<span class="label label-info" title="BPJS: ' . $penjualan->pasien->service_type . '">Rp. '. format_uang($finalBpjsAmount) . '</span>'
+                        . $voucherInfo;
                 }
                 // Untuk transaksi umum, tampilkan total normal
-                return '<span class="text-success">Rp. '. format_uang($penjualan->total) . '</span>';
+                return '<span class="text-success">Rp. '. format_uang($penjualan->total) . '</span>' . $voucherInfo;
             })
 
             ->addColumn('passet_by', function ($penjualan) {
@@ -476,18 +484,21 @@ class PenjualanController extends Controller
 
                 if ($metode === 'transfer') {
                     $label = 'Transfer' . ($bank !== '' ? ' - ' . $bank : '');
-                    return '<span class="label label-info">' . e($label) . '</span>';
+                    $html = '<span class="label label-info">' . e($label) . '</span>';
+                } elseif ($metode === 'qris') {
+                    $html = '<span class="label label-primary">QRIS</span>';
+                } elseif ($metode === 'cash') {
+                    $html = '<span class="label label-success">Cash</span>';
+                } else {
+                    $html = '<span class="label label-default">-</span>';
                 }
 
-                if ($metode === 'qris') {
-                    return '<span class="label label-primary">QRIS</span>';
+                if (!empty($penjualan->voucher_kode)) {
+                    $html .= ' + <span class="label label-warning" title="Voucher ' . e($penjualan->voucher_kode) . '">'
+                        . '<i class="fa fa-ticket"></i> Voucher</span>';
                 }
 
-                if ($metode === 'cash') {
-                    return '<span class="label label-success">Cash</span>';
-                }
-
-                return '<span class="label label-default">-</span>';
+                return $html;
             })
             ->addColumn('status_pembayaran', function ($penjualan) {
                 $serviceType = strtoupper((string) ($penjualan->pasien_service_type ?? ($penjualan->pasien->service_type ?? '')));
@@ -886,6 +897,7 @@ class PenjualanController extends Controller
             'bpjs_manual_additional_cost' => 'nullable|numeric|min:0',
             'photo_bpjs' => 'nullable|image|max:3072',
             'photo_bpjs_webcam' => 'nullable|string',
+            'voucher_kode' => 'nullable|string|max:100',
         ];
 
         if ($hasMetodePembayaranColumn) {
@@ -899,6 +911,9 @@ class PenjualanController extends Controller
         if ($hasJenisTransaksiColumn) {
             $rules['jenis_transaksi'] = 'required|in:Stock,Gosok';
         }
+
+        $hasVoucherColumn = $this->hasTableColumn('penjualan', 'voucher_id');
+        $voucherKode = strtoupper(trim((string) $request->input('voucher_kode', '')));
 
         // Validasi kondisional untuk pasien
         if ($request->filled('pasien_id')) {
@@ -916,7 +931,27 @@ class PenjualanController extends Controller
 
         DB::beginTransaction();
         try {
-            
+            // Kunci baris voucher agar tidak bisa dipakai dua transaksi sekaligus.
+            $voucher = null;
+            if ($hasVoucherColumn && $voucherKode !== '') {
+                $voucher = Voucher::where('kode', $voucherKode)->lockForUpdate()->first();
+                $voucherError = null;
+
+                if (!$voucher) {
+                    $voucherError = 'Voucher ' . $voucherKode . ' tidak ditemukan.';
+                } else {
+                    $voucherStatus = $voucher->statusInfo();
+                    if (!$voucherStatus['valid']) {
+                        $voucherError = 'Voucher ' . $voucherKode . ' tidak bisa dipakai: ' . $voucherStatus['label'] . '.';
+                    }
+                }
+
+                if ($voucherError) {
+                    DB::rollBack();
+                    return response()->json(['success' => false, 'message' => $voucherError], 422);
+                }
+            }
+
             $kekurangan = $request->kekurangan;
             $status = $kekurangan <= 0 ? 'Lunas' : 'Belum Lunas';
             $transactionStatus = 'Normal'; // Default status
@@ -1207,22 +1242,35 @@ class PenjualanController extends Controller
                 $transactionStatus = $this->resolveBpjsTransactionStatus($totalAdditionalCost, $bpjsManualAdditionalCost);
             }
 
+            $isBpjsTransaction = $pasien && $this->isBpjsServiceType($pasien->service_type ?? null);
             $diskon = max(0, (float) $request->diskon);
+
+            // Potongan voucher dihitung dari total belanja sebelum diskon, lalu digabung ke diskon.
+            $voucherPotongan = 0;
+            if ($voucher) {
+                $totalBelanja = $isBpjsTransaction
+                    ? $this->calculateBpjsPatientPayableTotal($totalAdditionalCost + $bpjsManualAdditionalCost, $bpjsAksesorisSaleTotal)
+                    : $calculatedTotal;
+                $voucherPotongan = $voucher->hitungPotongan($totalBelanja, $diskon);
+                $diskon += $voucherPotongan;
+            }
+
             $discountOnAdditionalCost = min($diskon, $totalAdditionalCost);
             $totalAdditionalCost = max(0, $totalAdditionalCost - $discountOnAdditionalCost);
             $remainingDiscount = max(0, $diskon - $discountOnAdditionalCost);
             $discountOnManualCost = min($remainingDiscount, $bpjsManualAdditionalCost);
             $bpjsManualAdditionalCost = max(0, $bpjsManualAdditionalCost - $discountOnManualCost);
             $remainingDiscount = max(0, $remainingDiscount - $discountOnManualCost);
-            if ($pasien && $this->isBpjsServiceType($pasien->service_type ?? null)) {
+            if ($isBpjsTransaction) {
                 $penjualan->details()->update(['additional_cost' => 0]);
                 if ($firstFrameDetailId && $totalAdditionalCost > 0) {
                     $penjualan->details()->where('id', $firstFrameDetailId)->update(['additional_cost' => $totalAdditionalCost]);
                 }
             }
             $transactionStatus = $this->resolveBpjsTransactionStatus($totalAdditionalCost, $bpjsManualAdditionalCost);
-            $finalTotal = ($pasien && $this->isBpjsServiceType($pasien->service_type ?? null))
-                ? $this->calculateBpjsPatientPayableTotal($totalAdditionalCost + $bpjsManualAdditionalCost, $bpjsAksesorisSaleTotal)
+            // Sisa diskon setelah biaya tambahan ikut memotong aksesoris (sama seperti hitungan di form).
+            $finalTotal = $isBpjsTransaction
+                ? $this->calculateBpjsPatientPayableTotal($totalAdditionalCost + $bpjsManualAdditionalCost, $bpjsAksesorisSaleTotal, $remainingDiscount)
                 : max(0, $calculatedTotal - $diskon);
             $bayar = max(0, (float) $request->bayar);
             $kekurangan = $finalTotal - $bayar;
@@ -1241,12 +1289,31 @@ class PenjualanController extends Controller
             if ($hasBpjsManualAdditionalColumn) {
                 $updateData['bpjs_manual_additional_cost'] = $bpjsManualAdditionalCost;
             }
+            if ($voucher && $voucherPotongan > 0) {
+                $updateData['voucher_id'] = $voucher->id;
+                $updateData['voucher_kode'] = $voucher->kode;
+                $updateData['voucher_potongan'] = $voucherPotongan;
+
+                // Voucher uang: potong saldonya (baris voucher sudah dikunci di awal transaksi).
+                if (!$voucher->isDiskon()) {
+                    $voucher->catatSaldo('pakai', $voucherPotongan, auth()->id(), $penjualan->id, 'Transaksi ' . $penjualan->kode_penjualan);
+                }
+            } else {
+                $voucher = null;
+            }
             $penjualan->update($updateData);
 
             DB::commit();
+
+            $voucherMessage = '';
+            if ($voucher) {
+                $voucherMessage = ' Voucher ' . $voucher->kode . ' dipakai (potongan Rp ' . number_format($voucherPotongan, 0, ',', '.') . ')'
+                    . ($voucher->isDiskon() ? '.' : ', sisa saldo Rp ' . number_format((float) $voucher->saldo, 0, ',', '.') . '.');
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Transaksi berhasil disimpan',
+                'message' => 'Transaksi berhasil disimpan.' . $voucherMessage,
                 'redirect_url' => route('penjualan.show', $penjualan->id)
             ]);
 
@@ -1694,7 +1761,7 @@ class PenjualanController extends Controller
             }
 
             $finalTotal = $isBpjs
-                ? $this->calculateBpjsPatientPayableTotal($totalAdditionalCost + $bpjsManualAdditionalCost, $bpjsAksesorisSaleTotal)
+                ? $this->calculateBpjsPatientPayableTotal($totalAdditionalCost + $bpjsManualAdditionalCost, $bpjsAksesorisSaleTotal, $remainingDiscount)
                 : max(0, $calculatedTotal - $diskon);
             $bayar = (float) $request->bayar;
             $kekurangan = $finalTotal - $bayar;
@@ -2218,6 +2285,20 @@ class PenjualanController extends Controller
                         'itemable_id' => $detail->itemable_id,
                         'qty_restored' => (int) $detail->quantity,
                     ];
+                }
+            }
+
+            // Kembalikan saldo voucher uang yang dipakai transaksi ini.
+            if (!empty($penjualan->voucher_id) && (float) $penjualan->voucher_potongan > 0) {
+                $voucher = Voucher::whereKey($penjualan->voucher_id)->lockForUpdate()->first();
+                if ($voucher && !$voucher->isDiskon()) {
+                    $voucher->catatSaldo(
+                        'kembali',
+                        (float) $penjualan->voucher_potongan,
+                        $user->id,
+                        null,
+                        'Transaksi ' . $penjualan->kode_penjualan . ' dihapus'
+                    );
                 }
             }
 

@@ -176,8 +176,15 @@ Route::middleware([
     Route::post('/kwitansi/print', [KwitansiController::class, 'print'])->name('kwitansi.print')->middleware('role:kasir,admin,super admin');
     Route::get('/kwitansi-kacamata', [KwitansiController::class, 'createKacamata'])->name('kwitansi-kacamata.create')->middleware('role:kasir,admin,super admin');
     Route::post('/kwitansi-kacamata/print', [KwitansiController::class, 'printKacamata'])->name('kwitansi-kacamata.print')->middleware('role:kasir,admin,super admin');
-    Route::get('/voucher/{voucher}/print', [VoucherController::class, 'print'])->name('voucher.print')->middleware('role:kasir,admin,super admin');
-    Route::resource('/voucher', VoucherController::class)->middleware('role:kasir,admin,super admin')->except(['show']);
+    // Dipakai juga di form penjualan, jadi terbuka untuk semua user yang login.
+    Route::get('/voucher/check', [VoucherController::class, 'check'])->name('voucher.check');
+    // Kasir hanya bisa melihat daftar; buat, edit, hapus, cetak & tambah saldo khusus admin/super admin.
+    Route::get('/voucher', [VoucherController::class, 'index'])->name('voucher.index')->middleware('role:kasir,admin,super admin');
+    Route::middleware('role:admin,super admin')->group(function () {
+        Route::get('/voucher/{voucher}/print', [VoucherController::class, 'print'])->name('voucher.print');
+        Route::post('/voucher/{voucher}/saldo', [VoucherController::class, 'tambahSaldo'])->name('voucher.saldo');
+        Route::resource('/voucher', VoucherController::class)->except(['index', 'show']);
+    });
 
     Route::post('/penjualan/test-bpjs-pricing', [PenjualanController::class, 'testBpjsPricing'])->name('penjualan.test_bpjs_pricing');
     Route::post('/penjualan/debug-frame-data', [PenjualanController::class, 'debugFrameData'])->name('penjualan.debug_frame_data');

@@ -8,6 +8,84 @@
 @endsection
 
 @section('content')
+@if ($canManage)
+<div class="row">
+    <div class="col-md-12">
+        <div class="box box-success">
+            <div class="box-header with-border">
+                <h3 class="box-title"><i class="fa fa-money"></i> Dana Voucher</h3>
+                <div class="box-tools pull-right">
+                    <button type="button" class="btn btn-success btn-sm btn-dana" data-jenis="isi">
+                        <i class="fa fa-plus"></i> Isi Dana
+                    </button>
+                    <button type="button" class="btn btn-default btn-sm btn-dana" data-jenis="tarik">
+                        <i class="fa fa-minus"></i> Tarik Dana
+                    </button>
+                </div>
+            </div>
+            <div class="box-body">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="info-box" style="margin-bottom:10px;">
+                            <span class="info-box-icon bg-green"><i class="fa fa-money"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Dana Tersedia</span>
+                                <span class="info-box-number" style="font-size:22px;">{{ $dana->saldoLabel() }}</span>
+                                <small class="text-muted">Siap dipakai untuk voucher uang baru / tambah saldo</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="info-box" style="margin-bottom:10px;">
+                            <span class="info-box-icon bg-aqua"><i class="fa fa-ticket"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Saldo di Voucher</span>
+                                <span class="info-box-number" style="font-size:22px;">Rp {{ number_format($saldoBeredar, 0, ',', '.') }}</span>
+                                <small class="text-muted">Total saldo voucher uang yang belum dipakai</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <a href="#danaRiwayat" data-toggle="collapse"><i class="fa fa-history"></i> Riwayat dana (10 terakhir)</a>
+                <div id="danaRiwayat" class="collapse" style="margin-top:8px;">
+                    <div class="table-responsive">
+                        <table class="table table-condensed table-bordered" style="margin-bottom:0;">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Jenis</th>
+                                    <th class="text-right">Jumlah</th>
+                                    <th class="text-right">Sisa Dana</th>
+                                    <th>Voucher</th>
+                                    <th>Keterangan</th>
+                                    <th>Oleh</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($danaLogs as $log)
+                                    <tr>
+                                        <td>{{ $log->created_at ? $log->created_at->format('d-m-Y H:i') : '-' }}</td>
+                                        <td>{{ \App\Models\VoucherDanaLog::JENIS_LABEL[$log->jenis] ?? $log->jenis }}</td>
+                                        <td class="text-right {{ $log->isMasuk() ? 'text-success' : 'text-danger' }}">
+                                            {{ $log->isMasuk() ? '+' : '-' }}Rp {{ number_format($log->jumlah, 0, ',', '.') }}
+                                        </td>
+                                        <td class="text-right">Rp {{ number_format($log->saldo_sesudah, 0, ',', '.') }}</td>
+                                        <td>{{ $log->voucher_kode ?: '-' }}</td>
+                                        <td>{{ $log->keterangan ?: '-' }}</td>
+                                        <td>{{ optional($log->user)->name ?: '-' }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="7" class="text-center text-muted">Belum ada riwayat dana.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 <div class="row">
     <div class="col-md-12">
         <div class="box box-primary">
@@ -64,16 +142,23 @@
                                 @endphp
                                 <tr>
                                     <td>{{ $vouchers->firstItem() + $index }}</td>
-                                    <td><strong>{{ $voucher->kode }}</strong></td>
+                                    <td>
+                                        <strong>{{ $voucher->kode }}</strong>
+                                        @if ($voucher->batch_kode)
+                                            <br><small class="text-muted">Batch {{ $voucher->batch_kode }}</small>
+                                        @endif
+                                    </td>
                                     <td>{{ $voucher->nominalLabel() }}</td>
                                     <td style="white-space: nowrap;">
                                         @if ($voucher->isDiskon())
                                             <span class="text-muted">-</span>
+                                        @elseif ($voucher->penjualans_count > 0)
+                                            <span class="text-muted">Rp 0</span>
+                                            @if ((float) $voucher->saldo > 0)
+                                                <br><small class="text-muted">Sisa {{ $voucher->saldoLabel() }} hangus</small>
+                                            @endif
                                         @else
                                             <strong class="{{ (float) $voucher->saldo > 0 ? 'text-success' : 'text-danger' }}">{{ $voucher->saldoLabel() }}</strong>
-                                        @endif
-                                        @if ($voucher->penjualans_count > 0)
-                                            <br><small class="text-muted">Dipakai {{ $voucher->penjualans_count }}x</small>
                                         @endif
                                     </td>
                                     <td>
@@ -87,7 +172,7 @@
                                     <td>{{ $voucher->created_at ? $voucher->created_at->format('d-m-Y H:i') : '-' }}</td>
                                     @if ($canManage)
                                         <td style="white-space: nowrap;">
-                                            @unless ($voucher->isDiskon())
+                                            @unless ($voucher->isDiskon() || $voucher->penjualans_count > 0)
                                                 <button type="button" class="btn btn-xs btn-warning btn-tambah-saldo" title="Tambah saldo"
                                                     data-url="{{ route('voucher.saldo', $voucher) }}"
                                                     data-kode="{{ $voucher->kode }}"
@@ -95,10 +180,10 @@
                                                     <i class="fa fa-plus-circle"></i> Saldo
                                                 </button>
                                             @endunless
-                                            <form action="{{ route('voucher.print', $voucher) }}" method="GET" target="_blank" style="display:inline-flex; align-items:center; gap:3px; margin-right:3px;">
-                                                <input type="number" name="copies" value="1" min="1" max="50" class="form-control input-sm" style="width:58px;" title="Jumlah voucher">
-                                                <button type="submit" class="btn btn-xs btn-success" title="Cetak voucher"><i class="fa fa-print"></i></button>
-                                            </form>
+                                            <a href="{{ route('voucher.print', $voucher) }}" target="_blank" class="btn btn-xs btn-success" title="Cetak voucher ini"><i class="fa fa-print"></i></a>
+                                            @if ($voucher->batch_kode)
+                                                <a href="{{ route('voucher.print', ['voucher' => $voucher, 'semua' => 1]) }}" target="_blank" class="btn btn-xs btn-success" title="Cetak semua voucher batch {{ $voucher->batch_kode }}"><i class="fa fa-print"></i> Semua</a>
+                                            @endif
                                             <a href="{{ route('voucher.edit', $voucher) }}" class="btn btn-xs btn-info" title="Edit"><i class="fa fa-pencil"></i></a>
                                             <form action="{{ route('voucher.destroy', $voucher) }}" method="POST" style="display:inline;" onsubmit="return confirm('Hapus voucher ini?');">
                                                 @csrf
@@ -168,11 +253,12 @@
             <div class="modal-body">
                 <p style="margin-bottom:10px;">
                     Voucher <strong id="tambahSaldoKode"></strong><br>
-                    Saldo sekarang: <strong id="tambahSaldoSekarang"></strong>
+                    Saldo sekarang: <strong id="tambahSaldoSekarang"></strong><br>
+                    <small class="text-muted">Diambil dari dana voucher (tersedia {{ $dana->saldoLabel() }})</small>
                 </p>
                 <div class="form-group">
                     <label for="tambahSaldoJumlah">Jumlah Tambahan (Rp) <span class="text-danger">*</span></label>
-                    <input type="number" name="jumlah" id="tambahSaldoJumlah" class="form-control" min="1" step="1000" required>
+                    <input type="number" name="jumlah" id="tambahSaldoJumlah" class="form-control" min="1" step="1" required>
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label for="tambahSaldoKeterangan">Keterangan</label>
@@ -182,6 +268,34 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
                 <button type="submit" class="btn btn-warning"><i class="fa fa-save"></i> Tambah</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="danaModal" tabindex="-1" role="dialog" aria-labelledby="danaTitle">
+    <div class="modal-dialog modal-sm" role="document">
+        <form method="POST" action="{{ route('voucher.dana') }}" class="modal-content">
+            @csrf
+            <input type="hidden" name="jenis" id="danaJenis" value="isi">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="danaTitle">Isi Dana Voucher</h4>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom:10px;">Dana tersedia: <strong>{{ $dana->saldoLabel() }}</strong></p>
+                <div class="form-group">
+                    <label for="danaJumlah">Jumlah (Rp) <span class="text-danger">*</span></label>
+                    <input type="number" name="jumlah" id="danaJumlah" class="form-control" min="1" step="1" required>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label for="danaKeterangan">Keterangan</label>
+                    <input type="text" name="keterangan" id="danaKeterangan" class="form-control" maxlength="255" placeholder="Opsional, mis. anggaran promo Oktober">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-success" id="danaSubmit"><i class="fa fa-save"></i> Simpan</button>
             </div>
         </form>
     </div>
@@ -361,6 +475,19 @@
 
             $('#tambahSaldoModal').on('shown.bs.modal', function () {
                 $('#tambahSaldoJumlah').focus();
+            });
+
+            $(document).on('click', '.btn-dana', function () {
+                const isi = $(this).data('jenis') === 'isi';
+                $('#danaJenis').val(isi ? 'isi' : 'tarik');
+                $('#danaTitle').text(isi ? 'Isi Dana Voucher' : 'Tarik Dana Voucher');
+                $('#danaSubmit').toggleClass('btn-success', isi).toggleClass('btn-danger', !isi);
+                $('#danaJumlah, #danaKeterangan').val('');
+                $('#danaModal').modal('show');
+            });
+
+            $('#danaModal').on('shown.bs.modal', function () {
+                $('#danaJumlah').focus();
             });
         });
     </script>

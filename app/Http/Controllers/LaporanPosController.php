@@ -123,6 +123,12 @@ class LaporanPosController extends Controller
 
         $omsetBulanan = $omsetBulananBpjs + $omsetBulananUmum + $totalTambahanBpjsBulanan;
 
+        // Voucher yang dipakai di transaksi (sudah memotong total/omset di atas).
+        $voucherHarian = (float) $transaksiHarian->sum('voucher_potongan');
+        $voucherBulanan = (float) $transaksiBulanan->sum('voucher_potongan');
+        $voucherBulananTrx = $transaksiBulanan->filter(fn($trx) => (float) $trx->voucher_potongan > 0)->count();
+        $danaVoucher = (float) \App\Models\VoucherDana::utama()->saldo;
+
         // Omset per layanan
         $layananList = ['BPJS I', 'BPJS II', 'BPJS III', 'Umum'];
         $omsetLayanan = [];
@@ -299,6 +305,7 @@ class LaporanPosController extends Controller
             'omsetHarianBpjs', 'omsetHarianUmum',
             'omsetBulananBpjs', 'omsetBulananUmum',
             'totalTambahanBpjsHarian', 'totalTambahanBpjsBulanan',
+            'voucherHarian', 'voucherBulanan', 'voucherBulananTrx', 'danaVoucher',
             'aksesorisHarian', 'aksesorisBulanan',
             'labaKotorAksesorisHarian', 'labaKotorAksesorisBulanan',
             'detailAksesorisHarian', 'detailAksesorisBulanan'
@@ -379,6 +386,8 @@ class LaporanPosController extends Controller
             'omset_bulanan_bpjs' => $omsetBulananBpjs,
             'total_tambahan_bpjs_bulanan' => $totalTambahanBpjsBulanan,
             'omset_bulanan_umum' => $omsetBulananUmum,
+            'voucher_harian' => (float) $transaksiHarian->sum('voucher_potongan'),
+            'voucher_bulanan' => (float) $transaksiBulanan->sum('voucher_potongan'),
             'piutang' => Penjualan::where('branch_id', $branchId)
                 ->where('status', 'Belum Lunas')
                 ->sum('kekurangan'),

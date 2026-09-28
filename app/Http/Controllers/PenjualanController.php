@@ -1308,7 +1308,9 @@ class PenjualanController extends Controller
             $voucherMessage = '';
             if ($voucher) {
                 $voucherMessage = ' Voucher ' . $voucher->kode . ' dipakai (potongan Rp ' . number_format($voucherPotongan, 0, ',', '.') . ')'
-                    . ($voucher->isDiskon() ? '.' : ', sisa saldo Rp ' . number_format((float) $voucher->saldo, 0, ',', '.') . '.');
+                    . (!$voucher->isDiskon() && (float) $voucher->saldo > 0
+                        ? ', sisa Rp ' . number_format((float) $voucher->saldo, 0, ',', '.') . ' hangus (voucher sekali pakai).'
+                        : '.');
             }
 
             return response()->json([

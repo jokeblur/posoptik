@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Voucher extends Model
 {
@@ -11,10 +12,13 @@ class Voucher extends Model
 
     protected $fillable = [
         'kode',
+        'batch_kode',
         'jenis_nominal',
         'nominal',
         'saldo',
         'syarat_ketentuan',
+        'desain_depan',
+        'desain_belakang',
         'berlaku_mulai',
         'berlaku_sampai',
         'aktif',
@@ -49,6 +53,22 @@ class Voucher extends Model
         return ($this->jenis_nominal ?? 'uang') === 'diskon';
     }
 
+    /**
+     * Gambar desain (sisi 'depan' / 'belakang') sebagai data URI untuk cetak & preview;
+     * null bila tidak ada. Disajikan inline karena disk public tidak di-link ke /storage.
+     */
+    public function desainDataUri(string $sisi): ?string
+    {
+        $path = $sisi === 'belakang' ? $this->desain_belakang : $this->desain_depan;
+        $disk = Storage::disk('public');
+
+        if (!$path || !$disk->exists($path)) {
+            return null;
+        }
+
+        return 'data:' . ($disk->mimeType($path) ?: 'image/png') . ';base64,' . base64_encode($disk->get($path));
+    }
+
     public function jumlahPemakaian(): int
     {
         if (array_key_exists('penjualans_count', $this->attributes)) {
@@ -60,11 +80,12 @@ class Voucher extends Model
 
     /**
      * Status pemakaian voucher: key, label, dan apakah bisa dipakai di penjualan.
-     * Voucher uang bisa dipakai berkali-kali selama saldo masih ada; voucher diskon sekali pakai.
+     * Semua voucher hanya bisa dipakai sekali; sisa saldo voucher uang hangus setelah dipakai
+     * (kembali bisa dipakai bila transaksinya dihapus).
      */
     public function statusInfo(): array
     {
-        if ($this->isDiskon() && $this->jumlahPemakaian() > 0) {
+        if ($this->jumlahPemakaian() > 0) {
             return ['key' => 'terpakai', 'label' => 'Sudah Dipakai', 'valid' => false];
         }
         if (!$this->isDiskon() && (float) $this->saldo <= 0) {
@@ -116,7 +137,7 @@ class Voucher extends Model
     public function catatSaldo(string $jenis, float $jumlah, ?int $userId = null, ?int $penjualanId = null, ?string $keterangan = null): VoucherSaldoLog
     {
         $jumlah = round(max(0, $jumlah), 2);
-        $this->saldo = $jenis === 'pakai'
+        $this->saldo = in_array($jenis, ['pakai', 'kurang'], true)
             ? max(0, (float) $this->saldo - $jumlah)
             : (float) $this->saldo + $jumlah;
         $this->save();

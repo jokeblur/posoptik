@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Voucher;
+use App\Models\VoucherDana;
+use App\Models\VoucherDanaLog;
 use App\Models\VoucherSaldoLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use RuntimeException;
 
 class VoucherController extends Controller
 {
@@ -15,44 +19,112 @@ class VoucherController extends Controller
         $vouchers = Voucher::with('creator')->withCount('penjualans')->latest()->paginate(20);
         $user = auth()->user();
         $canManage = $user->isAdmin() || $user->isSuperAdmin();
+        $dana = VoucherDana::utama();
+        $danaLogs = VoucherDanaLog::with('user:id,name')->latest('id')->limit(10)->get();
+        // Hanya voucher uang yang belum dipakai; sisa saldo voucher terpakai sudah hangus.
+        $saldoBeredar = (float) Voucher::where('jenis_nominal', '!=', 'diskon')->doesntHave('penjualans')->sum('saldo');
 
-        return view('voucher.index', compact('vouchers', 'canManage'));
+        return view('voucher.index', compact('vouchers', 'canManage', 'dana', 'danaLogs', 'saldoBeredar'));
     }
 
     public function create()
     {
-        return view('voucher.form', ['voucher' => new Voucher()]);
+        return view('voucher.form', ['voucher' => new Voucher(), 'dana' => VoucherDana::utama()]);
     }
 
     public function store(Request $request)
     {
-        DB::transaction(function () use ($request) {
-            $data = $this->validatedData($request);
-            $voucher = Voucher::create($data + ['saldo' => 0, 'created_by' => auth()->id()]);
+        $data = $this->validatedData($request);
+        $request->validate([
+            'jumlah_voucher' => 'nullable|integer|min:1|max:100',
+        ], [], ['jumlah_voucher' => 'jumlah voucher']);
+        $jumlah = max(1, (int) $request->input('jumlah_voucher', 1));
 
-            if (!$voucher->isDiskon() && (float) $voucher->nominal > 0) {
-                $voucher->catatSaldo('tambah', (float) $voucher->nominal, auth()->id(), null, 'Saldo awal');
+        // Lebih dari satu: tiap voucher dapat kode unik KODE-001, KODE-002, ... (satu batch),
+        // jadi satu kode hanya untuk satu orang.
+        $kodeList = [$data['kode']];
+        if ($jumlah > 1) {
+            if (strlen($data['kode']) > 95) {
+                return back()->withInput()->withErrors(['kode' => 'Kode voucher maksimal 95 karakter bila membuat lebih dari satu voucher.']);
             }
-        });
+            $data['batch_kode'] = $data['kode'];
+            $kodeList = $this->kodeBaruBatch($data['kode'], $jumlah);
+        }
 
-        return redirect()->route('voucher.index')->with('success', 'Voucher berhasil dibuat.');
+        // Desain dipakai bersama oleh semua voucher dalam batch.
+        $desainBaru = $this->simpanDesain($request);
+        $data = $desainBaru + $data;
+
+        try {
+            DB::transaction(function () use ($data, $kodeList) {
+                $dana = VoucherDana::utama(true);
+
+                foreach ($kodeList as $kode) {
+                    $voucher = Voucher::create(['kode' => $kode] + $data + ['saldo' => 0, 'created_by' => auth()->id()]);
+
+                    // Saldo awal voucher uang diambil dari dana voucher.
+                    if (!$voucher->isDiskon() && (float) $voucher->nominal > 0) {
+                        $dana->catat('ambil', (float) $voucher->nominal, auth()->id(), $voucher, 'Saldo awal voucher');
+                        $voucher->catatSaldo('tambah', (float) $voucher->nominal, auth()->id(), null, 'Saldo awal');
+                    }
+                }
+            });
+        } catch (RuntimeException $e) {
+            Storage::disk('public')->delete(array_values($desainBaru));
+
+            return back()->withInput()->withErrors(['nominal' => $e->getMessage()]);
+        }
+
+        return redirect()->route('voucher.index')->with(
+            'success',
+            $jumlah > 1
+                ? $jumlah . ' voucher berhasil dibuat (' . $kodeList[0] . ' s/d ' . end($kodeList) . ').'
+                : 'Voucher berhasil dibuat.'
+        );
+    }
+
+    /**
+     * Kode unik dalam batch: BATCH-001, BATCH-002, ... (melewati kode yang sudah ada).
+     */
+    private function kodeBaruBatch(string $batch, int $jumlah): array
+    {
+        $sudahAda = Voucher::where('kode', 'like', str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $batch) . '-%')
+            ->pluck('kode')
+            ->flip();
+
+        $kodeList = [];
+        for ($n = 1; count($kodeList) < $jumlah; $n++) {
+            $kode = $batch . '-' . str_pad((string) $n, 3, '0', STR_PAD_LEFT);
+            if (!isset($sudahAda[$kode])) {
+                $kodeList[] = $kode;
+            }
+        }
+
+        return $kodeList;
     }
 
     public function edit(Voucher $voucher)
     {
-        return view('voucher.form', compact('voucher'));
+        return view('voucher.form', ['voucher' => $voucher, 'dana' => VoucherDana::utama()]);
     }
 
     public function print(Request $request, Voucher $voucher)
     {
         $validated = $request->validate([
-            'copies' => 'required|integer|min:1|max:50',
+            'semua' => 'nullable|boolean',
             'side' => 'nullable|in:front,back',
         ]);
+        $semua = $request->boolean('semua') && $voucher->batch_kode;
+
+        // Tiap kartu = satu voucher dengan kodenya sendiri (voucher sekali pakai, jadi tidak dicetak ganda).
+        $vouchers = $semua
+            ? Voucher::where('batch_kode', $voucher->batch_kode)->orderBy('kode')->get()
+            : collect([$voucher]);
 
         return view('voucher.print', [
             'voucher' => $voucher,
-            'copies' => (int) $validated['copies'],
+            'vouchers' => $vouchers,
+            'semua' => (bool) $semua,
             'side' => $validated['side'] ?? 'front',
         ]);
     }
@@ -67,15 +139,58 @@ class VoucherController extends Controller
         if ($voucher->isDiskon()) {
             return back()->withErrors(['jumlah' => 'Voucher diskon (%) tidak memiliki saldo.']);
         }
+        if ($voucher->jumlahPemakaian() > 0) {
+            return back()->withErrors(['jumlah' => 'Voucher ' . $voucher->kode . ' sudah dipakai dan tidak bisa diisi lagi.']);
+        }
 
-        DB::transaction(function () use ($voucher, $validated) {
-            $locked = Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail();
-            $locked->catatSaldo('tambah', (float) $validated['jumlah'], auth()->id(), null, $validated['keterangan'] ?? null);
-        });
+        try {
+            DB::transaction(function () use ($voucher, $validated) {
+                $dana = VoucherDana::utama(true);
+                $locked = Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail();
+                $dana->catat('ambil', (float) $validated['jumlah'], auth()->id(), $locked, $validated['keterangan'] ?? 'Tambah saldo voucher');
+                $locked->catatSaldo('tambah', (float) $validated['jumlah'], auth()->id(), null, $validated['keterangan'] ?? null);
+                // Voucher belum dipakai: nominal (yang tercetak) ikut saldo.
+                $locked->update(['nominal' => $locked->saldo]);
+            });
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['jumlah' => $e->getMessage()]);
+        }
 
         return redirect()->route('voucher.index')->with(
             'success',
             'Saldo voucher ' . $voucher->kode . ' ditambah Rp ' . number_format((float) $validated['jumlah'], 0, ',', '.') . '.'
+        );
+    }
+
+    /**
+     * Isi atau tarik dana induk voucher.
+     */
+    public function dana(Request $request)
+    {
+        $validated = $request->validate([
+            'jenis' => 'required|in:isi,tarik',
+            'jumlah' => 'required|numeric|min:1|max:1000000000',
+            'keterangan' => 'nullable|string|max:255',
+        ], [], ['jumlah' => 'jumlah dana']);
+
+        try {
+            DB::transaction(function () use ($validated) {
+                VoucherDana::utama(true)->catat(
+                    $validated['jenis'],
+                    (float) $validated['jumlah'],
+                    auth()->id(),
+                    null,
+                    $validated['keterangan'] ?? null
+                );
+            });
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['jumlah' => $e->getMessage()]);
+        }
+
+        return redirect()->route('voucher.index')->with(
+            'success',
+            'Dana voucher ' . ($validated['jenis'] === 'isi' ? 'ditambah' : 'ditarik')
+                . ' Rp ' . number_format((float) $validated['jumlah'], 0, ',', '.') . '.'
         );
     }
 
@@ -134,7 +249,7 @@ class VoucherController extends Controller
                     'tanggal' => $log->created_at ? $log->created_at->format('d-m-Y H:i') : '-',
                     'jenis' => $log->jenis,
                     'jenis_label' => VoucherSaldoLog::JENIS_LABEL[$log->jenis] ?? $log->jenis,
-                    'jumlah_label' => ($log->jenis === 'pakai' ? '-' : '+') . 'Rp ' . number_format($log->jumlah, 0, ',', '.'),
+                    'jumlah_label' => (in_array($log->jenis, ['pakai', 'kurang'], true) ? '-' : '+') . 'Rp ' . number_format($log->jumlah, 0, ',', '.'),
                     'saldo_label' => 'Rp ' . number_format($log->saldo_sesudah, 0, ',', '.'),
                     'keterangan' => $log->keterangan ?: (optional($log->penjualan)->kode_penjualan ?? '-'),
                     'oleh' => optional($log->user)->name ?: '-',
@@ -146,22 +261,114 @@ class VoucherController extends Controller
     public function update(Request $request, Voucher $voucher)
     {
         $data = $this->validatedData($request, $voucher);
+        $bisaEditSaldo = !$voucher->isDiskon() && $voucher->jumlahPemakaian() === 0;
+        $saldoBaru = null;
+        if ($bisaEditSaldo && $request->filled('saldo')) {
+            $saldoBaru = round((float) $request->validate([
+                'saldo' => 'numeric|min:0|max:1000000000',
+            ], [], ['saldo' => 'saldo voucher'])['saldo'], 2);
+        }
 
-        // Jenis & nilai terkunci setelah dibuat: saldo voucher uang diubah lewat "Tambah Saldo"
-        // agar riwayat saldonya tetap cocok. Persen voucher diskon boleh diubah selama belum dipakai.
+        // Jenis terkunci setelah dibuat. Nominal voucher uang mengikuti saldo yang diedit (voucher belum dipakai);
+        // persen voucher diskon boleh diubah selama belum dipakai.
         $data['jenis_nominal'] = $voucher->jenis_nominal ?? 'uang';
-        if (!$voucher->isDiskon() || $voucher->jumlahPemakaian() > 0) {
+        if ($saldoBaru !== null) {
+            $data['nominal'] = $saldoBaru;
+        } elseif (!$voucher->isDiskon() || $voucher->jumlahPemakaian() > 0) {
             $data['nominal'] = $voucher->nominal;
         }
 
-        $voucher->update($data);
+        // Desain baru / dihapus berlaku untuk voucher ini dan satu batch-nya.
+        $desainBaru = $this->simpanDesain($request);
+        $desainUbah = $desainBaru;
+        foreach (['desain_depan', 'desain_belakang'] as $kolom) {
+            if (!isset($desainUbah[$kolom]) && $request->boolean('hapus_' . $kolom)) {
+                $desainUbah[$kolom] = null;
+            }
+        }
+        $desainLama = array_filter(array_intersect_key($voucher->only(['desain_depan', 'desain_belakang']), $desainUbah));
+
+        try {
+            DB::transaction(function () use ($voucher, $data, $saldoBaru, $desainUbah) {
+                $dana = VoucherDana::utama(true);
+                $locked = Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail();
+                $locked->update($desainUbah + $data);
+
+                if ($desainUbah && $locked->batch_kode) {
+                    Voucher::where('batch_kode', $locked->batch_kode)->whereKeyNot($locked->id)->update($desainUbah);
+                }
+
+                // Saldo voucher uang yang belum dipakai boleh diedit: selisihnya diambil dari / kembali ke dana.
+                if ($saldoBaru !== null) {
+                    $selisih = round($saldoBaru - (float) $locked->saldo, 2);
+                    if ($selisih > 0) {
+                        $dana->catat('ambil', $selisih, auth()->id(), $locked, 'Edit saldo voucher');
+                        $locked->catatSaldo('tambah', $selisih, auth()->id(), null, 'Edit saldo');
+                    } elseif ($selisih < 0) {
+                        $locked->catatSaldo('kurang', -$selisih, auth()->id(), null, 'Edit saldo');
+                        $dana->catat('kembali', -$selisih, auth()->id(), $locked, 'Edit saldo voucher');
+                    }
+                }
+            });
+        } catch (RuntimeException $e) {
+            Storage::disk('public')->delete(array_values($desainBaru));
+
+            return back()->withInput()->withErrors(['saldo' => $e->getMessage()]);
+        }
+
+        $this->hapusDesainTakTerpakai(array_values($desainLama));
 
         return redirect()->route('voucher.index')->with('success', 'Voucher berhasil diperbarui.');
     }
 
+    /**
+     * Simpan file desain yang diunggah; mengembalikan [kolom => path] untuk sisi yang diunggah.
+     */
+    private function simpanDesain(Request $request): array
+    {
+        $request->validate([
+            'desain_depan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'desain_belakang' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ], [], ['desain_depan' => 'desain depan', 'desain_belakang' => 'desain belakang']);
+
+        $paths = [];
+        foreach (['desain_depan', 'desain_belakang'] as $kolom) {
+            if ($request->hasFile($kolom)) {
+                $paths[$kolom] = $request->file($kolom)->store('voucher-desain', 'public');
+            }
+        }
+
+        return $paths;
+    }
+
+    /**
+     * Hapus file desain yang sudah tidak dipakai voucher mana pun (desain bisa dipakai satu batch).
+     */
+    private function hapusDesainTakTerpakai(array $paths): void
+    {
+        foreach (array_unique(array_filter($paths)) as $path) {
+            $masihDipakai = Voucher::where('desain_depan', $path)->orWhere('desain_belakang', $path)->exists();
+            if (!$masihDipakai) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+    }
+
     public function destroy(Voucher $voucher)
     {
-        $voucher->delete();
+        DB::transaction(function () use ($voucher) {
+            $dana = VoucherDana::utama(true);
+            $locked = Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail();
+
+            // Sisa saldo voucher uang kembali ke dana voucher.
+            if (!$locked->isDiskon() && (float) $locked->saldo > 0) {
+                $dana->catat('kembali', (float) $locked->saldo, auth()->id(), $locked, 'Voucher dihapus');
+            }
+
+            $locked->delete();
+        });
+
+        $this->hapusDesainTakTerpakai([$voucher->desain_depan, $voucher->desain_belakang]);
 
         return redirect()->route('voucher.index')->with('success', 'Voucher berhasil dihapus.');
     }

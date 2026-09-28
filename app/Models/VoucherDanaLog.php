@@ -4,18 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class VoucherSaldoLog extends Model
+class VoucherDanaLog extends Model
 {
     public const JENIS_LABEL = [
-        'tambah' => 'Tambah Saldo',
-        'pakai' => 'Dipakai',
-        'kembali' => 'Dikembalikan',
-        'kurang' => 'Saldo Dikurangi',
+        'isi' => 'Isi Dana',
+        'tarik' => 'Tarik Dana',
+        'ambil' => 'Dipakai Voucher',
+        'kembali' => 'Kembali dari Voucher',
     ];
 
     protected $fillable = [
         'voucher_id',
-        'penjualan_id',
+        'voucher_kode',
         'user_id',
         'jenis',
         'jumlah',
@@ -28,14 +28,14 @@ class VoucherSaldoLog extends Model
         'saldo_sesudah' => 'float',
     ];
 
+    public function isMasuk(): bool
+    {
+        return in_array($this->jenis, ['isi', 'kembali'], true);
+    }
+
     public function voucher()
     {
         return $this->belongsTo(Voucher::class);
-    }
-
-    public function penjualan()
-    {
-        return $this->belongsTo(Penjualan::class);
     }
 
     public function user()

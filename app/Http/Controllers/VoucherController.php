@@ -358,19 +358,53 @@ class VoucherController extends Controller
     {
         DB::transaction(function () use ($voucher) {
             $dana = VoucherDana::utama(true);
-            $locked = Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail();
-
-            // Sisa saldo voucher uang kembali ke dana voucher.
-            if (!$locked->isDiskon() && (float) $locked->saldo > 0) {
-                $dana->catat('kembali', (float) $locked->saldo, auth()->id(), $locked, 'Voucher dihapus');
-            }
-
-            $locked->delete();
+            $this->hapusVoucher(Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail(), $dana);
         });
 
         $this->hapusDesainTakTerpakai([$voucher->desain_depan, $voucher->desain_belakang]);
 
         return redirect()->route('voucher.index')->with('success', 'Voucher berhasil dihapus.');
+    }
+
+    /**
+     * Hapus banyak voucher sekaligus (dipilih lewat checkbox di daftar voucher).
+     */
+    public function destroyBanyak(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+        ], ['ids.required' => 'Pilih minimal satu voucher untuk dihapus.']);
+
+        $desain = [];
+        $jumlah = DB::transaction(function () use ($validated, &$desain) {
+            $dana = VoucherDana::utama(true);
+            $vouchers = Voucher::whereIn('id', $validated['ids'])->lockForUpdate()->get();
+
+            foreach ($vouchers as $voucher) {
+                $desain[] = $voucher->desain_depan;
+                $desain[] = $voucher->desain_belakang;
+                $this->hapusVoucher($voucher, $dana);
+            }
+
+            return $vouchers->count();
+        });
+
+        $this->hapusDesainTakTerpakai($desain);
+
+        return redirect()->route('voucher.index')->with('success', $jumlah . ' voucher berhasil dihapus.');
+    }
+
+    /**
+     * Hapus satu voucher yang sudah dikunci; sisa saldo voucher uang kembali ke dana voucher.
+     */
+    private function hapusVoucher(Voucher $voucher, VoucherDana $dana): void
+    {
+        if (!$voucher->isDiskon() && (float) $voucher->saldo > 0) {
+            $dana->catat('kembali', (float) $voucher->saldo, auth()->id(), $voucher, 'Voucher dihapus');
+        }
+
+        $voucher->delete();
     }
 
     private function validatedData(Request $request, ?Voucher $voucher = null): array

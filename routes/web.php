@@ -181,6 +181,7 @@ Route::middleware([
     // Kasir hanya bisa melihat daftar; buat, edit, hapus, cetak, tambah saldo & kelola dana khusus admin/super admin.
     Route::get('/voucher', [VoucherController::class, 'index'])->name('voucher.index')->middleware('role:kasir,admin,super admin');
     Route::middleware('role:admin,super admin')->group(function () {
+        Route::delete('/voucher/hapus-banyak', [VoucherController::class, 'destroyBanyak'])->name('voucher.destroy-banyak');
         Route::post('/voucher/dana', [VoucherController::class, 'dana'])->name('voucher.dana');
         Route::get('/voucher/{voucher}/print', [VoucherController::class, 'print'])->name('voucher.print');
         Route::post('/voucher/{voucher}/saldo', [VoucherController::class, 'tambahSaldo'])->name('voucher.saldo');

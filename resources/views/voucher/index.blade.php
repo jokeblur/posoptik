@@ -109,10 +109,23 @@
                 @if ($errors->any())
                     <div class="alert alert-danger">{{ $errors->first() }}</div>
                 @endif
+                @if ($canManage)
+                    <form id="bulkDeleteForm" method="POST" action="{{ route('voucher.destroy-banyak') }}" style="margin-bottom:10px;">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" id="bulkDeleteBtn" class="btn btn-danger btn-sm" disabled>
+                            <i class="fa fa-trash"></i> Hapus Terpilih (<span id="bulkDeleteCount">0</span>)
+                        </button>
+                        <small class="text-muted" style="margin-left:6px;">Centang voucher yang mau dihapus. Sisa saldo voucher uang kembali ke dana voucher.</small>
+                    </form>
+                @endif
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped">
                         <thead>
                             <tr>
+                                @if ($canManage)
+                                    <th style="width:30px;"><input type="checkbox" id="bulkCheckAll" title="Pilih semua di halaman ini"></th>
+                                @endif
                                 <th>No</th>
                                 <th>Kode Voucher</th>
                                 <th>Nominal</th>
@@ -141,6 +154,9 @@
                                     ][$status['key']] ?? 'default';
                                 @endphp
                                 <tr>
+                                    @if ($canManage)
+                                        <td><input type="checkbox" name="ids[]" value="{{ $voucher->id }}" form="bulkDeleteForm" class="bulk-check"></td>
+                                    @endif
                                     <td>{{ $vouchers->firstItem() + $index }}</td>
                                     <td>
                                         <strong>{{ $voucher->kode }}</strong>
@@ -194,7 +210,7 @@
                                     @endif
                                 </tr>
                             @empty
-                                <tr><td colspan="{{ $canManage ? 10 : 9 }}" class="text-center">Belum ada voucher.</td></tr>
+                                <tr><td colspan="{{ $canManage ? 11 : 9 }}" class="text-center">Belum ada voucher.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -475,6 +491,24 @@
 
             $('#tambahSaldoModal').on('shown.bs.modal', function () {
                 $('#tambahSaldoJumlah').focus();
+            });
+
+            // Pilih banyak voucher untuk dihapus sekaligus.
+            const $bulkChecks = $('.bulk-check');
+            function updateBulk() {
+                const n = $bulkChecks.filter(':checked').length;
+                $('#bulkDeleteCount').text(n);
+                $('#bulkDeleteBtn').prop('disabled', n === 0);
+                $('#bulkCheckAll').prop('checked', n > 0 && n === $bulkChecks.length);
+            }
+            $bulkChecks.on('change', updateBulk);
+            $('#bulkCheckAll').on('change', function () {
+                $bulkChecks.prop('checked', this.checked);
+                updateBulk();
+            });
+            $('#bulkDeleteForm').on('submit', function () {
+                const n = $bulkChecks.filter(':checked').length;
+                return n > 0 && confirm('Hapus ' + n + ' voucher terpilih? Tindakan ini tidak bisa dibatalkan.');
             });
 
             $(document).on('click', '.btn-dana', function () {

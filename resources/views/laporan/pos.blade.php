@@ -310,6 +310,20 @@
                             </div>
                     </div>
                     @endunless
+                    <div class="col-md-4">
+                        <div class="small-box bg-maroon">
+                            <div class="inner">
+                                <h3>Rp {{ number_format($voucherBulanan ?? 0,0,',','.') }}</h3>
+                                <p>Voucher Terpakai Bulan {{ $bulan }}/{{ $tahun }} ({{ $voucherBulananTrx ?? 0 }} transaksi)</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fa fa-ticket"></i>
+                            </div>
+                            <a href="{{ route('voucher.index') }}" class="small-box-footer">
+                                Hari ini Rp {{ number_format($voucherHarian ?? 0,0,',','.') }} &middot; Dana voucher Rp {{ number_format($danaVoucher ?? 0,0,',','.') }} <i class="fa fa-arrow-circle-right"></i>
+                            </a>
+                        </div>
+                    </div>
 
                     <div class="col-md-12">
                         <div class="small-box bg-danger">

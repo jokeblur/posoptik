@@ -8,9 +8,19 @@ class CreateVouchersTable extends Migration
 {
     public function up()
     {
+        if (Schema::hasTable('vouchers')) {
+            if (!Schema::hasColumn('vouchers', 'jenis_nominal')) {
+                Schema::table('vouchers', function (Blueprint $table) {
+                    $table->enum('jenis_nominal', ['uang', 'diskon'])->default('uang')->after('kode');
+                });
+            }
+            return;
+        }
+
         Schema::create('vouchers', function (Blueprint $table) {
             $table->id();
             $table->string('kode', 100)->unique();
+            $table->enum('jenis_nominal', ['uang', 'diskon'])->default('uang');
             $table->decimal('nominal', 15, 2);
             $table->text('syarat_ketentuan')->nullable();
             $table->date('berlaku_mulai')->nullable();

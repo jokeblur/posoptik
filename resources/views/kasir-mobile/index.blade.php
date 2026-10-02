@@ -24,8 +24,10 @@
     .total-bar {
         background: var(--brand); color: #fff; border-radius: 12px;
         padding: 14px; display: flex; justify-content: space-between; align-items: center;
+        position: sticky; bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+        z-index: 1020; min-height: 84px; box-shadow: 0 3px 14px rgba(0,0,0,.2);
     }
-    .total-bar .t-val { font-size: 20px; font-weight: 700; }
+    .total-bar .t-val { font-size: 26px; font-weight: 700; }
     .pay-chip {
         flex: 1; padding: 10px; text-align: center; border-radius: 10px;
         border: 1.5px solid #ddd; background: #fff; font-weight: 700; font-size: 13px;
@@ -39,7 +41,87 @@
         flex: 1; padding: 10px 4px; border-radius: 10px; border: 1.5px solid #ddd;
         background: #fff; font-weight: 700; font-size: 12px; text-align: center;
     }
+    .bpjs-signature-canvas {
+        display: block; width: 100%; height: 140px; border: 1.5px solid #bbb;
+        border-radius: 6px; background: #fff; touch-action: none;
+    }
 </style>
+
+{{-- ============ PASIEN ============ --}}
+<div class="m-card">
+    <h4><i class="fa fa-user text-brand"></i> Pasien</h4>
+    <label class="m-label">Pilih Pasien Terdaftar</label>
+    <select id="pasien_id" class="m-select" style="margin-bottom:8px;">
+        <option value="">— Pasien Baru / Manual —</option>
+        @foreach($pasienList as $p)
+            <option value="{{ $p->id_pasien }}">{{ $p->nama_pasien }}{{ $p->nohp ? ' · ' . $p->nohp : '' }}{{ $p->service_type ? ' [' . $p->service_type . ']' : '' }}</option>
+        @endforeach
+    </select>
+    <div id="pasien-manual-wrap">
+        <label class="m-label">Nama Pasien (jika tidak terdaftar)</label>
+        <input type="text" id="pasien_name" class="m-input" placeholder="Nama pasien...">
+        <label class="m-label" style="margin-top:8px;">No. HP</label>
+        <input type="text" id="pasien_nohp" class="m-input" placeholder="Nomor HP pasien">
+        <label class="m-label" style="margin-top:8px;">Jenis Layanan</label>
+        <select id="pasien_service_type" class="m-select">
+            <option value="">Pilih jenis layanan</option>
+            <option value="UMUM">UMUM</option>
+            <option value="BPJS I">BPJS I</option>
+            <option value="BPJS II">BPJS II</option>
+            <option value="BPJS III">BPJS III</option>
+        </select>
+        <label class="m-label" style="margin-top:8px;">Alamat</label>
+        <textarea id="pasien_alamat" class="m-input" rows="2" placeholder="Alamat pasien"></textarea>
+        <div id="pasien-no-bpjs-wrap" style="display:none; margin-top:8px;">
+            <label class="m-label">No. BPJS</label>
+            <input type="text" id="pasien_no_bpjs" class="m-input" placeholder="Nomor BPJS (opsional)">
+        </div>
+    </div>
+    <div id="pasien-terdaftar-wrap" style="display:none; padding:10px; background:#f7f8f8; border-radius:8px; font-size:13px;">
+        <div><strong>Alamat:</strong> <span id="pasien-terdaftar-alamat">-</span></div>
+        <div style="margin-top:4px;"><strong>Jenis layanan:</strong> <span id="pasien-terdaftar-service">-</span></div>
+        <div style="margin-top:4px;"><strong>No. HP:</strong> <span id="pasien-terdaftar-nohp">-</span></div>
+        <div id="pasien-terdaftar-bpjs-wrap" style="display:none; margin-top:4px;"><strong>No. BPJS:</strong> <span id="pasien-terdaftar-bpjs">-</span></div>
+    </div>
+    <div id="foto-pasien-wrap" style="display:none; margin-top:12px;">
+        <label class="m-label">Foto pasien</label>
+        <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-default" onclick="document.getElementById('foto_pasien').click()">
+                <i class="fa fa-folder-open"></i> Pilih file
+            </button>
+            <button type="button" class="btn btn-default" onclick="openPatientCamera()">
+                <i class="fa fa-camera"></i> Ambil foto
+            </button>
+        </div>
+        <input type="file" id="foto_pasien" accept="image/*" style="display:none;">
+        <small id="foto-pasien-filename" style="display:block; color:#777; margin-top:6px;"></small>
+        <img id="foto-pasien-preview" alt="Foto pasien" style="display:none; width:100%; max-height:260px; object-fit:contain; margin-top:8px; border:1px solid #ddd;">
+    </div>
+    <div id="bpjs-capture-wrap" style="display:none; border-top:1px solid #eee; margin-top:12px; padding-top:12px;">
+        <h5 style="font-weight:700; margin:0 0 8px;">Tanda Tangan BPJS</h5>
+        <label class="m-label">Tanda tangan pasien</label>
+        <canvas id="bpjs-signature-canvas" class="bpjs-signature-canvas" width="720" height="260"></canvas>
+        <button type="button" id="clear-bpjs-signature" class="btn btn-default btn-block" style="margin-top:8px;">
+            <i class="fa fa-eraser"></i> Hapus tanda tangan
+        </button>
+        <small style="display:block; color:#777; margin-top:6px;">Minta pasien membubuhkan tanda tangan pada area di atas.</small>
+    </div>
+    <div style="border-top:1px solid #eee; margin-top:12px; padding-top:12px;">
+        <h5 style="font-weight:700; margin:0 0 8px;">Resep Pasien <small id="resep-source" style="font-weight:400; color:#888;"></small></h5>
+        <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px;">
+            <div><label class="m-label">OD SPH</label><input type="text" id="rx-od-sph" class="m-input rx-input" placeholder="0.00"></div>
+            <div><label class="m-label">OD CYL</label><input type="text" id="rx-od-cyl" class="m-input rx-input" placeholder="0.00"></div>
+            <div><label class="m-label">OD AXIS</label><input type="text" id="rx-od-axis" class="m-input rx-input" placeholder="0"></div>
+            <div><label class="m-label">OS SPH</label><input type="text" id="rx-os-sph" class="m-input rx-input" placeholder="0.00"></div>
+            <div><label class="m-label">OS CYL</label><input type="text" id="rx-os-cyl" class="m-input rx-input" placeholder="0.00"></div>
+            <div><label class="m-label">OS AXIS</label><input type="text" id="rx-os-axis" class="m-input rx-input" placeholder="0"></div>
+            <div><label class="m-label">ADD kanan</label><input type="text" id="rx-add-kanan" class="m-input rx-input" placeholder="0.00"></div>
+            <div><label class="m-label">ADD kiri</label><input type="text" id="rx-add-kiri" class="m-input rx-input" placeholder="0.00"></div>
+            <div><label class="m-label">PD</label><input type="text" id="rx-pd" class="m-input" placeholder="PD"></div>
+        </div>
+        <div id="resep-status" style="font-size:11px; color:#888; margin-top:6px;"></div>
+    </div>
+</div>
 
 {{-- ============ STEP 1: PILIH PRODUK ============ --}}
 <div class="m-card">
@@ -61,6 +143,9 @@
             </button>
         </div>
     </div>
+    <button type="button" class="btn btn-warning btn-block" style="margin-top:8px;" onclick="openLensGosokModal()">
+        <i class="fa fa-pencil"></i> Input Lensa Gosok
+    </button>
     <div class="input-group" style="margin-top:8px;">
         <span class="input-group-addon"><i class="fa fa-search"></i></span>
         <input type="text" id="quick-search" class="m-input" placeholder="Cari cepat semua produk..." autocomplete="off">
@@ -73,22 +158,6 @@
     <h4><i class="fa fa-shopping-cart text-brand"></i> Keranjang <span class="badge badge-cabang" id="cart-count">0</span></h4>
     <div id="cart-list">
         <div class="m-empty" id="cart-empty"><i class="fa fa-cart-arrow-down"></i>Keranjang masih kosong</div>
-    </div>
-</div>
-
-{{-- ============ PASIEN ============ --}}
-<div class="m-card">
-    <h4><i class="fa fa-user text-brand"></i> Pasien</h4>
-    <label class="m-label">Pilih Pasien Terdaftar</label>
-    <select id="pasien_id" class="m-select" style="margin-bottom:8px;">
-        <option value="">— Pasien Baru / Manual —</option>
-        @foreach($pasienList as $p)
-            <option value="{{ $p->id_pasien }}">{{ $p->nama_pasien }}{{ $p->nohp ? ' · ' . $p->nohp : '' }}{{ $p->service_type ? ' [' . $p->service_type . ']' : '' }}</option>
-        @endforeach
-    </select>
-    <div id="pasien-manual-wrap">
-        <label class="m-label">Nama Pasien (jika tidak terdaftar)</label>
-        <input type="text" id="pasien_name" class="m-input" placeholder="Nama pasien...">
     </div>
 </div>
 
@@ -113,8 +182,8 @@
     </div>
     <label class="m-label">Diskon (Rp)</label>
     <input type="number" id="diskon" class="m-input" value="0" min="0" style="margin-bottom:10px;">
-    <label class="m-label">Bayar (Rp)</label>
-    <input type="number" id="bayar" class="m-input" value="" min="0" placeholder="0" style="margin-bottom:8px; font-size:18px; font-weight:700;">
+    <label class="m-label">Bayar / DP (Rp)</label>
+    <input type="number" id="bayar" class="m-input" value="" min="0" placeholder="0" style="margin-bottom:8px; font-size:22px; font-weight:700; min-height:56px;">
     <div style="display:flex; gap:6px; margin-bottom:10px;">
         <button type="button" class="quick-nominal" data-nominal="pas">Uang Pas</button>
         <button type="button" class="quick-nominal" data-nominal="50000">50rb</button>
@@ -133,8 +202,8 @@
         <div style="font-size:11px; opacity:.85;">TOTAL</div>
         <div class="t-val" id="grand-total">Rp 0</div>
     </div>
-    <button type="button" class="btn" id="btn-bayar" style="background:#fff; color:var(--brand); font-weight:700; border-radius:24px; padding:10px 24px;" disabled>
-        <i class="fa fa-check"></i> BAYAR
+    <button type="button" class="btn" id="btn-bayar" style="background:#fff; color:var(--brand); font-weight:700; font-size:16px; border-radius:24px; padding:14px 28px; min-height:52px;" disabled>
+        <i class="fa fa-check"></i> BAYAR / DP
     </button>
 </div>
 
@@ -151,9 +220,90 @@
                     <span class="input-group-addon"><i class="fa fa-search"></i></span>
                     <input type="text" id="modal-product-search" class="m-input" placeholder="Ketik untuk mencari..." autocomplete="off">
                 </div>
+                <label id="lens-stock-filter-wrap" style="display:none; font-weight:400; margin-bottom:10px;">
+                    <input type="checkbox" id="lens-show-all-sizes"> Tampilkan semua ukuran stok di cabang
+                </label>
                 <div id="modal-product-list">
                     <div class="m-empty"><i class="fa fa-search"></i>Ketik nama/kode produk untuk mencari</div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-lensa-gosok" tabindex="-1" role="dialog" aria-labelledby="modal-lensa-gosok-title">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#e67e22; color:#fff;">
+                <button type="button" class="close" data-dismiss="modal" style="color:#fff; opacity:1;">&times;</button>
+                <h4 class="modal-title" id="modal-lensa-gosok-title">Input Lensa Gosok</h4>
+            </div>
+            <div class="modal-body" style="padding:12px;">
+                <label class="m-label">Merk lensa</label>
+                <input type="text" id="gosok-merk" class="m-input" placeholder="Contoh: Essilor, Hoya" required>
+                <label class="m-label" style="margin-top:8px;">Jenis lensa</label>
+                <select id="gosok-type" class="m-select">
+                    <option value="">Pilih jenis (opsional)</option>
+                    <option value="Single Vision">Single Vision</option>
+                    <option value="Progressive">Progressive</option>
+                    <option value="Bifocal">Bifocal</option>
+                    <option value="Trifocal">Trifocal</option>
+                    <option value="Reading">Reading</option>
+                    <option value="Computer">Computer</option>
+                </select>
+                <div style="display:flex; gap:16px; margin-top:12px;">
+                    <label style="font-weight:600;"><input type="checkbox" id="gosok-use-od" checked> Ukuran kanan (OD)</label>
+                    <label style="font-weight:600;"><input type="checkbox" id="gosok-use-os" checked> Ukuran kiri (OS)</label>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; margin-top:10px;">
+                    <div id="gosok-od-fields">
+                        <strong>OD (Kanan)</strong>
+                        <label class="m-label" style="margin-top:6px;">SPH</label><input type="text" id="gosok-od-sph" class="m-input" placeholder="SPH kanan">
+                        <label class="m-label" style="margin-top:6px;">CYL</label><input type="text" id="gosok-od-cyl" class="m-input" placeholder="CYL kanan">
+                        <label class="m-label" style="margin-top:6px;">Axis</label><input type="text" id="gosok-od-axis" class="m-input" placeholder="Axis kanan">
+                        <label class="m-label" style="margin-top:6px;">ADD</label><input type="text" id="gosok-od-add" class="m-input" placeholder="ADD kanan">
+                    </div>
+                    <div id="gosok-os-fields">
+                        <strong>OS (Kiri)</strong>
+                        <label class="m-label" style="margin-top:6px;">SPH</label><input type="text" id="gosok-os-sph" class="m-input" placeholder="SPH kiri">
+                        <label class="m-label" style="margin-top:6px;">CYL</label><input type="text" id="gosok-os-cyl" class="m-input" placeholder="CYL kiri">
+                        <label class="m-label" style="margin-top:6px;">Axis</label><input type="text" id="gosok-os-axis" class="m-input" placeholder="Axis kiri">
+                        <label class="m-label" style="margin-top:6px;">ADD</label><input type="text" id="gosok-os-add" class="m-input" placeholder="ADD kiri">
+                    </div>
+                </div>
+                <label class="m-label" style="margin-top:8px;">Coating (opsional)</label>
+                <input type="text" id="gosok-coating" class="m-input" placeholder="Coating">
+                <label class="m-label" style="margin-top:8px;">Harga jual (Rp)</label>
+                <input type="number" id="gosok-price" class="m-input" min="1" step="1000" placeholder="Harga lensa">
+                <label class="m-label" style="margin-top:8px;">Jumlah</label>
+                <input type="number" id="gosok-quantity" class="m-input" min="1" value="1">
+                <label class="m-label" style="margin-top:8px;">Catatan (opsional)</label>
+                <textarea id="gosok-note" class="m-input" rows="2" placeholder="Catatan tambahan"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-warning" onclick="addLensGosokToCart()"><i class="fa fa-plus"></i> Tambah ke keranjang</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-patient-camera" tabindex="-1" role="dialog" aria-labelledby="patient-camera-title">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:var(--brand); color:#fff;">
+                <button type="button" class="close" data-dismiss="modal" style="color:#fff; opacity:1;">&times;</button>
+                <h4 class="modal-title" id="patient-camera-title">Ambil Foto Pasien</h4>
+            </div>
+            <div class="modal-body" style="padding:12px;">
+                <video id="patient-camera-video" autoplay playsinline style="display:block; width:100%; max-height:65vh; background:#111; border-radius:6px; object-fit:contain;"></video>
+                <canvas id="patient-camera-canvas" style="display:none;"></canvas>
+            </div>
+            <div class="modal-footer" style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="btn-capture-patient-photo" onclick="capturePatientPhoto()" disabled>
+                    <i class="fa fa-camera"></i> Jepret
+                </button>
             </div>
         </div>
     </div>
@@ -172,23 +322,58 @@
     <input type="hidden" name="jenis_transaksi" id="f-jenis" value="Stock">
     <input type="hidden" name="pasien_id" id="f-pasien-id">
     <input type="hidden" name="pasien_name" id="f-pasien-name">
+    <input type="hidden" name="buat_pasien_baru" id="f-buat-pasien-baru">
+    <input type="hidden" name="nohp" id="f-pasien-nohp">
+    <input type="hidden" name="service_type" id="f-pasien-service-type">
+    <input type="hidden" name="alamat" id="f-pasien-alamat">
+    <input type="hidden" name="no_bpjs" id="f-pasien-no-bpjs">
+    <input type="hidden" name="simpan_resep" id="f-simpan-resep">
+    <input type="hidden" name="signature_bpjs" id="f-signature-bpjs">
+    <input type="hidden" name="od_sph" id="f-od-sph">
+    <input type="hidden" name="od_cyl" id="f-od-cyl">
+    <input type="hidden" name="od_axis" id="f-od-axis">
+    <input type="hidden" name="os_sph" id="f-os-sph">
+    <input type="hidden" name="os_cyl" id="f-os-cyl">
+    <input type="hidden" name="os_axis" id="f-os-axis">
+    <input type="hidden" name="add_kanan" id="f-add-kanan">
+    <input type="hidden" name="add_kiri" id="f-add-kiri">
+    <input type="hidden" name="pd" id="f-pd">
 </form>
 @endsection
 
 @push('scripts')
+@include('print-agent._client')
 <script>
 let cart = [];
 let currentType = 'frame';
 let searchTimer = null;
+let loadedPrescriptionSignature = '';
+let selectedPatientPhoto = null;
+let patientPhotoPreviewUrl = null;
+let patientCameraStream = null;
 
 const ROUTES = {
     search: '{{ route("penjualan.search_product") }}',
     lensaStok: '{{ route("penjualan.lensa-stok") }}',
+    pasienDetails: '{{ url("/pasien") }}',
     store: '{{ route("penjualan.store") }}',
     cetakHalf: '{{ url("/penjualan") }}'
 };
 
 $(function() {
+    initMobileSignature();
+
+    $('#foto_pasien').on('change', function() {
+        const file = this.files && this.files[0];
+        if (!file) return;
+
+        setPatientPhoto(file, file.name);
+    });
+
+    $('#modal-patient-camera').on('hidden.bs.modal', stopPatientCamera);
+
+    $('#clear-bpjs-signature').on('click', clearMobileSignature);
+
     // pencarian cepat di halaman utama
     $('#quick-search').on('input', function() {
         const q = $(this).val().trim();
@@ -201,12 +386,89 @@ $(function() {
     $('#modal-product-search').on('input', function() {
         const q = $(this).val().trim();
         clearTimeout(searchTimer);
-        if (q.length < 2) { renderModalEmpty(); return; }
+        if (q.length < 2) {
+            if (currentType === 'lensa' && q.length === 0) {
+                modalSearch('');
+            } else {
+                renderModalEmpty();
+            }
+            return;
+        }
         searchTimer = setTimeout(() => modalSearch(q), 350);
     });
 
+    $('#lens-show-all-sizes').on('change', function() {
+        if (currentType === 'lensa') modalSearch($('#modal-product-search').val().trim());
+    });
+
+    $('#gosok-use-od, #gosok-use-os').on('change', function() {
+        $('#gosok-od-fields').toggle($('#gosok-use-od').is(':checked'));
+        $('#gosok-os-fields').toggle($('#gosok-use-os').is(':checked'));
+    });
+
+    $('.rx-input').on('input', function() {
+        const q = $('#modal-product-search').val().trim();
+        if (currentType === 'lensa' && q.length >= 2) {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => modalSearch(q), 250);
+        }
+    });
+
     $('#pasien_id').on('change', function() {
-        $('#pasien-manual-wrap').toggle(!$(this).val());
+        const pasienId = $(this).val();
+        $('#pasien-manual-wrap').toggle(!pasienId);
+        $('#pasien-terdaftar-wrap').hide();
+        $('#foto_pasien').val('');
+        selectedPatientPhoto = null;
+        $('#foto-pasien-filename').text('');
+        if (patientPhotoPreviewUrl) URL.revokeObjectURL(patientPhotoPreviewUrl);
+        patientPhotoPreviewUrl = null;
+        $('#foto-pasien-preview').hide().attr('src', '');
+        toggleBpjsCapture(false);
+        if (!pasienId) {
+            clearPrescription();
+            loadedPrescriptionSignature = '';
+            toggleBpjsCapture(isBpjsService($('#pasien_service_type').val()));
+            $('#resep-source').text('Pasien baru');
+            $('#resep-status').text('Resep yang diisi akan disimpan bersama data pasien.');
+            return;
+        }
+
+        clearPrescription();
+        $('#resep-source').text('Memuat resep...');
+        $.get(ROUTES.pasienDetails + '/' + encodeURIComponent(pasienId) + '/details')
+            .done(function(patient) {
+                $('#pasien-terdaftar-alamat').text(patient.alamat || '-');
+                $('#pasien-terdaftar-service').text(patient.service_type || '-');
+                $('#pasien-terdaftar-nohp').text(patient.nohp || '-');
+                $('#pasien-terdaftar-bpjs').text(patient.no_bpjs || '-');
+                $('#pasien-terdaftar-wrap').show();
+                if (patient.foto_pasien) {
+                    $('#foto-pasien-preview')
+                        .attr('src', ROUTES.pasienDetails + '/' + encodeURIComponent(pasienId) + '/foto')
+                        .show();
+                }
+                toggleBpjsCapture(isBpjsService(patient.service_type));
+                const prescription = patient.prescriptions && patient.prescriptions.length
+                    ? patient.prescriptions[0]
+                    : null;
+                fillPrescription(prescription || {});
+                loadedPrescriptionSignature = prescriptionFormSignature();
+                $('#resep-source').text(prescription ? 'Resep terbaru pasien terpilih' : 'Belum ada resep tersimpan');
+                $('#resep-status').text(prescription ? 'Pencarian lensa mengikuti resep pasien terpilih.' : 'Isi resep untuk memfilter pencarian lensa.');
+            })
+            .fail(function() {
+                toggleBpjsCapture(false);
+                clearPrescription();
+                $('#resep-source').text('Resep tidak dapat dimuat');
+                $('#resep-status').text('Periksa koneksi, lalu pilih pasien kembali.');
+            });
+    });
+
+    $('#pasien_service_type').on('change', function() {
+        if (!$('#pasien_id').val()) {
+            toggleBpjsCapture(isBpjsService($(this).val()));
+        }
     });
 
     $('.pay-chip').on('click', function() {
@@ -225,6 +487,149 @@ $(function() {
     $('#btn-bayar').on('click', submitTransaction);
 });
 
+function setPatientPhoto(file, filename) {
+    selectedPatientPhoto = file;
+    if (patientPhotoPreviewUrl) URL.revokeObjectURL(patientPhotoPreviewUrl);
+    patientPhotoPreviewUrl = URL.createObjectURL(file);
+    $('#foto-pasien-filename').text(filename);
+    $('#foto-pasien-preview').attr('src', patientPhotoPreviewUrl).show();
+}
+
+async function openPatientCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast('Kamera perlu izin browser dan koneksi HTTPS. Buka halaman melalui HTTPS, lalu izinkan akses kamera.', false);
+        return;
+    }
+
+    $('#btn-capture-patient-photo').prop('disabled', true);
+    $('#modal-patient-camera').modal('show');
+
+    try {
+        patientCameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: false
+        });
+        const video = document.getElementById('patient-camera-video');
+        video.srcObject = patientCameraStream;
+        await video.play();
+        $('#btn-capture-patient-photo').prop('disabled', false);
+    } catch (error) {
+        stopPatientCamera();
+        $('#modal-patient-camera').modal('hide');
+        toast('Kamera tidak bisa dibuka. Periksa izin kamera dan pastikan halaman menggunakan HTTPS.', false);
+    }
+}
+
+function stopPatientCamera() {
+    if (patientCameraStream) {
+        patientCameraStream.getTracks().forEach(function(track) { track.stop(); });
+        patientCameraStream = null;
+    }
+    const video = document.getElementById('patient-camera-video');
+    if (video) video.srcObject = null;
+}
+
+function capturePatientPhoto() {
+    const video = document.getElementById('patient-camera-video');
+    const canvas = document.getElementById('patient-camera-canvas');
+    if (!video.videoWidth || !video.videoHeight) {
+        toast('Kamera belum siap. Coba lagi sebentar.', false);
+        return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(function(blob) {
+        if (!blob) {
+            toast('Foto gagal diambil. Silakan coba lagi.', false);
+            return;
+        }
+        const filename = 'foto-pasien-' + Date.now() + '.jpg';
+        setPatientPhoto(new File([blob], filename, { type: 'image/jpeg' }), filename);
+        $('#modal-patient-camera').modal('hide');
+    }, 'image/jpeg', 0.9);
+}
+
+function isBpjsService(serviceType) {
+    return /^bpjs/i.test(String(serviceType || '').trim());
+}
+
+function toggleBpjsCapture(show) {
+    $('#pasien-no-bpjs-wrap, #pasien-terdaftar-bpjs-wrap, #foto-pasien-wrap, #bpjs-capture-wrap').toggle(show);
+    if (!show) {
+        $('#pasien_no_bpjs, #foto_pasien').val('');
+        selectedPatientPhoto = null;
+        $('#foto-pasien-filename').text('');
+        if (patientPhotoPreviewUrl) URL.revokeObjectURL(patientPhotoPreviewUrl);
+        patientPhotoPreviewUrl = null;
+        $('#foto-pasien-preview').hide().attr('src', '');
+        clearBpjsCapture();
+    }
+}
+
+function clearBpjsCapture() {
+    clearMobileSignature();
+}
+
+function initMobileSignature() {
+    const canvas = document.getElementById('bpjs-signature-canvas');
+    if (!canvas) return;
+
+    const context = canvas.getContext('2d');
+    let drawing = false;
+    context.lineWidth = 4;
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.strokeStyle = '#17202a';
+
+    const point = function(event) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: (event.clientX - rect.left) * canvas.width / rect.width,
+            y: (event.clientY - rect.top) * canvas.height / rect.height
+        };
+    };
+
+    canvas.addEventListener('pointerdown', function(event) {
+        event.preventDefault();
+        drawing = true;
+        canvas.setPointerCapture(event.pointerId);
+        const position = point(event);
+        context.beginPath();
+        context.moveTo(position.x, position.y);
+        context.lineTo(position.x + 0.1, position.y + 0.1);
+        context.stroke();
+    });
+
+    canvas.addEventListener('pointermove', function(event) {
+        if (!drawing) return;
+        event.preventDefault();
+        const position = point(event);
+        context.lineTo(position.x, position.y);
+        context.stroke();
+    });
+
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function(name) {
+        canvas.addEventListener(name, function() {
+            if (drawing) $('#f-signature-bpjs').val(canvas.toDataURL('image/png'));
+            drawing = false;
+            context.beginPath();
+        });
+    });
+
+    clearMobileSignature();
+}
+
+function clearMobileSignature() {
+    const canvas = document.getElementById('bpjs-signature-canvas');
+    if (canvas) {
+        const context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    $('#f-signature-bpjs').val('');
+}
+
 /* ================= PENCARIAN PRODUK ================= */
 function quickSearch(q) {
     $.get(ROUTES.search, { q: q }).done(function(products) {
@@ -237,13 +642,112 @@ function quickSearch(q) {
     });
 }
 
+function prescriptionSearchParams() {
+    return {
+        od_sph: $('#rx-od-sph').val(), od_cyl: $('#rx-od-cyl').val(), od_axis: $('#rx-od-axis').val(),
+        os_sph: $('#rx-os-sph').val(), os_cyl: $('#rx-os-cyl').val(), os_axis: $('#rx-os-axis').val(),
+        add_kanan: $('#rx-add-kanan').val(), add_kiri: $('#rx-add-kiri').val()
+    };
+}
+
+function fillPrescription(prescription) {
+    $('#rx-od-sph').val(prescription.od_sph || '');
+    $('#rx-od-cyl').val(prescription.od_cyl || '');
+    $('#rx-od-axis').val(prescription.od_axis || '');
+    $('#rx-os-sph').val(prescription.os_sph || '');
+    $('#rx-os-cyl').val(prescription.os_cyl || '');
+    $('#rx-os-axis').val(prescription.os_axis || '');
+    $('#rx-add-kanan').val(prescription.add_kanan || prescription.add || '');
+    $('#rx-add-kiri').val(prescription.add_kiri || prescription.add || '');
+    $('#rx-pd').val(prescription.pd || '');
+}
+
+function clearPrescription() {
+    fillPrescription({});
+}
+
+function prescriptionFormSignature() {
+    return JSON.stringify([
+        '#rx-od-sph', '#rx-od-cyl', '#rx-od-axis', '#rx-os-sph', '#rx-os-cyl',
+        '#rx-os-axis', '#rx-add-kanan', '#rx-add-kiri', '#rx-pd'
+    ].map(selector => $(selector).val().trim()));
+}
+
 function openProductModal(type) {
     currentType = type;
     $('#modal-product-title').text('Pilih ' + (type === 'frame' ? 'Frame' : type === 'lensa' ? 'Lensa' : 'Aksesoris'));
     $('#modal-product-search').val('');
-    renderModalEmpty();
+    $('#lens-stock-filter-wrap').toggle(type === 'lensa');
+    $('#lens-show-all-sizes').prop('checked', false);
     $('#modal-product').modal('show');
+    if (type === 'lensa') {
+        modalSearch('');
+    } else {
+        renderModalEmpty();
+    }
     setTimeout(() => $('#modal-product-search').focus(), 400);
+}
+
+function openLensGosokModal() {
+    const fields = {
+        'gosok-od-sph': '#rx-od-sph', 'gosok-od-cyl': '#rx-od-cyl',
+        'gosok-od-axis': '#rx-od-axis', 'gosok-od-add': '#rx-add-kanan',
+        'gosok-os-sph': '#rx-os-sph', 'gosok-os-cyl': '#rx-os-cyl',
+        'gosok-os-axis': '#rx-os-axis', 'gosok-os-add': '#rx-add-kiri'
+    };
+    Object.keys(fields).forEach(function(target) {
+        $('#' + target).val($(fields[target]).val());
+    });
+    $('#gosok-merk, #gosok-price, #gosok-note').val('');
+    $('#gosok-type, #gosok-coating').val('');
+    $('#gosok-quantity').val(1);
+    $('#gosok-use-od, #gosok-use-os').prop('checked', true).trigger('change');
+    $('#modal-lensa-gosok').modal('show');
+}
+
+function addLensGosokToCart() {
+    const merk = $('#gosok-merk').val().trim();
+    const price = Number($('#gosok-price').val()) || 0;
+    const quantity = Number($('#gosok-quantity').val()) || 0;
+    const useOd = $('#gosok-use-od').is(':checked');
+    const useOs = $('#gosok-use-os').is(':checked');
+    if (!merk || price <= 0 || quantity < 1) {
+        toast('Isi merk, harga, dan jumlah lensa gosok dengan benar.', false);
+        return;
+    }
+    if (!useOd && !useOs) {
+        toast('Pilih ukuran kanan (OD), kiri (OS), atau keduanya.', false);
+        return;
+    }
+
+    const eyeValue = function(eye, field) {
+        return eye + ': ' + ($('#gosok-' + eye.toLowerCase() + '-' + field).val().trim() || '-');
+    };
+    const formatEyeValues = function(field) {
+        const values = [];
+        if (useOd) values.push(eyeValue('OD', field));
+        if (useOs) values.push(eyeValue('OS', field));
+        return values.join(' ');
+    };
+    const item = {
+        id: 'gosok_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+        type: 'lensa_gosok',
+        name: 'Lensa Gosok - ' + merk,
+        merk: merk,
+        lensaType: $('#gosok-type').val() || '-',
+        index: formatEyeValues('sph'),
+        cly: formatEyeValues('cyl'),
+        axis: formatEyeValues('axis'),
+        add: formatEyeValues('add'),
+        coating: $('#gosok-coating').val() || '-',
+        catatan: $('#gosok-note').val().trim(),
+        price: price,
+        quantity: quantity
+    };
+
+    addToCart(item);
+    $('#modal-lensa-gosok').modal('hide');
+    toast('Lensa gosok ditambahkan ke keranjang');
 }
 
 function renderModalEmpty() {
@@ -254,17 +758,27 @@ function modalSearch(q) {
     const $box = $('#modal-product-list').html('<div class="m-empty" style="padding:12px;"><i class="fa fa-spinner fa-spin"></i> Mencari...</div>');
 
     if (currentType === 'lensa') {
-        $.get(ROUTES.lensaStok, { search: q, include_out_of_stock: 0 }).done(function(res) {
+        $.get(ROUTES.lensaStok, Object.assign({
+            search: q,
+            include_out_of_stock: 0,
+            show_all_lens_sizes: $('#lens-show-all-sizes').is(':checked') ? 1 : 0
+        }, prescriptionSearchParams())).done(function(res) {
             const items = (res.data || []).map(l => ({
                 id: l.id, name: l.merk_lensa, price: l.harga_jual_lensa, type: 'lensa',
                 index: l.index, cly: l.cly, add: l.add,
                 _info: (l.kode_lensa || '') + ' · ' + (l.type || '-') + ' · idx ' + (l.index || '-') + ' · stok ' + l.stok + ' · ' + (l.branch_name || '-')
             }));
             renderModalResults($box, items);
+        }).fail(function() {
+            $box.html('<div class="m-empty" style="padding:12px;">Gagal memuat stok lensa. Periksa koneksi lalu coba lagi.</div>');
         });
     } else {
         $.get(ROUTES.search, { q: q }).done(function(products) {
-            const items = products.filter(p => p.type === currentType);
+            const items = products.filter(p => p.type === currentType).map(p => Object.assign({}, p, {
+                _info: currentType === 'frame'
+                    ? (p.code || '-') + ' · stok ' + (p.stock ?? 0)
+                    : (p.code || p.type.toUpperCase())
+            }));
             renderModalResults($box, items);
         });
     }
@@ -273,7 +787,10 @@ function modalSearch(q) {
 function renderModalResults($box, items) {
     $box.empty();
     if (!items.length) {
-        $box.html('<div class="m-empty" style="padding:12px;">Tidak ditemukan</div>');
+        const message = currentType === 'lensa'
+            ? 'Tidak ada stok cocok di cabang ini. Coba tampilkan semua ukuran stok atau input lensa gosok.'
+            : 'Tidak ditemukan';
+        $box.html('<div class="m-empty" style="padding:12px;">' + message + '</div>');
         return;
     }
     items.forEach(p => $box.append(resultItemHtml(p)));
@@ -311,8 +828,9 @@ function addToCart(item) {
     } else {
         cart.push({
             id: item.id, name: item.name, type: item.type,
-            quantity: 1, price: item.price,
-            index: item.index || '', cly: item.cly || '', add: item.add || ''
+            quantity: Number(item.quantity) || 1, price: item.price,
+            index: item.index || '', cly: item.cly || '', axis: item.axis || '', add: item.add || '',
+            merk: item.merk || '', lensaType: item.lensaType || '', coating: item.coating || '', catatan: item.catatan || ''
         });
     }
     renderCart();
@@ -340,7 +858,7 @@ function renderCart() {
                 '<div class="cart-item">'
                 + '<div class="ci-info">'
                 + '<div class="ci-name">' + $('<div>').text(c.name).html() + '</div>'
-                + '<div class="ci-meta">' + c.type + ' · ' + formatRupiah(c.price) + '</div>'
+                + '<div class="ci-meta">' + (c.type === 'lensa_gosok' ? 'Lensa Gosok' : c.type) + ' · ' + formatRupiah(c.price) + '</div>'
                 + '</div>'
                 + '<div style="display:flex; align-items:center; gap:4px;">'
                 + '<button type="button" class="qty-btn" onclick="changeQty(' + i + ',-1)">−</button>'
@@ -367,7 +885,7 @@ function updateTotals() {
     $('#grand-total').text(formatRupiah(gt));
     $('#kembalian-label').text((selisih >= 0 ? 'Kembali ' : 'Kurang ') + formatRupiah(Math.abs(selisih)));
     $('#kembalian-label').css('color', selisih >= 0 ? '#27ae60' : '#c0392b');
-    $('#btn-bayar').prop('disabled', !(cart.length > 0 && bayar >= gt));
+    $('#btn-bayar').prop('disabled', !(cart.length > 0 && (gt === 0 || bayar > 0)));
 }
 
 /* ================= SUBMIT ================= */
@@ -377,9 +895,15 @@ function submitTransaction() {
 
     if (!cart.length) { toast('Keranjang masih kosong', false); return; }
     if (!pasienId && !pasienName) { toast('Isi nama pasien dulu', false); return; }
+    if (!pasienId && !$('#pasien_nohp').val().trim()) { toast('Isi nomor HP pasien dulu', false); return; }
+    if (!pasienId && !$('#pasien_service_type').val()) { toast('Pilih jenis layanan pasien dulu', false); return; }
 
     const gt = grandTotal();
     const bayar = Number($('#bayar').val()) || 0;
+    if (gt > 0 && bayar <= 0) {
+        toast('Masukkan nominal pembayaran atau DP terlebih dahulu.', false);
+        return;
+    }
 
     $('#f-kode').val('MLT-' + Date.now());
     $('#f-items').val(JSON.stringify(cart));
@@ -390,14 +914,31 @@ function submitTransaction() {
     $('#f-bank').val($('#bank_transfer').val());
     $('#f-pasien-id').val(pasienId || '');
     $('#f-pasien-name').val(pasienId ? '' : pasienName);
-    $('#f-jenis').val('Stock');
+    $('#f-buat-pasien-baru').val(pasienId ? '' : '1');
+    $('#f-pasien-nohp').val(pasienId ? '' : $('#pasien_nohp').val());
+    $('#f-pasien-service-type').val(pasienId ? '' : $('#pasien_service_type').val());
+    $('#f-pasien-alamat').val(pasienId ? '' : $('#pasien_alamat').val());
+    $('#f-pasien-no-bpjs').val(pasienId ? '' : $('#pasien_no_bpjs').val());
+    $('#f-simpan-resep').val(!pasienId || prescriptionFormSignature() !== loadedPrescriptionSignature ? '1' : '');
+    $('#f-od-sph').val($('#rx-od-sph').val());
+    $('#f-od-cyl').val($('#rx-od-cyl').val());
+    $('#f-od-axis').val($('#rx-od-axis').val());
+    $('#f-os-sph').val($('#rx-os-sph').val());
+    $('#f-os-cyl').val($('#rx-os-cyl').val());
+    $('#f-os-axis').val($('#rx-os-axis').val());
+    $('#f-add-kanan').val($('#rx-add-kanan').val());
+    $('#f-add-kiri').val($('#rx-add-kiri').val());
+    $('#f-pd').val($('#rx-pd').val());
+    $('#f-jenis').val(cart.some(item => item.type === 'lensa_gosok') ? 'Gosok' : 'Stock');
 
     const $btn = $('#btn-bayar').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> PROSES...');
+    const formData = new FormData($('#form-hidden')[0]);
+    if (selectedPatientPhoto) formData.append('foto_pasien', selectedPatientPhoto);
 
     $.ajax({
         url: ROUTES.store,
         method: 'POST',
-        data: new FormData($('#form-hidden')[0]),
+        data: formData,
         processData: false,
         contentType: false
     }).done(function(res) {
@@ -405,10 +946,13 @@ function submitTransaction() {
         if (res.redirect_url) {
             const idMatch = res.redirect_url.match(/penjualan\/(\d+)/);
             setTimeout(function() {
-                if (idMatch && confirm('Transaksi tersimpan. Cetak nota sekarang?')) {
-                    window.open(ROUTES.cetakHalf + '/' + idMatch[1] + '/cetak-half', '_blank');
+                const keRiwayat = function () { window.location.href = '{{ route("kasir-mobile.riwayat") }}'; };
+                // Tablet: nota dikirim ke printer PC lewat Print Agent.
+                if (idMatch && confirm('Transaksi tersimpan. Print nota ke printer PC sekarang?')) {
+                    kirimPrintPc(idMatch[1], 'half').finally(function () { setTimeout(keRiwayat, 1500); });
+                    return;
                 }
-                window.location.href = '{{ route("kasir-mobile.riwayat") }}';
+                keRiwayat();
             }, 400);
         }
     }).fail(function(xhr) {
@@ -416,7 +960,7 @@ function submitTransaction() {
             ? (xhr.responseJSON.message || JSON.stringify(xhr.responseJSON.errors))
             : 'Gagal menyimpan transaksi';
         toast(msg, false);
-        $btn.prop('disabled', false).html('<i class="fa fa-check"></i> BAYAR');
+        $btn.prop('disabled', false).html('<i class="fa fa-check"></i> BAYAR / DP');
     });
 }
 </script>

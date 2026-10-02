@@ -402,6 +402,15 @@
                 
                 <a href="{{ route('penjualan.cetak', $penjualan->id) }}" target="_blank" class="btn btn-primary pull-right"><i class="fa fa-print"></i> Cetak Struk</a>
                 <a href="{{ route('penjualan.cetak-half', $penjualan->id) }}" target="_blank" class="btn btn-info pull-right" style="margin-right: 10px;"><i class="fa fa-print"></i> Cetak Half Page</a>
+                <div class="btn-group pull-right" style="margin-right: 10px;">
+                    <button type="button" class="btn btn-warning dropdown-toggle" data-toggle="dropdown" title="Cetak lewat printer di PC (untuk tablet)">
+                        <i class="fa fa-desktop"></i> Print ke PC <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-right">
+                        <li><a href="#" onclick="kirimPrintPc({{ $penjualan->id }}, 'half'); return false;"><i class="fa fa-file-text-o"></i> Nota Half Page</a></li>
+                        <li><a href="#" onclick="kirimPrintPc({{ $penjualan->id }}, 'struk'); return false;"><i class="fa fa-print"></i> Struk 80mm</a></li>
+                    </ul>
+                </div>
 
                 @php
                     $pasienPhone = $penjualan->pasien?->nohp ?? '';
@@ -443,6 +452,7 @@
 </div>
 
 @push('scripts')
+@include('print-agent._client')
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>

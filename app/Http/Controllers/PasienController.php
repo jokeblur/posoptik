@@ -6,6 +6,7 @@ use App\Models\Pasien;
 use App\Models\Prescription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Exports\PasienExport;
 use App\Imports\PasienImport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -381,6 +382,16 @@ class PasienController extends Controller
         }
         
         return response()->json($data);
+    }
+
+    public function foto($id)
+    {
+        $pasien = Pasien::findOrFail($id);
+        $disk = Storage::disk('local');
+
+        abort_unless($pasien->foto_pasien && $disk->exists($pasien->foto_pasien), 404);
+
+        return response()->file($disk->path($pasien->foto_pasien));
     }
 
     public function export()

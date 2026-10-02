@@ -24,7 +24,7 @@
             margin: 0;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             padding-top: calc(52px + env(safe-area-inset-top));
-            padding-bottom: calc(66px + env(safe-area-inset-bottom));
+            padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
         }
         .m-header {
             position: fixed; top: 0; left: 0; right: 0; z-index: 1030;
@@ -50,8 +50,9 @@
         .m-card h4 { margin-top: 0; font-weight: 700; font-size: 15px; }
         .m-nav {
             position: fixed; bottom: 0; left: 0; right: 0; z-index: 1030;
-            height: calc(60px + env(safe-area-inset-bottom));
-            padding-bottom: env(safe-area-inset-bottom);
+            box-sizing: border-box;
+            height: calc(60px + env(safe-area-inset-bottom, 0px));
+            padding-bottom: env(safe-area-inset-bottom, 0px);
             background: #fff; display: flex;
             box-shadow: 0 -2px 10px rgba(0,0,0,.12);
         }

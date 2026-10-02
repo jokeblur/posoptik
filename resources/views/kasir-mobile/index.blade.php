@@ -947,8 +947,8 @@ function submitTransaction() {
             const idMatch = res.redirect_url.match(/penjualan\/(\d+)/);
             setTimeout(function() {
                 const keRiwayat = function () { window.location.href = '{{ route("kasir-mobile.riwayat") }}'; };
-                // Tablet: nota dikirim ke printer PC lewat Print Agent.
-                if (idMatch && confirm('Transaksi tersimpan. Print nota ke printer PC sekarang?')) {
+                // Kirim nota otomatis ke printer PC lewat Print Agent.
+                if (idMatch) {
                     kirimPrintPc(idMatch[1], 'half').finally(function () { setTimeout(keRiwayat, 1500); });
                     return;
                 }

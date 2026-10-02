@@ -33,6 +33,7 @@
                 <div style="margin-top:6px;">
                     <a href="{{ route('penjualan.show', $t->id) }}" class="btn btn-xs btn-info" title="Detail"><i class="fa fa-eye"></i></a>
                     <a href="{{ route('penjualan.cetak-half', $t->id) }}" target="_blank" class="btn btn-xs btn-success" title="Cetak Nota"><i class="fa fa-print"></i></a>
+                    <button type="button" class="btn btn-xs btn-warning" title="Print ke printer PC" onclick="kirimPrintPc({{ $t->id }}, 'half')"><i class="fa fa-desktop"></i> PC</button>
                 </div>
             </div>
         </div>
@@ -43,3 +44,7 @@
     </div>
 @endforelse
 @endsection
+
+@push('scripts')
+@include('print-agent._client')
+@endpush

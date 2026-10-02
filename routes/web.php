@@ -19,6 +19,7 @@ use App\Http\Controllers\KwitansiController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\DisplayKacamataController;
 use App\Http\Controllers\DisplayMediaController;
+use App\Http\Controllers\PrintJobController;
 
 use Illuminate\Routing\Console\MiddlewareMakeCommand;
 use Illuminate\Support\Facades\Route;
@@ -150,6 +151,13 @@ Route::middleware([
     Route::get('/penjualan/statistics', [PenjualanController::class, 'statistics'])->name('penjualan.statistics');
     Route::get('/penjualan/{penjualan}/cetak', [PenjualanController::class, 'cetak'])->name('penjualan.cetak');
     Route::get('/penjualan/{penjualan}/cetak-half', [PenjualanController::class, 'cetakHalf'])->name('penjualan.cetak-half');
+    // Print dari tablet lewat PC: tablet kirim job, halaman Print Agent di PC cabang yang mencetak.
+    Route::post('/print-jobs', [PrintJobController::class, 'store'])->name('print-jobs.store');
+    Route::get('/print-jobs/{printJob}', [PrintJobController::class, 'show'])->name('print-jobs.show');
+    Route::get('/print-agent', [PrintJobController::class, 'agent'])->name('print-agent');
+    Route::post('/print-agent/ambil', [PrintJobController::class, 'ambil'])->name('print-agent.ambil');
+    Route::post('/print-agent/{printJob}/selesai', [PrintJobController::class, 'selesai'])->name('print-agent.selesai');
+    Route::post('/print-agent/{printJob}/ulang', [PrintJobController::class, 'ulang'])->name('print-agent.ulang');
     Route::get('/penjualan/{penjualan}/cetak-barcode-wa', [PenjualanController::class, 'cetakBarcodeWa'])->name('penjualan.cetak-barcode-wa');
     Route::post('/penjualan/{id}/generate-barcode-image', [PenjualanController::class, 'generateBarcodeImage'])->name('penjualan.generate-barcode-image');
     Route::get('/penjualan/{id}/bpjs-photo', [PenjualanController::class, 'bpjsPhoto'])->name('penjualan.bpjs-photo');
@@ -308,6 +316,7 @@ Route::group(['middleware' => 'auth'], function() {
     Route::get('/pasien/data', [PasienController::class, 'data'])->name('pasien.data');
     Route::get('/pasien/check-duplicate-name', [PasienController::class, 'checkDuplicateName'])->name('pasien.check-duplicate-name');
     Route::get('/pasien/{id}/details', [PasienController::class, 'getDetails'])->name('pasien.details');
+    Route::get('/pasien/{id}/foto', [PasienController::class, 'foto'])->name('pasien.foto');
     Route::post('/pasien/store-and-redirect', [PasienController::class, 'storeAndRedirect'])->name('pasien.store-and-redirect');
     Route::resource('/pasien', PasienController::class);
 

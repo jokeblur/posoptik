@@ -615,7 +615,7 @@ class PenjualanController extends Controller
                 $q->where('merk_frame', 'LIKE', "{$query}%")
                   ->orWhere('kode_frame', 'LIKE', "{$query}%");
             })
-            ->select('id', 'merk_frame as name', 'harga_jual_frame as price', \DB::raw("'frame' as type"))
+            ->select('id', 'merk_frame as name', 'kode_frame as code', 'stok as stock', 'harga_jual_frame as price', \DB::raw("'frame' as type"))
             ->limit(5)
             ->get();
             
@@ -897,6 +897,7 @@ class PenjualanController extends Controller
             'bpjs_manual_additional_cost' => 'nullable|numeric|min:0',
             'photo_bpjs' => 'nullable|image|max:3072',
             'photo_bpjs_webcam' => 'nullable|string',
+            'foto_pasien' => 'nullable|image|max:3072',
             'voucher_kode' => 'nullable|string|max:100',
         ];
 
@@ -916,10 +917,30 @@ class PenjualanController extends Controller
         $voucherKode = strtoupper(trim((string) $request->input('voucher_kode', '')));
 
         // Validasi kondisional untuk pasien
+        $createPatient = $request->boolean('buat_pasien_baru') && !$request->filled('pasien_id');
+        $savePrescription = $request->boolean('simpan_resep');
         if ($request->filled('pasien_id')) {
             $rules['pasien_id'] = 'exists:pasien,id_pasien';
+        } elseif ($createPatient) {
+            $rules['pasien_name'] = 'required|string|max:255';
+            $rules['umur'] = 'nullable|integer|min:0|max:150';
+            $rules['nohp'] = 'nullable|string|max:30';
+            $rules['service_type'] = 'required|in:UMUM,BPJS I,BPJS II,BPJS III';
+            $rules['alamat'] = 'nullable|string|max:1000';
+            $rules['no_bpjs'] = 'nullable|string|max:100';
+            foreach (['od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis', 'add', 'add_kanan', 'add_kiri', 'pd', 'pd_kanan', 'pd_kiri'] as $field) {
+                $rules[$field] = 'nullable|string|max:50';
+            }
+            $rules['catatan'] = 'nullable|string|max:2000';
         } else {
             $rules['pasien_name'] = 'required|string|max:255';
+        }
+
+        if ($savePrescription && !$createPatient) {
+            foreach (['od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis', 'add', 'add_kanan', 'add_kiri', 'pd', 'pd_kanan', 'pd_kiri'] as $field) {
+                $rules[$field] = 'nullable|string|max:50';
+            }
+            $rules['catatan'] = 'nullable|string|max:2000';
         }
 
         $request->validate($rules);
@@ -986,22 +1007,53 @@ class PenjualanController extends Controller
             $pasien = null;
             if ($request->filled('pasien_id')) {
                 $pasien = Pasien::find($request->pasien_id);
-                if ($pasien && $this->isBpjsServiceType($pasien->service_type)) {
-                    $pasienServiceType = $pasien->service_type;
-                    $bpjsDefaultPrice = $this->bpjsPricingService->getDefaultPrice($pasien->service_type);
-                    $bpjsManualAdditionalCost = $hasBpjsManualAdditionalColumn
-                        ? max(0, (float) $request->input('bpjs_manual_additional_cost', 0))
-                        : 0;
-                    
-                    // Conditional debug logging untuk BPJS pricing
-                    if (config('app.debug')) {
-                        \Log::debug('BPJS Pricing in Store Method:', [
-                            'pasien_id' => $pasien->id_pasien,
-                            'service_type' => $pasien->service_type,
-                            'bpjs_default_price' => $bpjsDefaultPrice,
-                            'pasien_service_type' => $pasienServiceType
-                        ]);
-                    }
+            } elseif ($createPatient) {
+                $pasien = Pasien::create([
+                    'nama_pasien' => trim((string) $request->pasien_name),
+                    'umur' => $request->input('umur') ?: null,
+                    'nohp' => $request->input('nohp') ?: null,
+                    'service_type' => $request->input('service_type'),
+                    'alamat' => $request->input('alamat') ?: null,
+                    'no_bpjs' => $request->input('no_bpjs') ?: null,
+                    'tanggal_periksa' => $transactionDate,
+                ]);
+            }
+
+            if ($pasien && $request->hasFile('foto_pasien')) {
+                $photoPath = $request->file('foto_pasien')->store('patient-photos', 'local');
+                $pasien->update(['foto_pasien' => $photoPath]);
+            }
+
+            if ($pasien && ($createPatient || $savePrescription)) {
+                $prescriptionData = $request->only([
+                    'od_sph', 'od_cyl', 'od_axis', 'os_sph', 'os_cyl', 'os_axis',
+                    'add', 'add_kanan', 'add_kiri', 'pd', 'pd_kanan', 'pd_kiri', 'catatan',
+                ]);
+                $hasPrescription = collect($prescriptionData)->contains(function ($value) {
+                    return $value !== null && $value !== '';
+                });
+
+                if ($hasPrescription) {
+                    $prescriptionData['id_pasien'] = $pasien->id_pasien;
+                    $prescriptionData['tanggal'] = $transactionDate;
+                    \App\Models\Prescription::create($prescriptionData);
+                }
+            }
+
+            if ($pasien && $this->isBpjsServiceType($pasien->service_type)) {
+                $pasienServiceType = $pasien->service_type;
+                $bpjsDefaultPrice = $this->bpjsPricingService->getDefaultPrice($pasien->service_type);
+                $bpjsManualAdditionalCost = $hasBpjsManualAdditionalColumn
+                    ? max(0, (float) $request->input('bpjs_manual_additional_cost', 0))
+                    : 0;
+
+                if (config('app.debug')) {
+                    \Log::debug('BPJS Pricing in Store Method:', [
+                        'pasien_id' => $pasien->id_pasien,
+                        'service_type' => $pasien->service_type,
+                        'bpjs_default_price' => $bpjsDefaultPrice,
+                        'pasien_service_type' => $pasienServiceType,
+                    ]);
                 }
             }
 
@@ -1013,8 +1065,8 @@ class PenjualanController extends Controller
                 'barcode' => $barcode,
                 'tanggal' => $transactionDate,
                 'tanggal_siap' => $tanggalSiap,
-                'pasien_id' => $request->filled('pasien_id') ? $request->pasien_id : null,
-                'nama_pasien_manual' => $request->filled('pasien_id') ? null : $request->pasien_name,
+                'pasien_id' => $pasien ? $pasien->id_pasien : null,
+                'nama_pasien_manual' => $pasien ? null : $request->pasien_name,
                 'dokter_id' => $request->filled('dokter_id') ? $request->dokter_id : null,
                 'dokter_manual' => $request->filled('dokter_manual') ? $request->dokter_manual : null,
                 'user_id' => auth()->id(),

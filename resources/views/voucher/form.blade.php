@@ -138,7 +138,7 @@
                         <label>Desain Voucher</label>
                         <p class="text-muted" style="margin-bottom:8px;">
                             Opsional. Gambar JPG/PNG/WEBP maks. 5 MB, sebaiknya rasio 15 x 7 cm (mis. 1772 x 827 px).
-                            Saat cetak, desain jadi latar voucher dan kode voucher dicetak di atasnya.
+                            Saat cetak, desain jadi latar voucher dan semua tulisan voucher (kode, nominal, masa berlaku, syarat) tetap dicetak di atasnya.
                             @if ($voucher->exists && $voucher->batch_kode)
                                 Perubahan desain berlaku untuk semua voucher batch {{ $voucher->batch_kode }}.
                             @endif

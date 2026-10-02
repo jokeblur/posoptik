@@ -113,6 +113,7 @@ class VoucherController extends Controller
         $validated = $request->validate([
             'semua' => 'nullable|boolean',
             'side' => 'nullable|in:front,back',
+            'kertas' => 'nullable|in:kecil,f4',
         ]);
         $semua = $request->boolean('semua') && $voucher->batch_kode;
 
@@ -126,6 +127,7 @@ class VoucherController extends Controller
             'vouchers' => $vouchers,
             'semua' => (bool) $semua,
             'side' => $validated['side'] ?? 'front',
+            'kertas' => $validated['kertas'] ?? 'kecil',
         ]);
     }
 

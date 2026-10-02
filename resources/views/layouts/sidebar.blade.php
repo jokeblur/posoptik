@@ -145,6 +145,7 @@
 
                           @if(auth()->user()->isKasir() || auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
                           <li style="margin: 0;"><a href="{{ route('kasir-mobile.index') }}" style="padding: 8px 15px;"><i class="fa fa-mobile"></i> <span>Kasir Mobile (HP/Tablet)</span></a></li>
+                          <li style="margin: 0;"><a href="{{ route('print-agent') }}" target="_blank" style="padding: 8px 15px;"><i class="fa fa-print"></i> <span>Print Agent (PC Printer)</span></a></li>
                           @endif
                       </ul>
                   </section>

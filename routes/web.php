@@ -261,6 +261,7 @@ Route::middleware([
     // Kasir Mobile (halaman khusus HP/tablet untuk kasir)
     Route::middleware('role:kasir,admin,super admin')->prefix('kasir-mobile')->name('kasir-mobile.')->group(function () {
         Route::get('/', [App\Http\Controllers\KasirMobileController::class, 'index'])->name('index');
+        Route::get('/pasien-search', [App\Http\Controllers\KasirMobileController::class, 'pasienSearch'])->name('pasien-search');
         Route::get('/riwayat', [App\Http\Controllers\KasirMobileController::class, 'riwayat'])->name('riwayat');
         Route::get('/stok', [App\Http\Controllers\KasirMobileController::class, 'stok'])->name('stok');
         Route::get('/stok-data', [App\Http\Controllers\KasirMobileController::class, 'stokData'])->name('stok-data');

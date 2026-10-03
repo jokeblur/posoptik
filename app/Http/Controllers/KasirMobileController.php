@@ -36,9 +36,30 @@ class KasirMobileController extends Controller
     public function index()
     {
         $data = $this->layoutData('Kasir', 'pos');
-        $data['pasienList'] = Pasien::orderBy('nama_pasien')->limit(300)->get(['id_pasien', 'nama_pasien', 'nohp', 'service_type']);
+        $data['dokters'] = \App\Models\Dokter::orderBy('nama_dokter')->get(['id_dokter', 'nama_dokter']);
 
         return view('kasir-mobile.index', $data);
+    }
+
+    /**
+     * Cari pasien untuk pilihan transaksi kasir mobile.
+     */
+    public function pasienSearch(Request $request)
+    {
+        $query = trim((string) $request->get('q', ''));
+
+        $pasiens = Pasien::query()
+            ->when($query !== '', function ($patients) use ($query) {
+                $patients->where(function ($search) use ($query) {
+                    $search->where('nama_pasien', 'LIKE', "%{$query}%")
+                        ->orWhere('nohp', 'LIKE', "%{$query}%");
+                });
+            })
+            ->orderBy('nama_pasien')
+            ->limit(20)
+            ->get(['id_pasien', 'nama_pasien', 'nohp', 'service_type']);
+
+        return response()->json($pasiens);
     }
 
     /**

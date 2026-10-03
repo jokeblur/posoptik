@@ -37,6 +37,15 @@
         padding: 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer;
     }
     .search-result-item:active { background: #faf0f3; }
+    .patient-search-results {
+        max-height: 240px; overflow-y: auto; border: 1px solid #ddd;
+        border-radius: 6px; background: #fff; margin-bottom: 10px;
+    }
+    .patient-search-results button {
+        display: block; width: 100%; padding: 10px 12px; border: 0;
+        border-bottom: 1px solid #eee; background: #fff; text-align: left;
+    }
+    .patient-search-results button:last-child { border-bottom: 0; }
     .quick-nominal {
         flex: 1; padding: 10px 4px; border-radius: 10px; border: 1.5px solid #ddd;
         background: #fff; font-weight: 700; font-size: 12px; text-align: center;
@@ -51,12 +60,9 @@
 <div class="m-card">
     <h4><i class="fa fa-user text-brand"></i> Pasien</h4>
     <label class="m-label">Pilih Pasien Terdaftar</label>
-    <select id="pasien_id" class="m-select" style="margin-bottom:8px;">
-        <option value="">— Pasien Baru / Manual —</option>
-        @foreach($pasienList as $p)
-            <option value="{{ $p->id_pasien }}">{{ $p->nama_pasien }}{{ $p->nohp ? ' · ' . $p->nohp : '' }}{{ $p->service_type ? ' [' . $p->service_type . ']' : '' }}</option>
-        @endforeach
-    </select>
+    <input type="hidden" id="pasien_id">
+    <input type="search" id="pasien-search" class="m-input" placeholder="Ketik nama atau nomor HP pasien..." autocomplete="off" style="margin-bottom:8px;">
+    <div id="pasien-search-results" class="patient-search-results" style="display:none;"></div>
     <div id="pasien-manual-wrap">
         <label class="m-label">Nama Pasien (jika tidak terdaftar)</label>
         <input type="text" id="pasien_name" class="m-input" placeholder="Nama pasien...">
@@ -82,6 +88,17 @@
         <div style="margin-top:4px;"><strong>Jenis layanan:</strong> <span id="pasien-terdaftar-service">-</span></div>
         <div style="margin-top:4px;"><strong>No. HP:</strong> <span id="pasien-terdaftar-nohp">-</span></div>
         <div id="pasien-terdaftar-bpjs-wrap" style="display:none; margin-top:4px;"><strong>No. BPJS:</strong> <span id="pasien-terdaftar-bpjs">-</span></div>
+    </div>
+    <div style="border-top:1px solid #eee; margin-top:12px; padding-top:12px;">
+        <label class="m-label" for="dokter_id">Dokter</label>
+        <select id="dokter_id" class="m-select" style="margin-bottom:8px;">
+            <option value="">Pilih dokter terdaftar (opsional)</option>
+            @foreach($dokters as $dokter)
+                <option value="{{ $dokter->id_dokter }}">{{ $dokter->nama_dokter }}</option>
+            @endforeach
+        </select>
+        <label class="m-label" for="dokter_manual">Atau input nama dokter</label>
+        <input type="text" id="dokter_manual" class="m-input" placeholder="Nama dokter manual (opsional)" autocomplete="off">
     </div>
     <div id="foto-pasien-wrap" style="display:none; margin-top:12px;">
         <label class="m-label">Foto pasien</label>
@@ -191,7 +208,7 @@
         <button type="button" class="quick-nominal" data-nominal="200000">200rb</button>
     </div>
     <div style="display:flex; justify-content:space-between; font-size:13px; padding:6px 0;">
-        <span>Kembalian / Kekurangan:</span>
+        <span id="payment-balance-caption">Kembalian / Kekurangan:</span>
         <strong id="kembalian-label" class="text-brand">Rp 0</strong>
     </div>
 </div>
@@ -199,8 +216,9 @@
 {{-- ============ TOTAL & SIMPAN ============ --}}
 <div class="total-bar" style="margin-bottom:12px;">
     <div>
-        <div style="font-size:11px; opacity:.85;">TOTAL</div>
+        <div id="total-caption" style="font-size:11px; opacity:.85;">TOTAL</div>
         <div class="t-val" id="grand-total">Rp 0</div>
+        <div id="total-note" style="font-size:11px; margin-top:3px; opacity:.9;"></div>
     </div>
     <button type="button" class="btn" id="btn-bayar" style="background:#fff; color:var(--brand); font-weight:700; font-size:16px; border-radius:24px; padding:14px 28px; min-height:52px;" disabled>
         <i class="fa fa-check"></i> BAYAR / DP
@@ -327,6 +345,8 @@
     <input type="hidden" name="service_type" id="f-pasien-service-type">
     <input type="hidden" name="alamat" id="f-pasien-alamat">
     <input type="hidden" name="no_bpjs" id="f-pasien-no-bpjs">
+    <input type="hidden" name="dokter_id" id="f-dokter-id">
+    <input type="hidden" name="dokter_manual" id="f-dokter-manual">
     <input type="hidden" name="simpan_resep" id="f-simpan-resep">
     <input type="hidden" name="signature_bpjs" id="f-signature-bpjs">
     <input type="hidden" name="od_sph" id="f-od-sph">
@@ -347,6 +367,7 @@
 let cart = [];
 let currentType = 'frame';
 let searchTimer = null;
+let patientSearchTimer = null;
 let loadedPrescriptionSignature = '';
 let selectedPatientPhoto = null;
 let patientPhotoPreviewUrl = null;
@@ -357,6 +378,7 @@ const ROUTES = {
     lensaStok: '{{ route("penjualan.lensa-stok") }}',
     pasienDetails: '{{ url("/pasien") }}',
     store: '{{ route("penjualan.store") }}',
+    pasienSearch: '{{ route("kasir-mobile.pasien-search") }}',
     cetakHalf: '{{ url("/penjualan") }}'
 };
 
@@ -380,6 +402,31 @@ $(function() {
         clearTimeout(searchTimer);
         if (q.length < 2) { $('#quick-search-results').empty(); return; }
         searchTimer = setTimeout(() => quickSearch(q), 350);
+    });
+
+    $('#pasien-search').on('focus', function() {
+        if (!$(this).val().trim()) searchPatients('');
+    }).on('input', function() {
+        const query = $(this).val().trim();
+        const selectedName = $(this).data('selected-name');
+        if (selectedName && query !== selectedName) {
+            $(this).removeData('selected-name');
+            $('#pasien_id').val('').trigger('change');
+        }
+        clearTimeout(patientSearchTimer);
+        if (query.length < 2) {
+            $('#pasien-search-results').hide().empty();
+            return;
+        }
+        patientSearchTimer = setTimeout(() => searchPatients(query), 300);
+    });
+
+    $('#dokter_id').on('change', function() {
+        if ($(this).val()) $('#dokter_manual').val('');
+    });
+
+    $('#dokter_manual').on('input', function() {
+        if ($(this).val().trim()) $('#dokter_id').val('');
     });
 
     // pencarian di dalam modal
@@ -426,14 +473,18 @@ $(function() {
         $('#foto-pasien-preview').hide().attr('src', '');
         toggleBpjsCapture(false);
         if (!pasienId) {
+            $('#pasien-terdaftar-service').text('-');
             clearPrescription();
             loadedPrescriptionSignature = '';
             toggleBpjsCapture(isBpjsService($('#pasien_service_type').val()));
             $('#resep-source').text('Pasien baru');
             $('#resep-status').text('Resep yang diisi akan disimpan bersama data pasien.');
+            updateTotals();
             return;
         }
 
+        $('#pasien-terdaftar-service').text('-');
+        updateTotals();
         clearPrescription();
         $('#resep-source').text('Memuat resep...');
         $.get(ROUTES.pasienDetails + '/' + encodeURIComponent(pasienId) + '/details')
@@ -443,6 +494,7 @@ $(function() {
                 $('#pasien-terdaftar-nohp').text(patient.nohp || '-');
                 $('#pasien-terdaftar-bpjs').text(patient.no_bpjs || '-');
                 $('#pasien-terdaftar-wrap').show();
+                updateTotals();
                 if (patient.foto_pasien) {
                     $('#foto-pasien-preview')
                         .attr('src', ROUTES.pasienDetails + '/' + encodeURIComponent(pasienId) + '/foto')
@@ -462,6 +514,7 @@ $(function() {
                 clearPrescription();
                 $('#resep-source').text('Resep tidak dapat dimuat');
                 $('#resep-status').text('Periksa koneksi, lalu pilih pasien kembali.');
+                updateTotals();
             });
     });
 
@@ -469,6 +522,7 @@ $(function() {
         if (!$('#pasien_id').val()) {
             toggleBpjsCapture(isBpjsService($(this).val()));
         }
+        updateTotals();
     });
 
     $('.pay-chip').on('click', function() {
@@ -537,8 +591,10 @@ function capturePatientPhoto() {
         return;
     }
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    const maxDimension = 1280;
+    const scale = Math.min(1, maxDimension / Math.max(video.videoWidth, video.videoHeight));
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
     canvas.toBlob(function(blob) {
         if (!blob) {
@@ -548,7 +604,7 @@ function capturePatientPhoto() {
         const filename = 'foto-pasien-' + Date.now() + '.jpg';
         setPatientPhoto(new File([blob], filename, { type: 'image/jpeg' }), filename);
         $('#modal-patient-camera').modal('hide');
-    }, 'image/jpeg', 0.9);
+    }, 'image/jpeg', 0.75);
 }
 
 function isBpjsService(serviceType) {
@@ -876,13 +932,51 @@ function renderCart() {
 
 /* ================= TOTAL & PEMBAYARAN ================= */
 function subTotal() { return cart.reduce((s, c) => s + (c.price * c.quantity), 0); }
-function grandTotal() { return Math.max(0, subTotal() - (Number($('#diskon').val()) || 0)); }
+
+function selectedServiceType() {
+    return $('#pasien_id').val()
+        ? $('#pasien-terdaftar-service').text().trim()
+        : $('#pasien_service_type').val();
+}
+
+function bpjsTotals() {
+    const plafonByService = { 'BPJS I': 330000, 'BPJS II': 220000, 'BPJS III': 165000 };
+    const plafon = plafonByService[selectedServiceType()] || 0;
+    const eligibleTotal = cart
+        .filter(item => ['frame', 'lensa', 'lensa_gosok'].includes(item.type))
+        .reduce((sum, item) => sum + (Number(item.price) || 0) * item.quantity, 0);
+    const accessoriesTotal = cart
+        .filter(item => item.type === 'aksesoris')
+        .reduce((sum, item) => sum + (Number(item.price) || 0) * item.quantity, 0);
+    const additional = Math.max(0, eligibleTotal - plafon);
+    const discount = Number($('#diskon').val()) || 0;
+    const discountOnAdditional = Math.min(discount, additional);
+    const remainingDiscount = Math.max(0, discount - discountOnAdditional);
+    const payable = Math.max(0, additional - discountOnAdditional + accessoriesTotal - remainingDiscount);
+
+    return { plafon, additional, payable };
+}
+
+function grandTotal() {
+    if (isBpjsService(selectedServiceType())) return bpjsTotals().payable;
+    return Math.max(0, subTotal() - (Number($('#diskon').val()) || 0));
+}
 
 function updateTotals() {
     const gt = grandTotal();
     const bayar = Number($('#bayar').val()) || 0;
     const selisih = bayar - gt;
     $('#grand-total').text(formatRupiah(gt));
+    if (isBpjsService(selectedServiceType())) {
+        const totals = bpjsTotals();
+        $('#total-caption').text('TAGIHAN TAMBAHAN BPJS');
+        $('#total-note').html('Biaya dasar ' + formatRupiah(totals.plafon) + ' ditanggung BPJS<br>Tambahan: ' + formatRupiah(totals.additional));
+        $('#payment-balance-caption').text('Sisa tagihan / kembalian:');
+    } else {
+        $('#total-caption').text('TOTAL UMUM');
+        $('#total-note').text('');
+        $('#payment-balance-caption').text(bayar > 0 && selisih < 0 ? 'Sisa tagihan setelah DP:' : 'Kembalian / kekurangan:');
+    }
     $('#kembalian-label').text((selisih >= 0 ? 'Kembali ' : 'Kurang ') + formatRupiah(Math.abs(selisih)));
     $('#kembalian-label').css('color', selisih >= 0 ? '#27ae60' : '#c0392b');
     $('#btn-bayar').prop('disabled', !(cart.length > 0 && (gt === 0 || bayar > 0)));
@@ -919,6 +1013,8 @@ function submitTransaction() {
     $('#f-pasien-service-type').val(pasienId ? '' : $('#pasien_service_type').val());
     $('#f-pasien-alamat').val(pasienId ? '' : $('#pasien_alamat').val());
     $('#f-pasien-no-bpjs').val(pasienId ? '' : $('#pasien_no_bpjs').val());
+    $('#f-dokter-id').val($('#dokter_id').val());
+    $('#f-dokter-manual').val($('#dokter_manual').val().trim());
     $('#f-simpan-resep').val(!pasienId || prescriptionFormSignature() !== loadedPrescriptionSignature ? '1' : '');
     $('#f-od-sph').val($('#rx-od-sph').val());
     $('#f-od-cyl').val($('#rx-od-cyl').val());
@@ -933,7 +1029,12 @@ function submitTransaction() {
 
     const $btn = $('#btn-bayar').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> PROSES...');
     const formData = new FormData($('#form-hidden')[0]);
-    if (selectedPatientPhoto) formData.append('foto_pasien', selectedPatientPhoto);
+    if (selectedPatientPhoto) {
+        formData.append('foto_pasien', selectedPatientPhoto);
+        if (isBpjsService(selectedServiceType())) {
+            formData.append('photo_bpjs', selectedPatientPhoto);
+        }
+    }
 
     $.ajax({
         url: ROUTES.store,
@@ -961,6 +1062,34 @@ function submitTransaction() {
             : 'Gagal menyimpan transaksi';
         toast(msg, false);
         $btn.prop('disabled', false).html('<i class="fa fa-check"></i> BAYAR / DP');
+    });
+}
+
+function searchPatients(query) {
+    $.get(ROUTES.pasienSearch, { q: query }).done(function(patients) {
+        const $results = $('#pasien-search-results').empty();
+        if (!patients.length) {
+            $results.append($('<div>').text('Pasien tidak ditemukan. Gunakan input manual jika pasien baru.').css({ padding: '10px 12px', color: '#777' }));
+            $results.show();
+            return;
+        }
+
+        patients.forEach(function(patient) {
+            const $option = $('<button type="button">');
+            $('<strong>').text(patient.nama_pasien).appendTo($option);
+            $('<div>').text([patient.nohp, patient.service_type].filter(Boolean).join(' · ')).css({ fontSize: '12px', color: '#777' }).appendTo($option);
+            $option.on('click', function() {
+                $('#pasien-search').val(patient.nama_pasien).data('selected-name', patient.nama_pasien);
+                $('#pasien-search-results').hide().empty();
+                $('#pasien_id').val(patient.id_pasien).trigger('change');
+            });
+            $results.append($option);
+        });
+        $results.show();
+    }).fail(function() {
+        $('#pasien-search-results').empty().append(
+            $('<div>').text('Pencarian pasien gagal. Periksa koneksi lalu coba lagi.').css({ padding: '10px 12px', color: '#c0392b' })
+        ).show();
     });
 }
 </script>

@@ -5,23 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cetak Voucher {{ $semua ? $voucher->batch_kode : $voucher->kode }}</title>
     @php
-        // Ukuran kertas cetak: 14,8 x 21,4 cm isi 3 voucher 14,8 x 7 cm (selebar kertas),
-        // atau F4 21,5 x 33 cm isi 5 voucher 15 x 6,4 cm (5 x 7 cm = 35 cm tidak muat; sisa 1 cm jadi jarak 2 mm).
+        // Kertas 16,5 x 21,5 cm isi 3 voucher 16,5 x 7 cm (3 x 7 cm = 21 cm; sisa 5 mm jadi jarak antar voucher).
         $kertasList = [
-            'kecil' => ['w' => 148, 'h' => 214, 'isi' => 3, 'card' => 148, 'ch' => 70, 'label' => '14,8 x 21,4 cm'],
-            'f4' => ['w' => 215, 'h' => 330, 'isi' => 5, 'card' => 150, 'ch' => 64, 'label' => 'F4 (21,5 x 33 cm)'],
+            'voucher' => ['w' => 165, 'h' => 215, 'isi' => 3, 'card' => 165, 'ch' => 70, 'label' => '16,5 x 21,5 cm'],
         ];
-        $kertas = $kertas ?? 'kecil';
-        $k = $kertasList[$kertas] ?? $kertasList['kecil'];
+        $kertas = 'voucher';
+        $k = $kertasList['voucher'];
     @endphp
     <style>
         * { box-sizing: border-box; }
         body { margin: 0; padding: 8mm; background: #eef1f6; color: #273142; font-family: Arial, Helvetica, sans-serif; }
         .toolbar { margin-bottom: 8px; text-align: center; }
         .toolbar a, .toolbar button { display: inline-block; border: 0; border-radius: 4px; padding: 8px 14px; color: #fff; background: #2676d9; font-weight: 700; cursor: pointer; text-decoration: none; }
-        /* Depan rata kiri; belakang rata kanan (tanpa mirror). */
-        .sheet { width: {{ $k['w'] }}mm; height: {{ $k['h'] }}mm; margin: 0 auto 6mm; overflow: hidden; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.15); display: flex; flex-direction: column; align-items: flex-start; justify-content: space-evenly; }
-        .sheet.back-sheet { align-items: flex-end; margin-right: 0; }
+        /* Semua voucher rata tengah (depan & belakang). */
+        .sheet { width: {{ $k['w'] }}mm; height: {{ $k['h'] }}mm; margin: 0 auto 6mm; overflow: hidden; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.15); display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; }
+        /* Sisi belakang: hanya gambar desain yang dicerminkan (mirror), tulisan tetap normal. */
+        .sheet.back-sheet .desain-img { transform: scaleX(-1); }
         .voucher-card { position: relative; overflow: hidden; width: {{ $k['card'] }}mm; height: {{ $k['ch'] }}mm; flex: 0 0 {{ $k['ch'] }}mm; padding: {{ $k['ch'] < 70 ? '4mm' : '6mm' }} 9mm; border: .3mm dashed #68758a; background: #fff; }
         .voucher-card::after { content: ''; position: absolute; right: -14mm; bottom: -18mm; width: 62mm; height: 62mm; border: 7mm solid rgba(38, 118, 217, .08); border-radius: 50%; }
         .card-header { display: flex; align-items: center; justify-content: space-between; gap: 4mm; padding-bottom: 3mm; border-bottom: .3mm solid #d7e0ed; }
@@ -64,10 +63,8 @@
             @page { size: {{ $k['w'] }}mm {{ $k['h'] }}mm; margin: 0; }
             body { padding: 0; background: #fff; }
             .toolbar { display: none; }
-            .sheet { margin: 0; box-shadow: none; page-break-after: always; break-after: page; }
+            .sheet { margin: 0 auto; box-shadow: none; page-break-after: always; break-after: page; }
             .sheet:last-child { page-break-after: auto; break-after: auto; }
-            /* Belakang menempel di tepi kanan kertas, berapa pun lebar kertas di printer. */
-            .sheet.back-sheet { margin-left: auto; margin-right: 0; }
             .voucher-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
@@ -107,7 +104,7 @@
     </div>
 
     @foreach ($vouchers->chunk($k['isi']) as $sheetVouchers)
-    <div class="sheet{{ $kertas === 'f4' ? ' sheet-f4' : '' }}{{ $isBack ? ' back-sheet' : '' }}">
+    <div class="sheet{{ $isBack ? ' back-sheet' : '' }}">
     @foreach ($sheetVouchers as $card)
         @php $desain = $desainOf($card, $isBack ? 'belakang' : 'depan'); @endphp
         @if (!$isBack)

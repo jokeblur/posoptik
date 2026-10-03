@@ -966,6 +966,7 @@ function updateTotals() {
     const gt = grandTotal();
     const bayar = Number($('#bayar').val()) || 0;
     const selisih = bayar - gt;
+    const sisaPembayaran = Math.max(0, gt - bayar);
     $('#grand-total').text(formatRupiah(gt));
     if (isBpjsService(selectedServiceType())) {
         const totals = bpjsTotals();
@@ -976,6 +977,9 @@ function updateTotals() {
         $('#total-caption').text('TOTAL UMUM');
         $('#total-note').text('');
         $('#payment-balance-caption').text(bayar > 0 && selisih < 0 ? 'Sisa tagihan setelah DP:' : 'Kembalian / kekurangan:');
+    }
+    if (bayar > 0 && sisaPembayaran > 0) {
+        $('#total-note').append('<br><strong style="font-size:15px;">Sisa pembayaran: ' + formatRupiah(sisaPembayaran) + '</strong>');
     }
     $('#kembalian-label').text((selisih >= 0 ? 'Kembali ' : 'Kurang ') + formatRupiah(Math.abs(selisih)));
     $('#kembalian-label').css('color', selisih >= 0 ? '#27ae60' : '#c0392b');

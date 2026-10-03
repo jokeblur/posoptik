@@ -65,19 +65,29 @@ class KasirMobileController extends Controller
     /**
      * Riwayat transaksi kasir hari ini.
      */
-    public function riwayat()
+    public function riwayat(Request $request)
     {
         $data = $this->layoutData('Riwayat', 'riwayat');
+        $request->validate([
+            'date' => 'nullable|date|before_or_equal:today',
+        ]);
+        $selectedDate = $request->input('date', today()->toDateString());
 
-        $transaksis = Penjualan::with('pasien:id_pasien,nama_pasien')
+        $transaksis = Penjualan::with('pasien:id_pasien,nama_pasien,service_type')
             ->where('user_id', auth()->id())
-            ->whereDate('created_at', today())
+            ->whereDate('created_at', $selectedDate)
             ->latest()
             ->get();
 
         $data['transaksis'] = $transaksis;
         $data['totalHariIni'] = $transaksis->sum('total');
         $data['jumlahTransaksi'] = $transaksis->count();
+        $data['jumlahTransaksiBpjs'] = $transaksis->filter(function ($transaksi) {
+            $serviceType = $transaksi->pasien_service_type ?: optional($transaksi->pasien)->service_type;
+
+            return in_array(strtoupper(trim((string) $serviceType)), ['BPJS I', 'BPJS II', 'BPJS III'], true);
+        })->count();
+        $data['selectedDate'] = \Carbon\Carbon::parse($selectedDate);
 
         return view('kasir-mobile.riwayat', $data);
     }

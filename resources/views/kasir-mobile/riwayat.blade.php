@@ -1,12 +1,33 @@
 @extends('kasir-mobile.layout')
 
 @section('content')
+<div class="m-card" style="padding:10px 12px;">
+    <form method="GET" action="{{ route('kasir-mobile.riwayat') }}" style="display:flex; align-items:center; gap:8px;">
+        <a href="{{ route('kasir-mobile.riwayat', ['date' => $selectedDate->copy()->subDay()->toDateString()]) }}" class="btn btn-default" aria-label="Hari sebelumnya" title="Hari sebelumnya">
+            <i class="fa fa-chevron-left"></i>
+        </a>
+        <input type="date" name="date" value="{{ $selectedDate->toDateString() }}" max="{{ today()->toDateString() }}" class="m-input" style="min-width:0; flex:1;">
+        <button type="submit" class="btn btn-primary" aria-label="Lihat tanggal" title="Lihat tanggal">
+            <i class="fa fa-calendar"></i>
+        </button>
+        @if($selectedDate->lt(today()))
+            <a href="{{ route('kasir-mobile.riwayat', ['date' => $selectedDate->copy()->addDay()->toDateString()]) }}" class="btn btn-default" aria-label="Hari berikutnya" title="Hari berikutnya">
+                <i class="fa fa-chevron-right"></i>
+            </a>
+        @else
+            <button type="button" class="btn btn-default" aria-label="Hari berikutnya" disabled>
+                <i class="fa fa-chevron-right"></i>
+            </button>
+        @endif
+    </form>
+</div>
+
 <div class="m-card" style="background:linear-gradient(135deg, var(--brand), var(--brand-dark)); color:#fff;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <div>
-            <div style="font-size:12px; opacity:.85;">Penjualan Anda Hari Ini</div>
+            <div style="font-size:12px; opacity:.85;">Penjualan {{ $selectedDate->isToday() ? 'Hari Ini' : $selectedDate->translatedFormat('d F Y') }}</div>
             <div style="font-size:22px; font-weight:700;">Rp {{ number_format($totalHariIni, 0, ',', '.') }}</div>
-            <div style="font-size:12px; opacity:.85;">{{ $jumlahTransaksi }} transaksi · {{ now()->translatedFormat('d F Y') }}</div>
+            <div style="font-size:12px; opacity:.9;">{{ $jumlahTransaksi }} transaksi · {{ $jumlahTransaksiBpjs }} transaksi BPJS</div>
         </div>
         <i class="fa fa-line-chart" style="font-size:36px; opacity:.4;"></i>
     </div>
@@ -40,7 +61,7 @@
     </div>
 @empty
     <div class="m-card">
-        <div class="m-empty"><i class="fa fa-inbox"></i>Belum ada transaksi hari ini.<br><a href="{{ route('kasir-mobile.index') }}" class="text-brand" style="font-weight:700;">Buat transaksi pertama →</a></div>
+        <div class="m-empty"><i class="fa fa-inbox"></i>Belum ada transaksi pada {{ $selectedDate->isToday() ? 'hari ini' : $selectedDate->translatedFormat('d F Y') }}.<br><a href="{{ route('kasir-mobile.index') }}" class="text-brand" style="font-weight:700;">Buat transaksi →</a></div>
     </div>
 @endforelse
 @endsection

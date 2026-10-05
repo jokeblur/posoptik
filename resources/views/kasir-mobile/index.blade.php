@@ -199,6 +199,25 @@
     </div>
     <label class="m-label">Diskon (Rp)</label>
     <input type="number" id="diskon" class="m-input" value="0" min="0" style="margin-bottom:10px;">
+    <label class="m-label">Voucher</label>
+    <div class="input-group" id="voucher-input-group" style="margin-bottom:10px;">
+        <input type="text" id="voucher_input" class="form-control m-input" placeholder="Ketik kode voucher atau scan QR" autocomplete="off" style="text-transform:uppercase;">
+        <span class="input-group-btn">
+            <button type="button" class="btn btn-primary" id="btn-apply-voucher" style="height:100%;"><i class="fa fa-check"></i> Pakai</button>
+            <button type="button" class="btn btn-success" id="btn-scan-voucher" title="Scan QR voucher" style="height:100%;"><i class="fa fa-qrcode"></i></button>
+        </span>
+    </div>
+    <div id="voucher-applied" class="alert alert-success" style="display:none; margin:0 0 10px; padding:10px 12px;">
+        <button type="button" class="close" id="btn-remove-voucher" title="Batalkan voucher" style="opacity:.6;">&times;</button>
+        <i class="fa fa-ticket"></i> <strong id="voucher-applied-kode"></strong>
+        &mdash; <span id="voucher-applied-nominal"></span><br>
+        Potongan: <strong id="voucher-applied-potongan">Rp 0</strong>
+    </div>
+    <div id="voucher-scanner" style="display:none; margin-bottom:10px;">
+        <div id="voucher-reader" style="width:100%; max-width:320px;"></div>
+        <button type="button" class="btn btn-default btn-xs" id="btn-stop-scan-voucher" style="margin-top:5px;"><i class="fa fa-stop"></i> Stop Kamera</button>
+    </div>
+    <small class="text-danger" id="voucher-error" style="display:none; margin-bottom:10px;"></small>
     <label class="m-label">Bayar / DP (Rp)</label>
     <input type="number" id="bayar" class="m-input" value="" min="0" placeholder="0" style="margin-bottom:8px; font-size:22px; font-weight:700; min-height:56px;">
     <div style="display:flex; gap:6px; margin-bottom:10px;">
@@ -333,6 +352,7 @@
     <input type="hidden" name="items" id="f-items">
     <input type="hidden" name="total" id="f-total">
     <input type="hidden" name="diskon" id="f-diskon">
+    <input type="hidden" name="voucher_kode" id="f-voucher-kode">
     <input type="hidden" name="bayar" id="f-bayar">
     <input type="hidden" name="kekurangan" id="f-kekurangan">
     <input type="hidden" name="metode_pembayaran" id="f-metode" value="cash">
@@ -363,6 +383,7 @@
 
 @push('scripts')
 @include('print-agent._client')
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 let cart = [];
 let currentType = 'frame';
@@ -379,6 +400,7 @@ const ROUTES = {
     pasienDetails: '{{ url("/pasien") }}',
     store: '{{ route("penjualan.store") }}',
     pasienSearch: '{{ route("kasir-mobile.pasien-search") }}',
+    voucherCheck: '{{ route("voucher.check") }}',
     cetakHalf: '{{ url("/penjualan") }}'
 };
 
@@ -539,6 +561,21 @@ $(function() {
 
     $('#diskon, #bayar').on('input', updateTotals);
     $('#btn-bayar').on('click', submitTransaction);
+
+    $('#btn-apply-voucher').on('click', function() {
+        applyVoucher($('#voucher_input').val());
+    });
+    $('#voucher_input').on('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            applyVoucher($(this).val());
+        }
+    });
+    $('#btn-scan-voucher').on('click', startVoucherScan);
+    $('#btn-stop-scan-voucher').on('click', stopVoucherScan);
+    $('#btn-remove-voucher').on('click', function() {
+        setAppliedVoucher(null);
+    });
 });
 
 function setPatientPhoto(file, filename) {
@@ -930,6 +967,117 @@ function renderCart() {
     updateTotals();
 }
 
+/* ================= VOUCHER ================= */
+// Potongan final tetap dihitung ulang di server; ini hanya untuk tampilan.
+let appliedVoucher = null;
+let voucherQrScanner = null;
+let voucherScanning = false;
+
+function hitungPotonganVoucher(totalBelanja, diskonManual) {
+    if (!appliedVoucher) return 0;
+
+    totalBelanja = Math.max(0, Number(totalBelanja) || 0);
+    // Voucher uang memotong dari sisa saldonya; voucher diskon dari persen total belanja.
+    const potongan = appliedVoucher.jenis_nominal === 'diskon'
+        ? Math.round(totalBelanja * Math.min(100, Math.max(0, Number(appliedVoucher.nominal) || 0)) / 100)
+        : Math.max(0, Number(appliedVoucher.saldo) || 0);
+
+    return Math.min(potongan, Math.max(0, totalBelanja - Math.max(0, Number(diskonManual) || 0)));
+}
+
+function showVoucherError(message) {
+    $('#voucher-error').text(message).toggle(!!message);
+}
+
+function setAppliedVoucher(voucher) {
+    appliedVoucher = voucher;
+    $('#f-voucher-kode').val(voucher ? voucher.kode : '');
+    $('#voucher-input-group').toggle(!voucher);
+    $('#voucher-applied').toggle(!!voucher);
+    if (voucher) {
+        $('#voucher-applied-kode').text(voucher.kode);
+        $('#voucher-applied-nominal').text(voucher.jenis_nominal === 'diskon'
+            ? voucher.nominal_label + ' dari total belanja'
+            : 'Saldo ' + voucher.saldo_label);
+        $('#voucher_input').val('');
+    }
+    showVoucherError('');
+    $('#bayar').data('user-has-changed', false);
+    updateTotals();
+}
+
+function applyVoucher(kode) {
+    kode = String(kode || '').trim().toUpperCase();
+    if (!kode) {
+        showVoucherError('Masukkan kode voucher terlebih dahulu.');
+        return;
+    }
+
+    const $btn = $('#btn-apply-voucher').prop('disabled', true);
+    showVoucherError('');
+
+    $.getJSON(ROUTES.voucherCheck, { kode: kode })
+        .done(function(data) {
+            if (!data.status || !data.status.valid) {
+                let message = 'Voucher ' + kode + ' tidak bisa dipakai: ' + (data.status ? data.status.label : 'tidak valid') + '.';
+                if (data.dipakai_di) {
+                    message += ' Dipakai di transaksi ' + data.dipakai_di.kode_penjualan + ' (' + data.dipakai_di.tanggal + ').';
+                }
+                showVoucherError(message);
+                return;
+            }
+            setAppliedVoucher(data.voucher);
+        })
+        .fail(function(xhr) {
+            showVoucherError((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal mengecek voucher.');
+        })
+        .always(function() {
+            $btn.prop('disabled', false);
+        });
+}
+
+async function stopVoucherScan() {
+    if (voucherQrScanner && voucherScanning) {
+        try {
+            await voucherQrScanner.stop();
+            voucherQrScanner.clear();
+        } catch (e) {
+            console.warn('Gagal menghentikan kamera voucher', e);
+        }
+    }
+    voucherScanning = false;
+    $('#voucher-scanner').hide();
+}
+
+async function startVoucherScan() {
+    if (typeof Html5Qrcode === 'undefined') {
+        showVoucherError('Library scanner QR gagal dimuat. Ketik kode voucher secara manual.');
+        return;
+    }
+    if (voucherScanning) return;
+
+    showVoucherError('');
+    $('#voucher-scanner').show();
+    voucherQrScanner = voucherQrScanner || new Html5Qrcode('voucher-reader');
+
+    try {
+        await voucherQrScanner.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 200, height: 200 } },
+            function(decodedText) {
+                stopVoucherScan();
+                applyVoucher(decodedText);
+            },
+            function() {}
+        );
+        voucherScanning = true;
+    } catch (err) {
+        $('#voucher-scanner').hide();
+        showVoucherError('Kamera tidak bisa dibuka. Pastikan izin kamera diberikan dan halaman dibuka lewat HTTPS/localhost.');
+        console.error(err);
+    }
+}
+
 /* ================= TOTAL & PEMBAYARAN ================= */
 function subTotal() { return cart.reduce((s, c) => s + (c.price * c.quantity), 0); }
 
@@ -949,17 +1097,21 @@ function bpjsTotals() {
         .filter(item => item.type === 'aksesoris')
         .reduce((sum, item) => sum + (Number(item.price) || 0) * item.quantity, 0);
     const additional = Math.max(0, eligibleTotal - plafon);
-    const discount = Number($('#diskon').val()) || 0;
+    const diskonManual = Number($('#diskon').val()) || 0;
+    const potonganVoucher = hitungPotonganVoucher(additional + accessoriesTotal, diskonManual);
+    const discount = diskonManual + potonganVoucher;
     const discountOnAdditional = Math.min(discount, additional);
     const remainingDiscount = Math.max(0, discount - discountOnAdditional);
     const payable = Math.max(0, additional - discountOnAdditional + accessoriesTotal - remainingDiscount);
 
-    return { plafon, additional, payable };
+    return { plafon, additional, payable, potonganVoucher };
 }
 
 function grandTotal() {
     if (isBpjsService(selectedServiceType())) return bpjsTotals().payable;
-    return Math.max(0, subTotal() - (Number($('#diskon').val()) || 0));
+    const diskonManual = Number($('#diskon').val()) || 0;
+    const potonganVoucher = hitungPotonganVoucher(subTotal(), diskonManual);
+    return Math.max(0, subTotal() - diskonManual - potonganVoucher);
 }
 
 function updateTotals() {
@@ -968,16 +1120,20 @@ function updateTotals() {
     const selisih = bayar - gt;
     const sisaPembayaran = Math.max(0, gt - bayar);
     $('#grand-total').text(formatRupiah(gt));
+    let potonganVoucher = 0;
     if (isBpjsService(selectedServiceType())) {
         const totals = bpjsTotals();
+        potonganVoucher = totals.potonganVoucher;
         $('#total-caption').text('TAGIHAN TAMBAHAN BPJS');
         $('#total-note').html('Biaya dasar ' + formatRupiah(totals.plafon) + ' ditanggung BPJS<br>Tambahan: ' + formatRupiah(totals.additional));
         $('#payment-balance-caption').text('Sisa tagihan / kembalian:');
     } else {
+        potonganVoucher = hitungPotonganVoucher(subTotal(), Number($('#diskon').val()) || 0);
         $('#total-caption').text('TOTAL UMUM');
         $('#total-note').text('');
         $('#payment-balance-caption').text(bayar > 0 && selisih < 0 ? 'Sisa tagihan setelah DP:' : 'Kembalian / kekurangan:');
     }
+    $('#voucher-applied-potongan').text(formatRupiah(potonganVoucher));
     if (bayar > 0 && sisaPembayaran > 0) {
         $('#total-note').append('<br><strong style="font-size:15px;">Sisa pembayaran: ' + formatRupiah(sisaPembayaran) + '</strong>');
     }

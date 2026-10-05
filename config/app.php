@@ -15,6 +15,9 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    // Akun Instagram toko untuk footer voucher (opsional), mis. OPTIK_INSTAGRAM=optikmelati
+    'instagram' => env('OPTIK_INSTAGRAM'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

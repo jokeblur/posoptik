@@ -128,6 +128,8 @@ class VoucherController extends Controller
             'semua' => (bool) $semua,
             'side' => $validated['side'] ?? 'front',
             'kertas' => 'voucher',
+            // Alamat & kontak di footer belakang voucher: cabang aktif / cabang user.
+            'branch' => \App\Models\Branch::find(session('active_branch_id') ?: auth()->user()->branch_id),
         ]);
     }
 

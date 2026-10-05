@@ -151,13 +151,17 @@
                                         <i class="fa fa-upload"></i> Upload Desain {{ $label }}
                                         <input type="file" name="{{ $kolom }}" accept="image/jpeg,image/png,image/webp" class="desain-input" data-preview="#preview_{{ $kolom }}" style="display:none;">
                                     </label>
-                                    <div id="preview_{{ $kolom }}" style="border:1px dashed #ccc; border-radius:4px; aspect-ratio:15/7; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#fafafa;">
+                                    <div id="preview_{{ $kolom }}" style="border:1px dashed #ccc; border-radius:4px; aspect-ratio:16.5/7; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#fafafa;">
                                         @if ($desainUri)
                                             <img src="{{ $desainUri }}" alt="Desain {{ $label }}" style="width:100%; height:100%; object-fit:cover;">
                                         @else
                                             <span class="text-muted">Belum ada desain {{ strtolower($label) }}</span>
                                         @endif
                                     </div>
+                                    <button type="button" class="btn btn-xs btn-info btn-baca-desain" data-sisi="{{ $kolom === 'desain_belakang' ? 'belakang' : 'depan' }}" data-preview="#preview_{{ $kolom }}" style="margin-top:6px;">
+                                        <i class="fa fa-magic"></i> Baca tulisan desain
+                                    </button>
+                                    <div class="ocr-hasil" id="ocr_{{ $kolom }}" style="margin-top:6px; font-size:12px;"></div>
                                     @if ($desainUri)
                                         <div class="checkbox" style="margin:4px 0 0;">
                                             <label><input type="checkbox" name="hapus_{{ $kolom }}" value="1"> Hapus desain {{ strtolower($label) }}</label>
@@ -357,12 +361,191 @@
                     this.value = '';
                     return;
                 }
+                const $input = $(this);
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     $preview.empty().append($('<img>', { src: e.target.result, alt: 'Preview desain' }).css({ width: '100%', height: '100%', objectFit: 'cover' }));
+                    // Baca otomatis tulisan di desain yang baru diupload.
+                    bacaDesain(e.target.result, $input.attr('name') === 'desain_belakang' ? 'belakang' : 'depan');
                 };
                 reader.readAsDataURL(file);
             });
+
+            $('.btn-baca-desain').on('click', function () {
+                const $img = $($(this).data('preview')).find('img');
+                if (!$img.length) {
+                    alert('Upload desain dulu.');
+                    return;
+                }
+                bacaDesain($img.attr('src'), $(this).data('sisi'));
+            });
+
+            // ===== Baca tulisan di gambar desain (OCR, jalan di browser) lalu isi form =====
+            const BULAN = { jan: 1, feb: 2, mar: 3, apr: 4, mei: 5, may: 5, jun: 6, jul: 7, agu: 8, agt: 8, aug: 8, sep: 9, okt: 10, oct: 10, nov: 11, des: 12, dec: 12 };
+            let tesseractPromise = null;
+
+            function muatTesseract() {
+                if (window.Tesseract) {
+                    return Promise.resolve(window.Tesseract);
+                }
+                if (!tesseractPromise) {
+                    tesseractPromise = new Promise(function (resolve, reject) {
+                        const s = document.createElement('script');
+                        s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+                        s.onload = function () { resolve(window.Tesseract); };
+                        s.onerror = function () { tesseractPromise = null; reject(new Error('Library pembaca teks gagal dimuat (cek internet).')); };
+                        document.head.appendChild(s);
+                    });
+                }
+                return tesseractPromise;
+            }
+
+            function esc(s) {
+                return $('<span>').text(s).html();
+            }
+
+            function keIso(d, m, y) {
+                y = y < 100 ? 2000 + y : y;
+                if (m < 1 || m > 12 || d < 1 || d > 31 || y < 2000 || y > 2100) {
+                    return null;
+                }
+                return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+            }
+
+            function cariTanggal(teks) {
+                const hasil = [];
+                let m;
+                const angka = /(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{2,4})/g;
+                while ((m = angka.exec(teks))) {
+                    const iso = keIso(+m[1], +m[2], +m[3]);
+                    if (iso) hasil.push(iso);
+                }
+                const nama = /(\d{1,2})\s+([a-z]{3,9})\.?\s+(\d{4})/gi;
+                while ((m = nama.exec(teks))) {
+                    const bln = BULAN[m[2].toLowerCase().slice(0, 3)];
+                    const iso = bln ? keIso(+m[1], bln, +m[3]) : null;
+                    if (iso) hasil.push(iso);
+                }
+                return Array.from(new Set(hasil)).sort();
+            }
+
+            function cariNominal(teks) {
+                const rupiah = [];
+                const reRp = /rp\.?[ \t]*(\d[\d., \t]{2,})/gi;
+                let m;
+                while ((m = reRp.exec(teks))) {
+                    // Lewati syarat belanja, mis. "minimal belanja Rp500.000".
+                    if (/(min|minimal|minimum|belanja|pembelian|transaksi)[^\n]{0,15}$/i.test(teks.slice(Math.max(0, m.index - 25), m.index))) {
+                        continue;
+                    }
+                    const angka = parseInt(m[1].replace(/[,.]\s*-+\s*$/, '').replace(/,00?$/, '').replace(/[^\d]/g, ''), 10);
+                    if (angka >= 1000) rupiah.push(angka);
+                }
+                // Contoh "100 RIBU" / "100K" / "100rb"
+                const reRibu = /(\d{1,4})\s*(ribu|rb|k)\b/gi;
+                while ((m = reRibu.exec(teks))) {
+                    rupiah.push(parseInt(m[1], 10) * 1000);
+                }
+                if (rupiah.length) {
+                    return { jenis: 'uang', nilai: Math.max.apply(null, rupiah) };
+                }
+                const persen = /(\d{1,3})\s*%/.exec(teks);
+                if (persen && +persen[1] >= 1 && +persen[1] <= 100) {
+                    return { jenis: 'diskon', nilai: +persen[1] };
+                }
+                return null;
+            }
+
+            function cariSyarat(teks) {
+                const baris = teks.split(/\r?\n/).map(function (b) { return b.trim(); }).filter(function (b) { return b.length > 2; });
+                const idx = baris.findIndex(function (b) { return /syarat|ketentuan|s\s*&\s*k|terms/i.test(b); });
+                const isi = (idx >= 0 ? baris.slice(idx + 1) : baris)
+                    .filter(function (b) { return !/^optik\s*melati$/i.test(b) && !/^voucher\s+[A-Z0-9-]+$/i.test(b); })
+                    .map(function (b) { return b.replace(/^[•·*●▪➢>]\s*/, '- '); });
+                return isi.join('\n').trim();
+            }
+
+            function isiField($el, nilai) {
+                if (!$el.length || $el.prop('disabled') || $el.prop('readonly') || nilai === null || nilai === undefined || nilai === '') {
+                    return false;
+                }
+                $el.val(nilai).trigger('input').trigger('change');
+                $el.css('background', '#fff8db');
+                setTimeout(function () { $el.css('background', ''); }, 4000);
+                return true;
+            }
+
+            function bacaDesain(src, sisi) {
+                const $hasil = $('#ocr_' + (sisi === 'belakang' ? 'desain_belakang' : 'desain_depan'));
+                $hasil.html('<span class="text-info"><i class="fa fa-spinner fa-spin"></i> Membaca tulisan di desain... (pertama kali agak lama)</span>');
+
+                muatTesseract()
+                    .then(function (T) {
+                        const opsi = {
+                            logger: function (info) {
+                                if (info.status === 'recognizing text') {
+                                    $hasil.find('.text-info').html('<i class="fa fa-spinner fa-spin"></i> Membaca tulisan... ' + Math.round(info.progress * 100) + '%');
+                                }
+                            }
+                        };
+                        // Bahasa Indonesia + Inggris; bila data bahasa Indonesia gagal dimuat, pakai Inggris saja.
+                        return T.recognize(src, 'ind+eng', opsi).catch(function () {
+                            return T.recognize(src, 'eng', opsi);
+                        });
+                    })
+                    .then(function (res) {
+                        const teks = (res.data && res.data.text || '').trim();
+                        if (!teks) {
+                            $hasil.html('<span class="text-warning">Tidak ada tulisan yang terbaca di desain.</span>');
+                            return;
+                        }
+
+                        const diisi = [];
+                        const adaSyarat = /syarat|ketentuan/i.test(teks);
+
+                        if (sisi === 'depan') {
+                            const nominal = cariNominal(teks);
+                            if (nominal) {
+                                if (isiField($('#jenis_nominal'), nominal.jenis)) {
+                                    diisi.push('Tipe: ' + (nominal.jenis === 'diskon' ? 'Diskon' : 'Uang Tunai'));
+                                }
+                                if (isiField($('#nominal'), nominal.nilai)) {
+                                    diisi.push('Nominal: ' + (nominal.jenis === 'diskon' ? nominal.nilai + '%' : 'Rp ' + nominal.nilai.toLocaleString('id-ID')));
+                                }
+                            }
+                            const kode = /\b(VCR-[A-Z0-9]{3,}(?:-[A-Z0-9]+)*)\b/i.exec(teks);
+                            if (kode && !$('#kode').val() && isiField($('#kode'), kode[1].toUpperCase())) {
+                                diisi.push('Kode: ' + kode[1].toUpperCase());
+                            }
+                        }
+
+                        const tanggal = cariTanggal(teks);
+                        if (tanggal.length >= 2 && isiField($('#berlaku_mulai'), tanggal[0])) {
+                            diisi.push('Berlaku mulai: ' + tanggal[0]);
+                        }
+                        if (tanggal.length && isiField($('#berlaku_sampai'), tanggal[tanggal.length - 1])) {
+                            diisi.push('Berlaku sampai: ' + tanggal[tanggal.length - 1]);
+                        }
+
+                        if (sisi === 'belakang' || adaSyarat) {
+                            const syarat = cariSyarat(teks);
+                            if (syarat && isiField($('#syarat_ketentuan'), syarat)) {
+                                diisi.push('Syarat & ketentuan');
+                            }
+                        }
+
+                        $hasil.html(
+                            (diisi.length
+                                ? '<div class="text-success"><i class="fa fa-check"></i> Diisi otomatis dari desain: ' + esc(diisi.join(', ')) + '. Cek lagi sebelum simpan.</div>'
+                                : '<div class="text-warning">Tulisan terbaca, tapi tidak ada data voucher yang dikenali.</div>')
+                            + '<details style="margin-top:3px;"><summary class="text-muted" style="cursor:pointer;">Lihat teks yang terbaca</summary>'
+                            + '<pre style="white-space:pre-wrap; font-size:11px; margin:4px 0 0; max-height:160px; overflow:auto;">' + esc(teks) + '</pre></details>'
+                        );
+                    })
+                    .catch(function (e) {
+                        $hasil.html('<span class="text-danger">Gagal membaca desain: ' + esc(e.message || e) + '</span>');
+                    });
+            }
 
             // Buat voucher: tampilkan kode yang akan dibuat & total dana (nominal x jumlah).
             const $jumlahVoucher = $('#jumlah_voucher');

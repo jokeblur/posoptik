@@ -244,6 +244,29 @@
     </button>
 </div>
 
+{{-- ============ MODAL QR PENGAMBILAN ============ --}}
+<div class="modal fade" id="modal-pickup-qr" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#27ae60; color:#fff;">
+                <h4 class="modal-title"><i class="fa fa-check-circle"></i> Transaksi Berhasil</h4>
+            </div>
+            <div class="modal-body text-center" style="padding:20px;">
+                <p style="margin-bottom:4px;">Kode transaksi: <strong id="pickup-qr-kode">-</strong></p>
+                <p class="text-muted" style="font-size:12px;">Minta pelanggan scan QR ini untuk cek status pengambilan barang.</p>
+                <img id="pickup-qr-image" src="" alt="QR Pengambilan" style="width:220px; height:220px; margin:10px auto; display:block; border:1px solid #eee; border-radius:8px;">
+                <p id="pickup-qr-print-status" class="text-muted" style="font-size:12px;">Mengirim nota ke printer PC...</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary btn-block" id="btn-pickup-qr-lanjut" style="border-radius:24px; font-weight:700;">
+                    <i class="fa fa-arrow-right"></i> Lanjut ke Riwayat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 {{-- ============ MODAL PRODUK ============ --}}
 <div class="modal fade" id="modal-product" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
@@ -1204,13 +1227,16 @@ function submitTransaction() {
         contentType: false
     }).done(function(res) {
         toast('Transaksi berhasil disimpan!');
-        if (res.redirect_url) {
-            const idMatch = res.redirect_url.match(/penjualan\/(\d+)/);
+        const idMatch = res.redirect_url ? res.redirect_url.match(/penjualan\/(\d+)/) : null;
+        const penjualanId = idMatch ? idMatch[1] : null;
+
+        if (res.barcode && !res.hanya_aksesoris && res.pickup_qr_url) {
+            showPickupQrModal(res, penjualanId);
+        } else {
             setTimeout(function() {
                 const keRiwayat = function () { window.location.href = '{{ route("kasir-mobile.riwayat") }}'; };
-                // Kirim nota otomatis ke printer PC lewat Print Agent.
-                if (idMatch) {
-                    kirimPrintPc(idMatch[1], 'half').finally(function () { setTimeout(keRiwayat, 1500); });
+                if (penjualanId) {
+                    kirimPrintPc(penjualanId, 'half').finally(function () { setTimeout(keRiwayat, 1500); });
                     return;
                 }
                 keRiwayat();
@@ -1223,6 +1249,28 @@ function submitTransaction() {
         toast(msg, false);
         $btn.prop('disabled', false).html('<i class="fa fa-check"></i> BAYAR / DP');
     });
+}
+
+/* ================= QR PENGAMBILAN ================= */
+function showPickupQrModal(res, penjualanId) {
+    const keRiwayat = function () { window.location.href = '{{ route("kasir-mobile.riwayat") }}'; };
+
+    $('#pickup-qr-kode').text(res.kode_penjualan || res.barcode || '-');
+    $('#pickup-qr-image').attr('src', res.pickup_qr_url + '?t=' + Date.now());
+    $('#pickup-qr-print-status').text('Mengirim nota ke printer PC...');
+    $('#modal-pickup-qr').modal('show');
+
+    $('#btn-pickup-qr-lanjut').off('click').on('click', function() {
+        $('#modal-pickup-qr').modal('hide');
+        keRiwayat();
+    });
+
+    if (penjualanId) {
+        kirimPrintPc(penjualanId, 'half')
+            .then(function() { $('#pickup-qr-print-status').html('<i class="fa fa-info-circle"></i> Status nota: lihat notifikasi di bawah layar.'); });
+    } else {
+        $('#pickup-qr-print-status').text('');
+    }
 }
 
 function searchPatients(query) {

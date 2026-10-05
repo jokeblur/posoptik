@@ -151,6 +151,7 @@ Route::middleware([
     Route::get('/penjualan/statistics', [PenjualanController::class, 'statistics'])->name('penjualan.statistics');
     Route::get('/penjualan/{penjualan}/cetak', [PenjualanController::class, 'cetak'])->name('penjualan.cetak');
     Route::get('/penjualan/{penjualan}/cetak-half', [PenjualanController::class, 'cetakHalf'])->name('penjualan.cetak-half');
+    Route::get('/penjualan/{penjualan}/pickup-qr', [PenjualanController::class, 'pickupQr'])->name('penjualan.pickup-qr');
     // Print dari tablet lewat PC: tablet kirim job, halaman Print Agent di PC cabang yang mencetak.
     Route::post('/print-jobs', [PrintJobController::class, 'store'])->name('print-jobs.store');
     Route::get('/print-jobs/{printJob}', [PrintJobController::class, 'show'])->name('print-jobs.show');

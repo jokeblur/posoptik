@@ -1368,7 +1368,11 @@ class PenjualanController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Transaksi berhasil disimpan.' . $voucherMessage,
-                'redirect_url' => route('penjualan.show', $penjualan->id)
+                'redirect_url' => route('penjualan.show', $penjualan->id),
+                'kode_penjualan' => $penjualan->kode_penjualan,
+                'barcode' => $penjualan->barcode,
+                'hanya_aksesoris' => $hanyaAksesoris,
+                'pickup_qr_url' => $penjualan->barcode ? route('penjualan.pickup-qr', $penjualan->id) : null,
             ]);
 
         } catch (\Exception $e) {
@@ -1901,6 +1905,55 @@ class PenjualanController extends Controller
     {
         $penjualan = Penjualan::with('details.itemable', 'user', 'branch', 'pasien', 'dokter')->findOrFail($id);
         return view('penjualan.cetak_half', compact('penjualan'));
+    }
+
+    /**
+     * Gambar QR code pengambilan barang (dipindai di /barcode/scan/{barcode}).
+     * Dipakai kasir mobile untuk langsung menampilkan QR begitu transaksi tersimpan,
+     * tanpa perlu menunggu nota tercetak lebih dulu.
+     */
+    public function pickupQr($id)
+    {
+        $penjualan = Penjualan::findOrFail($id);
+        $user = auth()->user();
+
+        if (!$user->isSuperAdmin() && !$user->isAdmin() && (int) $penjualan->branch_id !== (int) $user->branch_id) {
+            abort(403);
+        }
+
+        if (empty($penjualan->barcode)) {
+            abort(404, 'Barcode belum tersedia untuk transaksi ini.');
+        }
+
+        $url = url('/barcode/scan/' . $penjualan->barcode);
+
+        try {
+            $png = QrCode::format('png')->size(320)->margin(1)->errorCorrection('H')->generate($url);
+        } catch (\Throwable $e) {
+            Log::warning('Local pickup QR generation failed, fallback to API.', [
+                'penjualan_id' => $penjualan->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $apiResponse = Http::timeout(10)->get('https://api.qrserver.com/v1/create-qr-code/', [
+                'size' => '320x320',
+                'ecc' => 'H',
+                'qzone' => 1,
+                'format' => 'png',
+                'data' => $url,
+            ]);
+
+            if (!$apiResponse->successful()) {
+                abort(500, 'Gagal membuat QR code pengambilan.');
+            }
+
+            $png = $apiResponse->body();
+        }
+
+        return response($png, 200, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'no-store',
+        ]);
     }
 
     public function cetakBarcodeWa($id)

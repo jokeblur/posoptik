@@ -337,10 +337,12 @@
     </style>
 </head>
 <body>
+    @unless(request()->boolean('embed'))
     <div class="print-button-container no-print" style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center;">
         <a href="{{ route('penjualan.show', $penjualan->id) }}" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block;">Kembali</a>
         <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Cetak Sekarang</button>
     </div>
+    @endunless
     
     @php
         $hanyaAksesoris = $penjualan->details->count() > 0 && $penjualan->details->every(function ($detail) {
@@ -464,17 +466,6 @@
         </div>
         @endif
                 </div>
-                @if(!$hanyaAksesoris && $penjualan->barcode)
-                <div class="transaction-qr">
-                    <div class="qrcode-small">
-                        <div class="qrcode-label-small">SCAN QR CODE</div>
-                        <div class="qrcode-image">
-                            {!! QrCode::size(95)->generate(url('/barcode/scan/' . $penjualan->barcode)) !!}
-                        </div>
-                        <div class="qrcode-barcode">{{ $penjualan->barcode }}</div>
-                    </div>
-                </div>
-                @endif
             </div>
             <!-- <div class="info-row">
                 <span class="info-label">Pasien:</span>
@@ -778,6 +769,19 @@
                         Cetak: {{ \Carbon\Carbon::now()->format('d/m/Y H:i:s') }}
                     </div>
                 </div>
+                @if(!$hanyaAksesoris && $penjualan->barcode)
+                <div class="footer-right">
+                    <div class="qrcode-small" style="margin-top: 0;">
+                        <div class="qrcode-label-small">SCAN QR CODE</div>
+                        <div class="qrcode-image">
+                            <img src="data:image/svg+xml;base64,{{ base64_encode((string) QrCode::format('svg')->size(80)->margin(1)->generate(url('/barcode/scan/' . $penjualan->barcode))) }}"
+                                 alt="QR {{ $penjualan->barcode }}" width="80" height="80"
+                                 style="display:block; margin:0 auto; width:80px; height:80px; -webkit-print-color-adjust:exact; print-color-adjust:exact;">
+                        </div>
+                        <div class="qrcode-barcode">{{ $penjualan->barcode }}</div>
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
     </div>

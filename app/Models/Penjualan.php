@@ -20,7 +20,7 @@ class Penjualan extends Model
         'bpjs_manual_additional_cost',
         'metode_pembayaran', 'bank_transfer', 'passet_by_user_id', 'waktu_selesai_dikerjakan', 'waktu_sudah_diambil',
         'jumlah_pelunasan', 'waktu_pelunasan', 'pelunasan_by_user_id',
-        'voucher_id', 'voucher_kode', 'voucher_potongan'
+        'voucher_id', 'voucher_kode', 'voucher_potongan', 'barcode'
     ];
 
     protected $casts = [

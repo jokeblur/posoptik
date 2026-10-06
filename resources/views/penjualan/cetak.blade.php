@@ -246,7 +246,9 @@
         <div class="qrcode-section">
             <div class="qrcode-label">SCAN QR CODE UNTUK UPDATE STATUS</div>
             <div class="qrcode">
-                {!! QrCode::size(100)->generate(url('/barcode/scan/' . $penjualan->barcode)) !!}
+                <img src="data:image/svg+xml;base64,{{ base64_encode((string) QrCode::format('svg')->size(100)->margin(1)->generate(url('/barcode/scan/' . $penjualan->barcode))) }}"
+                     alt="QR {{ $penjualan->barcode }}" width="100" height="100"
+                     style="display:block; margin:0 auto; width:100px; height:100px; -webkit-print-color-adjust:exact; print-color-adjust:exact;">
             </div>
             <div class="qrcode-label">{{ $penjualan->barcode }}</div>
         </div>

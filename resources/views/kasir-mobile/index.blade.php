@@ -244,22 +244,24 @@
     </button>
 </div>
 
-{{-- ============ MODAL QR PENGAMBILAN ============ --}}
+{{-- ============ MODAL PRATINJAU NOTA ============ --}}
 <div class="modal fade" id="modal-pickup-qr" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header" style="background:#27ae60; color:#fff;">
                 <h4 class="modal-title"><i class="fa fa-check-circle"></i> Transaksi Berhasil</h4>
             </div>
-            <div class="modal-body text-center" style="padding:20px;">
-                <p style="margin-bottom:4px;">Kode transaksi: <strong id="pickup-qr-kode">-</strong></p>
-                <p class="text-muted" style="font-size:12px;">Minta pelanggan scan QR ini untuk cek status pengambilan barang.</p>
-                <img id="pickup-qr-image" src="" alt="QR Pengambilan" style="width:220px; height:220px; margin:10px auto; display:block; border:1px solid #eee; border-radius:8px;">
-                <p id="pickup-qr-print-status" class="text-muted" style="font-size:12px;">Mengirim nota ke printer PC...</p>
+            <div class="modal-body text-center" style="padding:10px;">
+                <p style="margin-bottom:6px;">Kode transaksi: <strong id="pickup-qr-kode">-</strong></p>
+                <iframe id="nota-preview-frame" title="Pratinjau Nota" style="width:100%; max-width:400px; height:60vh; border:1px solid #ddd; border-radius:8px; background:#fff;"></iframe>
+                <p id="pickup-qr-print-status" class="text-muted" style="font-size:12px; margin:8px 0 0;"></p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary btn-block" id="btn-pickup-qr-lanjut" style="border-radius:24px; font-weight:700;">
-                    <i class="fa fa-arrow-right"></i> Lanjut ke Riwayat
+            <div class="modal-footer" style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-default" id="btn-pickup-qr-batal" style="flex:1; border-radius:24px; font-weight:700;">
+                    <i class="fa fa-times"></i> Batal
+                </button>
+                <button type="button" class="btn btn-primary" id="btn-pickup-qr-cetak" style="flex:2; border-radius:24px; font-weight:700;">
+                    <i class="fa fa-print"></i> Cetak
                 </button>
             </div>
         </div>
@@ -1230,16 +1232,11 @@ function submitTransaction() {
         const idMatch = res.redirect_url ? res.redirect_url.match(/penjualan\/(\d+)/) : null;
         const penjualanId = idMatch ? idMatch[1] : null;
 
-        if (res.barcode && !res.hanya_aksesoris && res.pickup_qr_url) {
+        if (penjualanId) {
             showPickupQrModal(res, penjualanId);
         } else {
             setTimeout(function() {
-                const keRiwayat = function () { window.location.href = '{{ route("kasir-mobile.riwayat") }}'; };
-                if (penjualanId) {
-                    kirimPrintPc(penjualanId, 'half').finally(function () { setTimeout(keRiwayat, 1500); });
-                    return;
-                }
-                keRiwayat();
+                window.location.href = '{{ route("kasir-mobile.riwayat") }}';
             }, 400);
         }
     }).fail(function(xhr) {
@@ -1251,26 +1248,29 @@ function submitTransaction() {
     });
 }
 
-/* ================= QR PENGAMBILAN ================= */
+/* ================= PRATINJAU NOTA ================= */
 function showPickupQrModal(res, penjualanId) {
     const keRiwayat = function () { window.location.href = '{{ route("kasir-mobile.riwayat") }}'; };
+    const $cetak = $('#btn-pickup-qr-cetak');
 
     $('#pickup-qr-kode').text(res.kode_penjualan || res.barcode || '-');
-    $('#pickup-qr-image').attr('src', res.pickup_qr_url + '?t=' + Date.now());
-    $('#pickup-qr-print-status').text('Mengirim nota ke printer PC...');
+    $('#nota-preview-frame').attr('src', ROUTES.cetakHalf + '/' + penjualanId + '/cetak-half?embed=1');
+    $('#pickup-qr-print-status').text('');
+    $cetak.prop('disabled', false).html('<i class="fa fa-print"></i> Cetak');
     $('#modal-pickup-qr').modal('show');
 
-    $('#btn-pickup-qr-lanjut').off('click').on('click', function() {
+    $('#btn-pickup-qr-batal').off('click').on('click', function() {
         $('#modal-pickup-qr').modal('hide');
         keRiwayat();
     });
 
-    if (penjualanId) {
-        kirimPrintPc(penjualanId, 'half')
-            .then(function() { $('#pickup-qr-print-status').html('<i class="fa fa-info-circle"></i> Status nota: lihat notifikasi di bawah layar.'); });
-    } else {
-        $('#pickup-qr-print-status').text('');
-    }
+    $cetak.off('click').on('click', function() {
+        $cetak.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Mengirim...');
+        kirimPrintPc(penjualanId, 'half').finally(function () {
+            $('#pickup-qr-print-status').html('<i class="fa fa-info-circle"></i> Nota dikirim ke printer PC.');
+            setTimeout(keRiwayat, 1500);
+        });
+    });
 }
 
 function searchPatients(query) {

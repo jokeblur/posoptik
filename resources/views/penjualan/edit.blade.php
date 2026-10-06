@@ -373,7 +373,7 @@ $(document).ready(function() {
 
     toggleBankTransferField();
 
-    $('#bayar').data('user-has-changed', false);
+    $('#bayar').data('user-has-changed', true);
 
     $('#diskon, #bayar').on('input', function() {
         if (this.id === 'bayar') {
@@ -770,7 +770,21 @@ function renderCartRows(frameCalculatedPrice = null) {
     return { subtotal, total, frameAdditionalCost, transactionStatus, lensTotal, aksesorisTotal, defaultPrice, manualAdditionalCost };
 }
 
+// Selama belum ada perubahan dari user, tampilkan data tersimpan apa adanya.
+let preserveStoredTotals = true;
+['input', 'change', 'click'].forEach(function(evt) {
+    document.addEventListener(evt, function(e) {
+        if (e.isTrusted && e.target && e.target.closest && e.target.closest('#cart-table, #diskon, #bayar, #status, #bpjs_manual_additional_cost, .modal button, .modal input')) {
+            preserveStoredTotals = false;
+        }
+    }, true);
+});
+
 function applyTotalsToUi(subtotal, total, frameAdditionalCost, transactionStatus) {
+    if (preserveStoredTotals) {
+        return;
+    }
+
     const diskon = Math.max(0, Number($('#diskon').val()) || 0);
     const finalTotal = Math.max(0, total - diskon);
     const bayarInput = $('#bayar');

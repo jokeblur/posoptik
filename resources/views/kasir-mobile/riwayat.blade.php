@@ -53,8 +53,7 @@
                 <div style="font-weight:700; color:var(--brand); font-size:15px;">Rp {{ number_format($t->total, 0, ',', '.') }}</div>
                 <div style="margin-top:6px;">
                     <a href="{{ route('penjualan.show', $t->id) }}" class="btn btn-xs btn-info" title="Detail"><i class="fa fa-eye"></i></a>
-                    <a href="{{ route('penjualan.cetak-half', $t->id) }}" target="_blank" class="btn btn-xs btn-success" title="Cetak Nota"><i class="fa fa-print"></i></a>
-                    <button type="button" class="btn btn-xs btn-warning" title="Print ke printer PC" onclick="kirimPrintPc({{ $t->id }}, 'half')"><i class="fa fa-desktop"></i> PC</button>
+                    <button type="button" class="btn btn-xs btn-success" title="Cetak nota di printer PC" onclick="kirimPrintPc({{ $t->id }}, 'half')"><i class="fa fa-print"></i> Cetak Nota</button>
                 </div>
             </div>
         </div>

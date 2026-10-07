@@ -63,6 +63,15 @@
         </table>
     </div>
 
+    <div class="card" style="border-left: 5px solid #dc2626; background: #fff7ed;">
+        <strong style="color:#b45309;">PENTING: Tanpa Chrome kiosk, dialog print tetap muncul</strong>
+        <p style="margin: 8px 0 0; color: #92400e; line-height: 1.5;">
+            Browser web tidak bisa memaksa print tanpa dialog di mode normal. Untuk <strong>tanpa dialog</strong>, Chrome PC harus dibuka dengan flag <code>--kiosk-printing</code>.
+            Jika masih muncul dialog, biasanya ada proses Chrome lain yang masih berjalan sehingga flag diabaikan.
+            Solusi paling pasti: jalankan <code>print-agent-chrome.bat</code> (di folder utama aplikasi), yang memakai profil Chrome terpisah.
+        </p>
+    </div>
+
     <div class="card">
         <strong>Cara pasang di PC (sekali saja)</strong>
         <ol>
@@ -70,7 +79,7 @@
             <li>Buat shortcut Chrome di desktop, klik kanan &rarr; Properties, pada kolom <em>Target</em> tambahkan di belakangnya:<br>
                 <code>--kiosk-printing "{{ route('print-agent') }}"</code></li>
             <li>Tutup semua jendela Chrome, lalu buka Chrome lewat shortcut itu dan login. Halaman ini terbuka dan print berjalan tanpa dialog.</li>
-            <li>Klik <strong>Test Print</strong>. Bila masih muncul dialog print, berarti Chrome belum dibuka lewat shortcut (tutup semua Chrome dulu).</li>
+            <li>Klik <strong>Test Print</strong>. Bila masih muncul dialog print, berarti Chrome belum dibuka lewat shortcut (tutup semua Chrome dulu, lalu buka dari shortcut baru).</li>
             <li>Jangan tutup / minimize jendela ini selama toko buka. Boleh ditaruh di belakang jendela lain.</li>
         </ol>
     </div>

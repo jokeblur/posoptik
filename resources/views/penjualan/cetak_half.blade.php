@@ -101,6 +101,31 @@
             flex-shrink: 0;
         }
         
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 10px;
+            row-gap: 1px;
+        }
+
+        .info-grid .info-row {
+            justify-content: flex-start;
+            gap: 4px;
+            margin: 1px 0;
+            min-width: 0;
+        }
+
+        .info-grid .info-label {
+            min-width: 0;
+            white-space: nowrap;
+        }
+
+        .info-grid .info-value {
+            text-align: left;
+            min-width: 0;
+            word-break: break-word;
+        }
+
         .info-row {
             display: flex;
             justify-content: space-between;
@@ -371,6 +396,7 @@
         <div class="transaction-info">
             <div class="transaction-top">
                 <div class="transaction-main">
+            <div class="info-grid">
             <div class="info-row">
                 <span class="info-label">No. Transaksi:</span>
                 <span class="info-value">{{ $penjualan->kode_penjualan }}</span>
@@ -435,6 +461,7 @@
                 </span>
             </div>
             @endif
+            </div>
              <!-- Informasi Pasien -->
         @if($hanyaAksesoris)
         <div class="pasien-info">

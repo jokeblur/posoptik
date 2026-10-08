@@ -33,11 +33,10 @@
 
         /* ===== Depan ===== */
         .front-card { background: var(--krem); color: var(--merah); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 6mm 10mm 5mm; }
-        .logo-stack { display: flex; align-items: center; gap: 1.4mm; }
-        /* Bunga diambil dari file logo horizontal (latar putih hilang dengan multiply). */
-        .logo-bunga { width: 8.6mm; height: 9.7mm; background-image: url('{{ asset('image/Final Logo Optik Melati-11.png') }}'); background-repeat: no-repeat; background-size: 57.3mm auto; background-position: -22.15mm -22.8mm; mix-blend-mode: multiply; }
-        .logo-teks { font-family: 'Marcellus', Georgia, serif; font-size: 4.7mm; line-height: .86; text-align: left; letter-spacing: -.1mm; color: var(--merah); }
-        .label-voucher { margin-top: 4.2mm; font-size: 2.3mm; letter-spacing: 1.5mm; padding-left: 1.5mm; color: var(--merah-tua); }
+        /* Logo bunga di atas tulisan, dipotong dari logo-voucher.webp (2000x2000 px, latar transparan; area isi x 225-1760, y 625-1374). */
+        .logo-voucher { flex: 0 0 auto; width: 36mm; height: 17.57mm; background-image: url('{{ asset('image/logo-voucher.webp') }}'); background-repeat: no-repeat; background-size: 46.91mm auto; background-position: -5.28mm -14.66mm; }
+        .voucher-card.has-desain.desain-gelap .logo-voucher { filter: drop-shadow(0 0 .4mm #fff) drop-shadow(0 0 .4mm #fff); }
+        .label-voucher { margin-top: 3.2mm; font-size: 2.3mm; letter-spacing: 1.5mm; padding-left: 1.5mm; color: var(--merah-tua); }
         .nominal { margin-top: 1mm; font-family: 'Marcellus', Georgia, serif; font-size: 14.5mm; line-height: 1; color: var(--merah); white-space: nowrap; }
         .sub { margin-top: 1.6mm; font-size: 2.7mm; color: var(--teks); }
         .no-berlaku { margin-top: 3mm; font-family: 'Space Mono', 'Courier New', monospace; font-size: 2.15mm; letter-spacing: .25mm; color: var(--merah-tua); }
@@ -144,10 +143,7 @@
                 @if ($desain)
                     <img class="desain-img" src="{{ $desain }}" alt="Desain voucher">
                 @endif
-                <div class="logo-stack">
-                    <div class="logo-bunga" aria-hidden="true"></div>
-                    <div class="logo-teks t">OPTIK<br>MELATI</div>
-                </div>
+                <div class="logo-voucher" role="img" aria-label="Optik Melati"></div>
                 <div class="label-voucher t">{{ ($card->jenis_nominal ?? 'uang') === 'diskon' ? 'VOUCER DISKON' : 'VOUCER BELANJA' }}</div>
                 <div class="nominal t">
                     @if (($card->jenis_nominal ?? 'uang') === 'diskon')

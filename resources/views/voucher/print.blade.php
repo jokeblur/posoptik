@@ -144,7 +144,7 @@
                     <img class="desain-img" src="{{ $desain }}" alt="Desain voucher">
                 @endif
                 <div class="logo-voucher" role="img" aria-label="Optik Melati"></div>
-                <div class="label-voucher t">{{ ($card->jenis_nominal ?? 'uang') === 'diskon' ? 'VOUCER DISKON' : 'VOUCER BELANJA' }}</div>
+                <div class="label-voucher t">{{ ($card->jenis_nominal ?? 'uang') === 'diskon' ? 'VOUCHER DISKON' : 'VOUCHER BELANJA' }}</div>
                 <div class="nominal t">
                     @if (($card->jenis_nominal ?? 'uang') === 'diskon')
                         Diskon {{ number_format((float) $card->nominal, 0, ',', '.') }}%

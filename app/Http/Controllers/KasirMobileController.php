@@ -42,6 +42,26 @@ class KasirMobileController extends Controller
     }
 
     /**
+     * Daftar transaksi penjualan untuk update status pengerjaan via kasir mobile.
+     */
+    public function penjualan()
+    {
+        $data = $this->layoutData('Penjualan', 'penjualan');
+        $user = auth()->user();
+
+        $transaksis = Penjualan::with('pasien:id_pasien,nama_pasien,nohp,service_type')
+            ->when(!$user->isSuperAdmin(), function ($query) use ($user) {
+                $query->where('branch_id', $user->branch_id);
+            })
+            ->latest()
+            ->paginate(25);
+
+        $data['transaksis'] = $transaksis;
+
+        return view('kasir-mobile.penjualan', $data);
+    }
+
+    /**
      * Cari pasien untuk pilihan transaksi kasir mobile.
      */
     public function pasienSearch(Request $request)

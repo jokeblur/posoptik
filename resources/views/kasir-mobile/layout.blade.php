@@ -117,6 +117,9 @@
         <a href="{{ route('kasir-mobile.index') }}" class="{{ ($activeTab ?? '') === 'pos' ? 'active' : '' }}">
             <i class="fa fa-shopping-cart"></i><span>Transaksi</span>
         </a>
+        <a href="{{ route('kasir-mobile.penjualan') }}" class="{{ ($activeTab ?? '') === 'penjualan' ? 'active' : '' }}">
+            <i class="fa fa-list-alt"></i><span>Penjualan</span>
+        </a>
         <a href="{{ route('kasir-mobile.riwayat') }}" class="{{ ($activeTab ?? '') === 'riwayat' ? 'active' : '' }}">
             <i class="fa fa-history"></i><span>Riwayat</span>
         </a>

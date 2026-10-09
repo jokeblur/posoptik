@@ -149,7 +149,7 @@
                     @if (($card->jenis_nominal ?? 'uang') === 'diskon')
                         Diskon {{ number_format((float) $card->nominal, 0, ',', '.') }}%
                     @else
-                        Rp{{ number_format((float) $card->nominal, 0, ',', '.') }}
+                        Rp{{ number_format((float) $card->nominal, 0, ',', '.') }}.-
                     @endif
                 </div>
                 <div class="sub t">Potongan untuk pembelian kacamata</div>

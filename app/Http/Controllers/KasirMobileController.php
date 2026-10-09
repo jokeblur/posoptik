@@ -44,19 +44,40 @@ class KasirMobileController extends Controller
     /**
      * Daftar transaksi penjualan untuk update status pengerjaan via kasir mobile.
      */
-    public function penjualan()
+    public function penjualan(Request $request)
     {
         $data = $this->layoutData('Penjualan', 'penjualan');
         $user = auth()->user();
+        $request->validate([
+            'q' => 'nullable|string|max:255',
+        ]);
+        $search = trim((string) $request->input('q', ''));
+
+        if ($search !== '' && filter_var($search, FILTER_VALIDATE_URL)) {
+            $path = parse_url($search, PHP_URL_PATH);
+            $search = trim((string) basename((string) $path));
+        }
 
         $transaksis = Penjualan::with('pasien:id_pasien,nama_pasien,nohp,service_type')
             ->when(!$user->isSuperAdmin(), function ($query) use ($user) {
                 $query->where('branch_id', $user->branch_id);
             })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($matches) use ($search) {
+                    $matches->where('kode_penjualan', 'LIKE', "%{$search}%")
+                        ->orWhere('barcode', 'LIKE', "%{$search}%")
+                        ->orWhere('nama_pasien_manual', 'LIKE', "%{$search}%")
+                        ->orWhereHas('pasien', function ($patientQuery) use ($search) {
+                            $patientQuery->where('nama_pasien', 'LIKE', "%{$search}%");
+                        });
+                });
+            })
             ->latest()
-            ->paginate(25);
+            ->paginate(25)
+            ->appends($request->query());
 
         $data['transaksis'] = $transaksis;
+        $data['search'] = $request->input('q', '');
 
         return view('kasir-mobile.penjualan', $data);
     }

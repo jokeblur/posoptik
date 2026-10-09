@@ -6,6 +6,25 @@
     <div style="font-size:12px; color:#888; margin-top:3px;">{{ $transaksis->total() }} transaksi</div>
 </div>
 
+<div class="m-card">
+    <form method="GET" action="{{ route('kasir-mobile.penjualan') }}" id="sales-search-form">
+        <label class="m-label" for="sales-search">Cari nama pasien atau scan/cari QR penjualan</label>
+        <div style="display:flex; gap:8px;">
+            <input type="search" name="q" id="sales-search" class="m-input" value="{{ $search }}" placeholder="Nama pasien, kode transaksi, atau barcode..." style="min-width:0; flex:1;">
+            <button type="submit" class="btn btn-primary" aria-label="Cari penjualan" title="Cari">
+                <i class="fa fa-search"></i>
+            </button>
+        </div>
+        <button type="button" id="start-sales-qr" class="btn btn-default btn-block" style="margin-top:8px;">
+            <i class="fa fa-qrcode"></i> Scan QR
+        </button>
+        <button type="button" id="stop-sales-qr" class="btn btn-danger btn-block" style="display:none; margin-top:8px;">
+            <i class="fa fa-stop"></i> Hentikan Scan
+        </button>
+        <div id="sales-qr-reader" style="display:none; width:100%; margin-top:10px; overflow:hidden; border-radius:8px;"></div>
+    </form>
+</div>
+
 @forelse($transaksis as $t)
     <div class="m-card" style="padding:12px 14px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
@@ -64,8 +83,63 @@
 @endsection
 
 @push('scripts')
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
     const updateStatusUrlTemplate = '{{ route("penjualan.update_status_pengerjaan", ":id") }}';
+    let salesQrScanner = null;
+
+    $('#start-sales-qr').on('click', async function () {
+        if (typeof Html5Qrcode === 'undefined') {
+            toast('Library pemindai QR gagal dimuat.', false);
+            return;
+        }
+
+        const reader = document.getElementById('sales-qr-reader');
+        reader.style.display = 'block';
+        $('#start-sales-qr').hide();
+        $('#stop-sales-qr').show();
+
+        try {
+            salesQrScanner = new Html5Qrcode('sales-qr-reader');
+            await salesQrScanner.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 240, height: 240 } },
+                async function (decodedText) {
+                    const search = document.getElementById('sales-search');
+                    try {
+                        const decodedUrl = new URL(decodedText);
+                        const qrCode = decodedUrl.pathname.split('/').filter(Boolean).pop();
+                        search.value = qrCode || decodedText;
+                    } catch (error) {
+                        search.value = decodedText;
+                    }
+
+                    await stopSalesQrScanner();
+                    document.getElementById('sales-search-form').submit();
+                }
+            );
+        } catch (error) {
+            await stopSalesQrScanner();
+            toast('Kamera tidak dapat dibuka. Periksa izin kamera atau masukkan kode QR secara manual.', false);
+        }
+    });
+
+    async function stopSalesQrScanner() {
+        if (salesQrScanner && salesQrScanner.isScanning) {
+            await salesQrScanner.stop();
+            salesQrScanner.clear();
+        }
+        salesQrScanner = null;
+        document.getElementById('sales-qr-reader').style.display = 'none';
+        $('#stop-sales-qr').hide();
+        $('#start-sales-qr').show();
+    }
+
+    $('#stop-sales-qr').on('click', function () {
+        stopSalesQrScanner().catch(function () {
+            toast('Pemindai QR gagal dihentikan.', false);
+        });
+    });
 
     $('.status-form').each(function () {
         const form = $(this);

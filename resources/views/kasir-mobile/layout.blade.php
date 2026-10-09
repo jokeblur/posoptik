@@ -17,6 +17,7 @@
         :root {
             --brand: #a4193d;
             --brand-dark: #7d1230;
+            --mobile-nav-height: calc(60px + env(safe-area-inset-bottom, 0px));
         }
         * { -webkit-tap-highlight-color: transparent; }
         html, body { height: 100%; background: #f2f3f7; }
@@ -24,7 +25,6 @@
             margin: 0;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             padding-top: calc(52px + env(safe-area-inset-top));
-            padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
         }
         .m-header {
             position: fixed; top: 0; left: 0; right: 0; z-index: 1030;
@@ -42,7 +42,7 @@
             border: 1px solid rgba(255,255,255,.5); background: transparent;
             border-radius: 20px; font-size: 11px; padding: 4px 10px;
         }
-        .m-content { padding: 12px; }
+        .m-content { padding: 12px 12px calc(var(--mobile-nav-height) + 24px); }
         .m-card {
             background: #fff; border-radius: 12px; padding: 14px;
             box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 12px;
@@ -51,7 +51,7 @@
         .m-nav {
             position: fixed; bottom: 0; left: 0; right: 0; z-index: 1030;
             box-sizing: border-box;
-            height: calc(60px + env(safe-area-inset-bottom, 0px));
+            height: var(--mobile-nav-height);
             padding-bottom: env(safe-area-inset-bottom, 0px);
             background: #fff; display: flex;
             box-shadow: 0 -2px 10px rgba(0,0,0,.12);

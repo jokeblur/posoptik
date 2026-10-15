@@ -608,35 +608,44 @@ class PenjualanController extends Controller
             return response()->json([]);
         }
         
-        $frames = \App\Models\Frame::when($branchId, function ($q) use ($branchId) {
+        // Jika jenis produk dipilih (modal kasir mobile), cari dengan "mengandung" dan batas lebih besar.
+        $onlyType = $request->get('type');
+        $typed = in_array($onlyType, ['frame', 'lensa', 'aksesoris'], true);
+        $like = $typed ? "%{$query}%" : "{$query}%";
+        $limit = $typed ? 50 : 5;
+
+        $frames = ($typed && $onlyType !== 'frame') ? collect() : \App\Models\Frame::when($branchId, function ($q) use ($branchId) {
                 return $q->where('branch_id', $branchId);
             })
-            ->where(function ($q) use ($query) {
-                $q->where('merk_frame', 'LIKE', "{$query}%")
-                  ->orWhere('kode_frame', 'LIKE', "{$query}%");
+            ->where(function ($q) use ($like, $typed) {
+                $q->where('merk_frame', 'LIKE', $like)
+                  ->orWhere('kode_frame', 'LIKE', $like);
+                if ($typed) {
+                    $q->orWhere('jenis_frame', 'LIKE', $like);
+                }
             })
-            ->select('id', 'merk_frame as name', 'kode_frame as code', 'stok as stock', 'harga_jual_frame as price', \DB::raw("'frame' as type"))
-            ->limit(5)
+            ->select('id', 'merk_frame as name', 'kode_frame as code', 'jenis_frame', 'stok as stock', 'harga_jual_frame as price', \DB::raw("'frame' as type"))
+            ->limit($limit)
             ->get();
             
-        $lenses = \App\Models\Lensa::when($branchId, function ($q) use ($branchId) {
+        $lenses = ($typed && $onlyType !== 'lensa') ? collect() : \App\Models\Lensa::when($branchId, function ($q) use ($branchId) {
                 return $q->where('branch_id', $branchId);
             })
             ->where('is_custom_order', false)
-            ->where(function ($q) use ($query) {
-                $q->where('merk_lensa', 'LIKE', "{$query}%")
-                  ->orWhere('kode_lensa', 'LIKE', "{$query}%");
+            ->where(function ($q) use ($like) {
+                $q->where('merk_lensa', 'LIKE', $like)
+                  ->orWhere('kode_lensa', 'LIKE', $like);
             })
             ->select('id', 'merk_lensa as name', 'harga_jual_lensa as price', 'index', 'cly', 'add', \DB::raw("'lensa' as type"))
-            ->limit(5)
+            ->limit($limit)
             ->get();
 
-        $aksesoris = Aksesoris::when($branchId, function ($q) use ($branchId) {
+        $aksesoris = ($typed && $onlyType !== 'aksesoris') ? collect() : Aksesoris::when($branchId, function ($q) use ($branchId) {
                 return $q->where('branch_id', $branchId);
             })
-            ->where('nama_produk', 'LIKE', "{$query}%")
+            ->where('nama_produk', 'LIKE', $like)
             ->select('id', 'nama_produk as name', 'harga_jual as price', \DB::raw("'aksesoris' as type"))
-            ->limit(5)
+            ->limit($limit)
             ->get();
 
         $products = $frames->concat($lenses)->concat($aksesoris);

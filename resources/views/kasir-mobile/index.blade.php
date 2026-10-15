@@ -100,29 +100,6 @@
         <label class="m-label" for="dokter_manual">Atau input nama dokter</label>
         <input type="text" id="dokter_manual" class="m-input" placeholder="Nama dokter manual (opsional)" autocomplete="off">
     </div>
-    <div id="foto-pasien-wrap" style="display:none; margin-top:12px;">
-        <label class="m-label">Foto pasien</label>
-        <div style="display:flex; gap:8px;">
-            <button type="button" class="btn btn-default" onclick="document.getElementById('foto_pasien').click()">
-                <i class="fa fa-folder-open"></i> Pilih file
-            </button>
-            <button type="button" class="btn btn-default" onclick="openPatientCamera()">
-                <i class="fa fa-camera"></i> Ambil foto
-            </button>
-        </div>
-        <input type="file" id="foto_pasien" accept="image/*" style="display:none;">
-        <small id="foto-pasien-filename" style="display:block; color:#777; margin-top:6px;"></small>
-        <img id="foto-pasien-preview" alt="Foto pasien" style="display:none; width:100%; max-height:260px; object-fit:contain; margin-top:8px; border:1px solid #ddd;">
-    </div>
-    <div id="bpjs-capture-wrap" style="display:none; border-top:1px solid #eee; margin-top:12px; padding-top:12px;">
-        <h5 style="font-weight:700; margin:0 0 8px;">Tanda Tangan BPJS</h5>
-        <label class="m-label">Tanda tangan pasien</label>
-        <canvas id="bpjs-signature-canvas" class="bpjs-signature-canvas" width="720" height="260"></canvas>
-        <button type="button" id="clear-bpjs-signature" class="btn btn-default btn-block" style="margin-top:8px;">
-            <i class="fa fa-eraser"></i> Hapus tanda tangan
-        </button>
-        <small style="display:block; color:#777; margin-top:6px;">Minta pasien membubuhkan tanda tangan pada area di atas.</small>
-    </div>
     <div style="border-top:1px solid #eee; margin-top:12px; padding-top:12px;">
         <h5 style="font-weight:700; margin:0 0 8px;">Resep Pasien <small id="resep-source" style="font-weight:400; color:#888;"></small></h5>
         <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px;">
@@ -160,6 +137,14 @@
             </button>
         </div>
     </div>
+    <div id="bpjs-options-wrap" style="display:none; margin-top:8px; padding:10px; background:#f8f9fa; border-radius:8px;">
+        <label style="font-weight:600; margin:0 0 8px; display:block;">
+            <input type="checkbox" id="has-own-frame" style="margin-right:6px;"> Pasien Punya Frame Sendiri
+        </label>
+        <label class="m-label" for="bpjs_manual_additional_cost">Biaya Tambahan BPJS (Manual)</label>
+        <input type="number" id="bpjs_manual_additional_cost" class="m-input" value="0" min="0" step="1000">
+        <small style="display:block; color:#777; margin-top:4px;">Isi jika ada tambahan biaya lensa di luar tanggungan BPJS.</small>
+    </div>
     <button type="button" class="btn btn-warning btn-block" style="margin-top:8px;" onclick="openLensGosokModal()">
         <i class="fa fa-pencil"></i> Input Lensa Gosok
     </button>
@@ -175,6 +160,54 @@
     <h4><i class="fa fa-shopping-cart text-brand"></i> Keranjang <span class="badge badge-cabang" id="cart-count">0</span></h4>
     <div id="cart-list">
         <div class="m-empty" id="cart-empty"><i class="fa fa-cart-arrow-down"></i>Keranjang masih kosong</div>
+    </div>
+</div>
+
+{{-- ============ FOTO & TTD BPJS ============ --}}
+<div class="m-card" id="bpjs-media-card" style="display:none;">
+    <div id="foto-pasien-wrap" style="display:none;">
+        <label class="m-label">Foto pasien</label>
+        <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-default" onclick="document.getElementById('foto_pasien').click()">
+                <i class="fa fa-folder-open"></i> Pilih file
+            </button>
+            <button type="button" class="btn btn-default" onclick="openPatientCamera()">
+                <i class="fa fa-camera"></i> Ambil foto
+            </button>
+        </div>
+        <input type="file" id="foto_pasien" accept="image/*" style="display:none;">
+        <small id="foto-pasien-filename" style="display:block; color:#777; margin-top:6px;"></small>
+        <img id="foto-pasien-preview" alt="Foto pasien" style="display:none; width:100%; max-height:260px; object-fit:contain; margin-top:8px; border:1px solid #ddd;">
+    </div>
+    <div id="bpjs-capture-wrap" style="display:none; border-top:1px solid #eee; margin-top:12px; padding-top:12px;">
+        <h5 style="font-weight:700; margin:0 0 8px;">Tanda Tangan BPJS</h5>
+        <img id="bpjs-signature-preview" alt="Tanda tangan" style="display:none; width:100%; max-height:160px; object-fit:contain; border:1px solid #ddd; border-radius:6px; background:#fff; margin-bottom:8px;">
+        <button type="button" id="btn-open-signature" class="btn btn-primary btn-block">
+            <i class="fa fa-pencil-square-o"></i> <span id="btn-open-signature-text">Ambil Tanda Tangan</span>
+        </button>
+        <button type="button" id="btn-remove-signature" class="btn btn-default btn-block" style="margin-top:8px; display:none;">
+            <i class="fa fa-trash"></i> Hapus tanda tangan
+        </button>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-signature" tabindex="-1" role="dialog" data-backdrop="static">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Tanda Tangan Pasien</h4>
+            </div>
+            <div class="modal-body">
+                <canvas id="bpjs-signature-canvas" class="bpjs-signature-canvas" width="720" height="360" style="height:220px;"></canvas>
+                <small style="display:block; color:#777; margin-top:6px;">Minta pasien membubuhkan tanda tangan pada area di atas.</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="clear-bpjs-signature" class="btn btn-default pull-left"><i class="fa fa-eraser"></i> Ulangi</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                <button type="button" id="btn-save-signature" class="btn btn-success"><i class="fa fa-check"></i> Simpan</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -377,6 +410,7 @@
     <input type="hidden" name="items" id="f-items">
     <input type="hidden" name="total" id="f-total">
     <input type="hidden" name="diskon" id="f-diskon">
+    <input type="hidden" name="bpjs_manual_additional_cost" id="f-bpjs-manual">
     <input type="hidden" name="voucher_kode" id="f-voucher-kode">
     <input type="hidden" name="bayar" id="f-bayar">
     <input type="hidden" name="kekurangan" id="f-kekurangan">
@@ -441,7 +475,13 @@ $(function() {
 
     $('#modal-patient-camera').on('hidden.bs.modal', stopPatientCamera);
 
-    $('#clear-bpjs-signature').on('click', clearMobileSignature);
+    $('#clear-bpjs-signature').on('click', clearSignatureCanvas);
+    $('#btn-open-signature').on('click', function() {
+        clearSignatureCanvas();
+        $('#modal-signature').modal('show');
+    });
+    $('#btn-save-signature').on('click', saveMobileSignature);
+    $('#btn-remove-signature').on('click', clearMobileSignature);
 
     // pencarian cepat di halaman utama
     $('#quick-search').on('input', function() {
@@ -565,6 +605,18 @@ $(function() {
             });
     });
 
+    $('#has-own-frame').on('change', function() {
+        const own = $(this).is(':checked');
+        if (own) cart = cart.filter(item => item.type !== 'frame');
+        $('.product-btn[onclick="openProductModal(\'frame\')"]').prop('disabled', own);
+        $('#bayar').data('user-has-changed', false);
+        renderCart();
+    });
+
+    $('#bpjs_manual_additional_cost').on('input change', function() {
+        updateTotals();
+    });
+
     $('#pasien_service_type').on('change', function() {
         if (!$('#pasien_id').val()) {
             toggleBpjsCapture(isBpjsService($(this).val()));
@@ -674,8 +726,11 @@ function isBpjsService(serviceType) {
 }
 
 function toggleBpjsCapture(show) {
-    $('#pasien-no-bpjs-wrap, #pasien-terdaftar-bpjs-wrap, #foto-pasien-wrap, #bpjs-capture-wrap').toggle(show);
+    $('#pasien-no-bpjs-wrap, #pasien-terdaftar-bpjs-wrap,     #foto-pasien-wrap, #bpjs-capture-wrap, #bpjs-options-wrap, #bpjs-media-card').toggle(show);
     if (!show) {
+            $('#bpjs_manual_additional_cost').val(0);
+            $('#has-own-frame').prop('checked', false);
+            $('.product-btn[onclick="openProductModal(\'frame\')"]').prop('disabled', false);
         $('#pasien_no_bpjs, #foto_pasien').val('');
         selectedPatientPhoto = null;
         $('#foto-pasien-filename').text('');
@@ -730,7 +785,7 @@ function initMobileSignature() {
 
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function(name) {
         canvas.addEventListener(name, function() {
-            if (drawing) $('#f-signature-bpjs').val(canvas.toDataURL('image/png'));
+            if (drawing) signatureHasInk = true;
             drawing = false;
             context.beginPath();
         });
@@ -739,13 +794,33 @@ function initMobileSignature() {
     clearMobileSignature();
 }
 
-function clearMobileSignature() {
+let signatureHasInk = false;
+
+function clearSignatureCanvas() {
     const canvas = document.getElementById('bpjs-signature-canvas');
-    if (canvas) {
-        const context = canvas.getContext('2d');
-        context.clearRect(0, 0, canvas.width, canvas.height);
+    if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    signatureHasInk = false;
+}
+
+function saveMobileSignature() {
+    if (!signatureHasInk) {
+        toast('Tanda tangan masih kosong.', false);
+        return;
     }
+    const data = document.getElementById('bpjs-signature-canvas').toDataURL('image/png');
+    $('#f-signature-bpjs').val(data);
+    $('#bpjs-signature-preview').attr('src', data).show();
+    $('#btn-open-signature-text').text('Ulangi Tanda Tangan');
+    $('#btn-remove-signature').show();
+    $('#modal-signature').modal('hide');
+}
+
+function clearMobileSignature() {
+    clearSignatureCanvas();
     $('#f-signature-bpjs').val('');
+    $('#bpjs-signature-preview').hide().attr('src', '');
+    $('#btn-open-signature-text').text('Ambil Tanda Tangan');
+    $('#btn-remove-signature').hide();
 }
 
 /* ================= PENCARIAN PRODUK ================= */
@@ -891,10 +966,10 @@ function modalSearch(q) {
             $box.html('<div class="m-empty" style="padding:12px;">Gagal memuat stok lensa. Periksa koneksi lalu coba lagi.</div>');
         });
     } else {
-        $.get(ROUTES.search, { q: q }).done(function(products) {
+        $.get(ROUTES.search, { q: q, type: currentType }).done(function(products) {
             const items = products.filter(p => p.type === currentType).map(p => Object.assign({}, p, {
                 _info: currentType === 'frame'
-                    ? (p.code || '-') + ' · stok ' + (p.stock ?? 0)
+                    ? (p.code || '-') + ' · ' + (p.jenis_frame || '-') + ' · stok ' + (p.stock ?? 0)
                     : (p.code || p.type.toUpperCase())
             }));
             renderModalResults($box, items);
@@ -918,7 +993,7 @@ function resultItemHtml(p) {
     const info = p._info || (p.type.toUpperCase() + (p.index ? ' · idx ' + p.index : ''));
     return '<div class="search-result-item" data-item=\'' + JSON.stringify({
         id: p.id, name: p.name, type: p.type, price: Number(p.price) || 0,
-        index: p.index || '', cly: p.cly || '', add: p.add || ''
+        index: p.index || '', cly: p.cly || '', add: p.add || '', jenis_frame: p.jenis_frame || ''
     }).replace(/'/g, '&#39;') + '\'>'
         + '<div style="display:flex; justify-content:space-between; align-items:center;">'
         + '<div style="min-width:0; flex:1;">'
@@ -948,6 +1023,7 @@ function addToCart(item) {
             id: item.id, name: item.name, type: item.type,
             quantity: Number(item.quantity) || 1, price: item.price,
             index: item.index || '', cly: item.cly || '', axis: item.axis || '', add: item.add || '',
+            jenis_frame: item.jenis_frame || '',
             merk: item.merk || '', lensaType: item.lensaType || '', coating: item.coating || '', catatan: item.catatan || ''
         });
     }
@@ -1112,24 +1188,37 @@ function selectedServiceType() {
         : $('#pasien_service_type').val();
 }
 
+function normalizeBpjsLabel(value) {
+    return String(value || '').toUpperCase().replace(/\s+/g, ' ').trim()
+        .replace('BPJS 1', 'BPJS I').replace('BPJS 2', 'BPJS II').replace('BPJS 3', 'BPJS III');
+}
+
 function bpjsTotals() {
     const plafonByService = { 'BPJS I': 330000, 'BPJS II': 220000, 'BPJS III': 165000 };
-    const plafon = plafonByService[selectedServiceType()] || 0;
-    const eligibleTotal = cart
-        .filter(item => ['frame', 'lensa', 'lensa_gosok'].includes(item.type))
+    const service = normalizeBpjsLabel(selectedServiceType());
+    const plafon = plafonByService[service] || 0;
+    const sumOf = types => cart.filter(item => types.includes(item.type))
         .reduce((sum, item) => sum + (Number(item.price) || 0) * item.quantity, 0);
-    const accessoriesTotal = cart
-        .filter(item => item.type === 'aksesoris')
-        .reduce((sum, item) => sum + (Number(item.price) || 0) * item.quantity, 0);
-    const additional = Math.max(0, eligibleTotal - plafon);
+    const frameTotal = sumOf(['frame']);
+    const lensTotal = sumOf(['lensa', 'lensa_gosok']);
+    const accessoriesTotal = sumOf(['aksesoris']);
+    const manual = Math.max(0, Number($('#bpjs_manual_additional_cost').val()) || 0);
+
+    // Naik kelas jika jenis frame berbeda dengan layanan BPJS pasien; frame sendiri tidak naik kelas.
+    const frames = cart.filter(item => item.type === 'frame');
+    const naikKelas = frames.length > 0 && !$('#has-own-frame').is(':checked')
+        && frames.some(item => normalizeBpjsLabel(item.jenis_frame) !== service);
+    const additional = naikKelas ? Math.max(0, frameTotal + lensTotal - plafon) : 0;
+
     const diskonManual = Number($('#diskon').val()) || 0;
-    const potonganVoucher = hitungPotonganVoucher(additional + accessoriesTotal, diskonManual);
+    const potonganVoucher = hitungPotonganVoucher(additional + manual + accessoriesTotal, diskonManual);
     const discount = diskonManual + potonganVoucher;
     const discountOnAdditional = Math.min(discount, additional);
-    const remainingDiscount = Math.max(0, discount - discountOnAdditional);
-    const payable = Math.max(0, additional - discountOnAdditional + accessoriesTotal - remainingDiscount);
+    const discountOnManual = Math.min(discount - discountOnAdditional, manual);
+    const remainingDiscount = Math.max(0, discount - discountOnAdditional - discountOnManual);
+    const payable = Math.max(0, (additional - discountOnAdditional) + (manual - discountOnManual) + accessoriesTotal - remainingDiscount);
 
-    return { plafon, additional, payable, potonganVoucher };
+    return { plafon, additional, manual, naikKelas, frameTotal, lensTotal, payable, potonganVoucher };
 }
 
 function grandTotal() {
@@ -1149,8 +1238,12 @@ function updateTotals() {
     if (isBpjsService(selectedServiceType())) {
         const totals = bpjsTotals();
         potonganVoucher = totals.potonganVoucher;
-        $('#total-caption').text('TAGIHAN TAMBAHAN BPJS');
-        $('#total-note').html('Biaya dasar ' + formatRupiah(totals.plafon) + ' ditanggung BPJS<br>Tambahan: ' + formatRupiah(totals.additional));
+        $('#total-caption').text(totals.naikKelas || totals.manual > 0 ? 'TAGIHAN NAIK KELAS BPJS' : 'TAGIHAN TAMBAHAN BPJS');
+        let note = 'Biaya dasar ' + formatRupiah(totals.plafon) + ' ditanggung BPJS';
+        if ($('#has-own-frame').is(':checked')) note += '<br>Frame sendiri (tanpa naik kelas)';
+        if (totals.naikKelas) note += '<br>Naik kelas: (' + formatRupiah(totals.frameTotal) + ' + ' + formatRupiah(totals.lensTotal) + ') - ' + formatRupiah(totals.plafon) + ' = ' + formatRupiah(totals.additional);
+        if (totals.manual > 0) note += '<br>Tambahan manual: ' + formatRupiah(totals.manual);
+        $('#total-note').html(note);
         $('#payment-balance-caption').text('Sisa tagihan / kembalian:');
     } else {
         potonganVoucher = hitungPotonganVoucher(subTotal(), Number($('#diskon').val()) || 0);
@@ -1183,6 +1276,16 @@ function submitTransaction() {
         toast('Masukkan nominal pembayaran atau DP terlebih dahulu.', false);
         return;
     }
+
+    if (isBpjsService(selectedServiceType())) {
+        const lensQty = cart.filter(i => i.type === 'lensa' || i.type === 'lensa_gosok').reduce((s, i) => s + i.quantity, 0);
+        const hasFrame = cart.some(i => i.type === 'frame');
+        if ((!hasFrame && !$('#has-own-frame').is(':checked')) || lensQty === 0) {
+            toast('Pasien BPJS harus memilih frame (atau aktifkan frame sendiri) dan minimal 1 lensa.', false);
+            return;
+        }
+    }
+    $('#f-bpjs-manual').val(isBpjsService(selectedServiceType()) ? Math.max(0, Number($('#bpjs_manual_additional_cost').val()) || 0) : 0);
 
     $('#f-kode').val('MLT-' + Date.now());
     $('#f-items').val(JSON.stringify(cart));

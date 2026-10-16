@@ -334,26 +334,20 @@
         const pembayaranSebelumnya = Math.max(0, Number(bayar) || 0);
         const sisaPelunasan = Math.max(0, Number(kekurangan) || (totalTransaksi - pembayaranSebelumnya));
 
-        Swal.fire({
+        dialogPelunasan({
             title: 'Konfirmasi Pelunasan',
             html: `
                 <p style="margin-bottom: 8px;">Pasien harus melunasi:</p>
                 <h3 style="margin: 0 0 12px; color: #28a745;">${formatRupiah(sisaPelunasan)}</h3>
                 <small>Total transaksi: ${formatRupiah(totalTransaksi)}<br>
                 Pembayaran sebelumnya: ${formatRupiah(pembayaranSebelumnya)}</small>
-            `,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#28a745',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Ya, lunasi',
-            cancelButtonText: 'Batal'
+            `
         }).then((result) => {
             if (!result.isConfirmed) {
                 return;
             }
 
-            $.post(url, { '_token': '{{ csrf_token() }}' })
+            $.post(url, { '_token': '{{ csrf_token() }}', metode_pelunasan: result.metode, bank_pelunasan: result.bank })
                 .done(response => {
                     Swal.fire('Berhasil!', response.message, 'success')
                         .then(() => table.ajax.reload(null, false));

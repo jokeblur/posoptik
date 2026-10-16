@@ -179,13 +179,20 @@ class PenjualanController extends Controller
         return WhatsAppHelper::normalizePhoneNumber($phone);
     }
 
-    private function filterDataByExistingColumns(string $table, array $data): array
+    private function tableColumns(string $table): array
     {
         if (!isset($this->tableColumnsCache[$table])) {
-            $this->tableColumnsCache[$table] = Schema::getColumnListing($table);
+            $this->tableColumnsCache[$table] = Cache::remember('schema_columns_' . $table, 300, function () use ($table) {
+                return Schema::getColumnListing($table);
+            });
         }
 
-        $available = array_flip($this->tableColumnsCache[$table]);
+        return $this->tableColumnsCache[$table];
+    }
+
+    private function filterDataByExistingColumns(string $table, array $data): array
+    {
+        $available = array_flip($this->tableColumns($table));
         return array_filter(
             $data,
             static fn ($key) => isset($available[$key]),
@@ -198,11 +205,7 @@ class PenjualanController extends Controller
      */
     private function hasTableColumn(string $table, string $column): bool
     {
-        if (!isset($this->tableColumnsCache[$table])) {
-            $this->tableColumnsCache[$table] = Schema::getColumnListing($table);
-        }
-
-        return in_array($column, $this->tableColumnsCache[$table], true);
+        return in_array($column, $this->tableColumns($table), true);
     }
 
     private function buildReadyPickupMessage(Penjualan $penjualan): string
@@ -2328,14 +2331,26 @@ class PenjualanController extends Controller
         ]);
     }
 
-    public function lunas($id)
+    public function lunas(Request $request, $id)
     {
+        $request->validate([
+            'metode_pelunasan' => 'required|in:cash,transfer,qris',
+            'bank_pelunasan' => 'nullable|required_if:metode_pelunasan,transfer|in:BNI,BRI,MANDIRI,BSI,BCA',
+        ], [
+            'metode_pelunasan.required' => 'Pilih metode pembayaran pelunasan: Cash, Transfer, atau QRIS.',
+            'metode_pelunasan.in' => 'Metode pembayaran pelunasan tidak valid.',
+            'bank_pelunasan.required_if' => 'Pilih bank untuk pelunasan via transfer.',
+            'bank_pelunasan.in' => 'Bank pelunasan tidak valid.',
+        ]);
+
         $penjualan = Penjualan::findOrFail($id);
 
         if ($penjualan->status == 'Lunas') {
             return response()->json(['message' => 'Transaksi ini sudah lunas.'], 422);
         }
 
+        $penjualan->metode_pelunasan = $request->metode_pelunasan;
+        $penjualan->bank_pelunasan = $request->metode_pelunasan === 'transfer' ? strtoupper($request->bank_pelunasan) : null;
         $penjualan->jumlah_pelunasan = max(0, (float) $penjualan->total - (float) $penjualan->bayar);
         $penjualan->waktu_pelunasan = now();
         $penjualan->pelunasan_by_user_id = auth()->id();
@@ -2702,59 +2717,100 @@ class PenjualanController extends Controller
             $request->validate([
                 'status_pengerjaan' => 'required|in:' . implode(',', self::WORK_STATUS_ALLOWED),
                 'nohp' => 'nullable|string|max:30',
+                'metode_pelunasan' => 'nullable|in:cash,transfer,qris',
+                'bank_pelunasan' => 'nullable|in:BNI,BRI,MANDIRI,BSI,BCA',
             ]);
 
-            $penjualan = Penjualan::with(['pasien', 'branch'])->findOrFail($id);
-            $oldStatus = $penjualan->status_pengerjaan;
+            $result = DB::transaction(function () use ($request, $id) {
+                $penjualan = Penjualan::with(['pasien', 'branch'])
+                    ->lockForUpdate()
+                    ->findOrFail($id);
+                $oldStatus = $penjualan->status_pengerjaan;
 
-            if ($request->status_pengerjaan === self::WORK_STATUS_KIRIM_WA) {
-                if (!$penjualan->pasien) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Data pasien tidak ditemukan pada transaksi ini. Tidak bisa kirim WA.',
-                    ], 422);
+                if ($request->status_pengerjaan === self::WORK_STATUS_KIRIM_WA) {
+                    if (!$penjualan->pasien) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Data pasien tidak ditemukan pada transaksi ini. Tidak bisa kirim WA.',
+                        ], 422);
+                    }
+
+                    $inputNoHp = trim((string) $request->input('nohp', ''));
+                    if ($inputNoHp !== '') {
+                        $normalizedNoHp = WhatsAppHelper::normalizePhoneNumber($inputNoHp);
+                        $penjualan->pasien->nohp = $normalizedNoHp ?: $inputNoHp;
+                        $penjualan->pasien->save();
+                        $penjualan->setRelation('pasien', $penjualan->pasien->fresh());
+                    }
+
+                    $existingNoHp = trim((string) ($penjualan->pasien->nohp ?? ''));
+                    if ($existingNoHp === '') {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Nomor HP pasien belum ada. Isi nomor HP untuk status Kirim WA.',
+                        ], 422);
+                    }
                 }
 
-                $inputNoHp = trim((string) $request->input('nohp', ''));
-                if ($inputNoHp !== '') {
-                    $normalizedNoHp = WhatsAppHelper::normalizePhoneNumber($inputNoHp);
-                    $penjualan->pasien->nohp = $normalizedNoHp ?: $inputNoHp;
-                    $penjualan->pasien->save();
-                    $penjualan->setRelation('pasien', $penjualan->pasien->fresh());
+                $updateData = [
+                    'status_pengerjaan' => $request->status_pengerjaan,
+                    'passet_by_user_id' => auth()->id()
+                ];
+                $pelunasanDicatat = false;
+
+                if ($request->status_pengerjaan === self::WORK_STATUS_SUDAH_DI_KERJAKAN && $oldStatus !== self::WORK_STATUS_SUDAH_DI_KERJAKAN) {
+                    $updateData['waktu_selesai_dikerjakan'] = now();
                 }
 
-                $existingNoHp = trim((string) ($penjualan->pasien->nohp ?? ''));
-                if ($existingNoHp === '') {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Nomor HP pasien belum ada. Isi nomor HP untuk status Kirim WA.',
-                    ], 422);
+                if ($request->status_pengerjaan === self::WORK_STATUS_SUDAH_DI_AMBIL && ($penjualan->status ?? 'Belum Lunas') !== 'Lunas') {
+                    $metodePelunasan = $request->input('metode_pelunasan');
+                    if (!in_array($metodePelunasan, ['cash', 'transfer', 'qris'], true)) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Pilih metode pembayaran pelunasan: Cash, Transfer, atau QRIS.',
+                        ], 422);
+                    }
+
+                    if ($metodePelunasan === 'transfer' && !$request->filled('bank_pelunasan')) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Pilih bank untuk pelunasan via transfer.',
+                        ], 422);
+                    }
+
+                    $jumlahPelunasan = max(0, (float) $penjualan->total - (float) $penjualan->bayar);
+                    $updateData = array_merge($updateData, [
+                        'jumlah_pelunasan' => $jumlahPelunasan,
+                        'waktu_pelunasan' => now(),
+                        'pelunasan_by_user_id' => auth()->id(),
+                        'metode_pelunasan' => $metodePelunasan,
+                        'bank_pelunasan' => $metodePelunasan === 'transfer' ? $request->bank_pelunasan : null,
+                        'bayar' => $penjualan->total,
+                        'kekurangan' => 0,
+                        'status' => 'Lunas',
+                    ]);
+                    $pelunasanDicatat = true;
                 }
-            }
-            
-            $updateData = [
-                'status_pengerjaan' => $request->status_pengerjaan,
-                'passet_by_user_id' => auth()->id()
-            ];
 
-            // Set waktu selesai dikerjakan jika status berubah ke "Sudah Di Kerjakan"
-            if ($request->status_pengerjaan == self::WORK_STATUS_SUDAH_DI_KERJAKAN && $penjualan->status_pengerjaan != self::WORK_STATUS_SUDAH_DI_KERJAKAN) {
-                $updateData['waktu_selesai_dikerjakan'] = now();
-            }
+                if ($request->status_pengerjaan === self::WORK_STATUS_SUDAH_DI_AMBIL && $oldStatus !== self::WORK_STATUS_SUDAH_DI_AMBIL) {
+                    $updateData['waktu_sudah_diambil'] = now();
+                }
 
-            if ($request->status_pengerjaan == self::WORK_STATUS_SUDAH_DI_AMBIL && ($penjualan->status ?? 'Belum Lunas') !== 'Lunas') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Transaksi belum lunas. Status Sudah Di Ambil hanya untuk transaksi yang sudah Lunas.'
-                ], 422);
-            }
+                $penjualan->update($updateData);
 
-            if ($request->status_pengerjaan == self::WORK_STATUS_SUDAH_DI_AMBIL && $penjualan->status_pengerjaan != self::WORK_STATUS_SUDAH_DI_AMBIL) {
-                $updateData['waktu_sudah_diambil'] = now();
+                return [
+                    'penjualan' => $penjualan,
+                    'old_status' => $oldStatus,
+                    'pelunasan_dicatat' => $pelunasanDicatat,
+                ];
+            });
+
+            if ($result instanceof \Illuminate\Http\JsonResponse) {
+                return $result;
             }
 
-            $penjualan->update($updateData);
-
+            $penjualan = $result['penjualan'];
+            $oldStatus = $result['old_status'];
             $whatsappNotification = null;
             if ($request->status_pengerjaan === self::WORK_STATUS_KIRIM_WA && $oldStatus !== self::WORK_STATUS_KIRIM_WA) {
                 $penjualan->refresh();
@@ -2764,7 +2820,9 @@ class PenjualanController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Status pengerjaan berhasil diperbarui',
+                'message' => $result['pelunasan_dicatat']
+                    ? 'Pelunasan berhasil dicatat dan status pengerjaan diperbarui.'
+                    : 'Status pengerjaan berhasil diperbarui',
                 'data' => [
                     'status_pengerjaan' => $penjualan->status_pengerjaan,
                     'passet_by_user_id' => $penjualan->passet_by_user_id,

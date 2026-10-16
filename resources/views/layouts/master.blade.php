@@ -267,6 +267,65 @@
 <script src="{{ asset('js/validator.min.js') }}"></script>
 <script src="{{ asset('js/sweetalert-config.js') }}"></script>
 <script>
+    // Dialog pelunasan: metode pembayaran + bank (muncul saat Transfer). Resolve { isConfirmed, metode, bank }.
+    window.dialogPelunasan = function (options) {
+        return Swal.fire({
+            title: options.title || 'Konfirmasi Pelunasan',
+            html: (options.html || '')
+                + '<div style="text-align:left; margin-top:12px;">'
+                + '<label for="pelunasan-metode" style="font-weight:600;">Metode pembayaran</label>'
+                + '<select id="pelunasan-metode" class="swal2-select" style="display:flex; width:100%; margin:4px 0 0;">'
+                + '<option value="">Pilih metode pembayaran</option>'
+                + '<option value="cash">Cash</option>'
+                + '<option value="transfer">Transfer</option>'
+                + '<option value="qris">QRIS</option>'
+                + '</select>'
+                + '<div id="pelunasan-bank-wrap" style="display:none; margin-top:10px;">'
+                + '<label for="pelunasan-bank" style="font-weight:600;">Bank transfer</label>'
+                + '<select id="pelunasan-bank" class="swal2-select" style="display:flex; width:100%; margin:4px 0 0;">'
+                + '<option value="">Pilih bank</option>'
+                + '<option value="BCA">BCA</option>'
+                + '<option value="BNI">BNI</option>'
+                + '<option value="BRI">BRI</option>'
+                + '<option value="MANDIRI">MANDIRI</option>'
+                + '<option value="BSI">BSI</option>'
+                + '</select></div></div>',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, lunasi',
+            cancelButtonText: 'Batal',
+            didOpen: function () {
+                var popup = Swal.getPopup();
+                popup.querySelector('#pelunasan-metode').addEventListener('change', function () {
+                    popup.querySelector('#pelunasan-bank-wrap').style.display = this.value === 'transfer' ? 'block' : 'none';
+                });
+            },
+            preConfirm: function () {
+                var popup = Swal.getPopup();
+                var metode = popup.querySelector('#pelunasan-metode').value;
+                var bank = popup.querySelector('#pelunasan-bank').value;
+                if (!metode) {
+                    Swal.showValidationMessage('Metode pembayaran wajib dipilih');
+                    return false;
+                }
+                if (metode === 'transfer' && !bank) {
+                    Swal.showValidationMessage('Bank wajib dipilih untuk transfer');
+                    return false;
+                }
+                return { metode: metode, bank: metode === 'transfer' ? bank : '' };
+            }
+        }).then(function (result) {
+            return {
+                isConfirmed: result.isConfirmed,
+                metode: result.isConfirmed ? result.value.metode : '',
+                bank: result.isConfirmed ? result.value.bank : ''
+            };
+        });
+    };
+</script>
+<script>
     window.APP_BASE_URL = '{{ url('') }}';
     window.DATATABLES_LANG_URL = '{{ asset('js/datatables-id.json') }}';
 </script>

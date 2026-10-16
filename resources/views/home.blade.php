@@ -2208,22 +2208,16 @@ function lunasPiutangKasir(url, total, bayar, kekurangan) {
     const formatRupiah = value => 'Rp ' + Number(value || 0).toLocaleString('id-ID');
     const sisaPelunasan = Math.max(0, Number(kekurangan) || 0);
 
-    Swal.fire({
+    dialogPelunasan({
         title: 'Pelunasan Piutang',
         html: '<p>Pasien membayar:</p><h3 style="color: #28a745;">' + formatRupiah(sisaPelunasan) + '</h3>'
-            + '<small>Total transaksi: ' + formatRupiah(total) + '<br>Sudah bayar: ' + formatRupiah(bayar) + '</small>',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Ya, lunasi',
-        cancelButtonText: 'Batal'
+            + '<small>Total transaksi: ' + formatRupiah(total) + '<br>Sudah bayar: ' + formatRupiah(bayar) + '</small>'
     }).then(function (result) {
         if (!result.isConfirmed) {
             return;
         }
 
-        $.post(url, { _token: '{{ csrf_token() }}' })
+        $.post(url, { _token: '{{ csrf_token() }}', metode_pelunasan: result.metode, bank_pelunasan: result.bank })
             .done(function (response) {
                 Swal.fire('Berhasil!', response.message, 'success').then(function () {
                     window.location.reload();

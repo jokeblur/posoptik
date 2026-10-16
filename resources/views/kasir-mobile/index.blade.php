@@ -661,6 +661,30 @@ function setPatientPhoto(file, filename) {
     patientPhotoPreviewUrl = URL.createObjectURL(file);
     $('#foto-pasien-filename').text(filename);
     $('#foto-pasien-preview').attr('src', patientPhotoPreviewUrl).show();
+    compressPatientPhoto(file, filename);
+}
+
+// Perkecil foto di background agar upload saat simpan transaksi cepat.
+function compressPatientPhoto(file, filename) {
+    if (!file || !file.type || file.type.indexOf('image/') !== 0 || file.size < 300 * 1024) return;
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = function () {
+        const maxSide = 1280;
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(function (blob) {
+            if (!blob || blob.size >= file.size || selectedPatientPhoto !== file) return;
+            selectedPatientPhoto = new File([blob], (filename || 'foto-pasien').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+        }, 'image/jpeg', 0.8);
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); };
+    img.src = url;
 }
 
 async function openPatientCamera() {

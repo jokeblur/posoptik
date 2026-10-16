@@ -900,18 +900,12 @@ window.loadLensaStock = function() {
 $(document).on('click', '#btn-bayar-lunas', function() {
     let url = $(this).data('url');
     
-    Swal.fire({
+    dialogPelunasan({
         title: 'Konfirmasi Pelunasan',
-        text: "Apakah Anda yakin ingin melunasi transaksi ini?",
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Ya, Lunasi!',
-        cancelButtonText: 'Batal'
+        html: '<p>Apakah Anda yakin ingin melunasi transaksi ini?</p>'
     }).then((result) => {
         if (result.isConfirmed) {
-            $.post(url, { '_token': '{{ csrf_token() }}' })
+            $.post(url, { '_token': '{{ csrf_token() }}', metode_pelunasan: result.metode, bank_pelunasan: result.bank })
                 .done(function(response) {
                     Swal.fire({
                         icon: 'success',
